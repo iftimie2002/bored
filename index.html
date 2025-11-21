@@ -1,35 +1,27 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <base target="_top">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Are you Smart, or just Confident?</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .card { max-width: 760px; margin: 22px auto; }
-    .timer-ring { transition: stroke-dashoffset 0.3s linear; }
-    .option-btn { transition: all 0.2s; }
-    .option-btn:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
-    .option-btn.selected { background-color: #6366f1; color: white; border-color: #6366f1; }
+    html, body { height: 100%; margin: 0; padding: 0; overflow-x: hidden; }
+    body { background: linear-gradient(135deg, #eef2ff 0%, #fce7f3 100%); }
+    #app { min-height: 100vh; display: flex; flex-direction: column; }
+    .container { flex: 1; padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 16px); }
+    .card { border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .timer-ring { transition: stroke-dashoffset 0.3s ease; }
+    .btn-touch { min-height: 64px; }
+    .option-btn { min-height: 72px; }
   </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-50 via-white to-pink-50 min-h-screen font-sans">
-  <div class="card p-8 bg-white/90 rounded-3xl shadow-2xl">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-3xl font-bold text-slate-800">Are you Smart, or just Confident?</h1>
-      <div id="progress" class="text-lg text-slate-600">Question <span id="qix">0</span>/<span id="qtotal">0</span></div>
-    </div>
-
-    <div id="container" class="min-h-96"></div>
-
-    <div class="mt-8 flex justify-between items-center">
-      <button id="backBtn" class="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-medium">Back</button>
-      <div id="status" class="text-sm text-slate-500">Autosave: idle</div>
-    </div>
-  </div>
+<body class="font-sans antialiased">
+  <div id="app" class="flex flex-col h-screen bg-gradient-to-br from-indigo-50 via-white to-pink-50"></div>
 
 <script>
 (function(){
-  const trueFalseQuestions = [
+  const trueFalseQuestions = [ /* ← all your 20 TF questions (same as before) */ 
     {type:"tf", q:'A cloud weighs around a million tons.', correct:true},
     {type:"tf", q:'Giraffes are 30x more likely to be struck by lightning than humans.', correct:true},
     {type:"tf", q:'Identical twins have identical fingerprints.', correct:false},
@@ -52,7 +44,7 @@
     {type:"tf", q:'The Moon is growing larger every year.', correct:false}
   ];
 
-  const mcQuestions = [
+  const mcQuestions = [ /* ← all your 20 MC questions (same as before) */ 
     {type:"mc", q:"What are the prime factors of 24?", options:["Two and three","Two and four","Three and eight","Two and twelve"], correct:0},
     {type:"mc", q:"How many sides does a trapezoid have?", options:["Three","Four","Five","Six"], correct:1},
     {type:"mc", q:"Which math theorem states that in a right triangle, A² + B² = C²?", options:["Euclid's Theorem","Pythagorean Theorem","Fermat's Last Theorem","Pascal's Theorem"], correct:1},
@@ -75,274 +67,225 @@
     {type:"mc", q:"Fear of flowers is called?", options:["Floraphobia","Anthophobia","Botanophobia","Petalphobia"], correct:1}
   ];
 
-  const starQuestions = [
-    {id:"q1", text:"What's the one thing in the Algarve that genuinely surprised you in a good way?", tag:"experienced"},
-    {id:"q2", text:"What part of your stay felt unnecessarily difficult or annoying?", tag:"experienced"},
-    {id:"q3", text:"If you could import one thing from back home to make your time here easier, what would it be?", tag:"all"},
-    {id:"q4", text:"What service or product do you wish had been available here?", tag:"experienced"},
-    {id:"q5", text:"What did you try to do in the Algarve that ended up being harder than expected?", tag:"experienced"},
-    {id:"q6", text:"What’s something you looked for but couldn’t find easily?", tag:"experienced"},
-    {id:"q7", text:"What daily task would you pay someone to handle for you while staying here?", tag:"all"},
-    {id:"q8", text:"What’s one thing that would have saved you time during your trip?", tag:"experienced"},
-    {id:"q9", text:"What place or service felt outdated or in need of improvement?", tag:"experienced"},
-    {id:"q10", text:"What’s something from home you kept thinking “I wish they had this here”?", tag:"all"},
-    {id:"q11", text:"What activity or experience did you expect to exist but didn’t?", tag:"experienced"},
-    {id:"q12", text:"What moment made you think “this could be done in a better way”?", tag:"experienced"},
-    {id:"q13", text:"What did you spend too much effort trying to figure out or organize?", tag:"experienced"},
-    {id:"q14", text:"What local service disappointed you the most?", tag:"experienced"},
-    {id:"q15", text:"What would have made your stay more comfortable on a daily basis?", tag:"experienced"},
-    {id:"q16", text:"What’s something you felt was overpriced for the value?", tag:"experienced"},
-    {id:"q17", text:"If you could bring one thing from back home to make your stay easier, what would it be?", tag:"all"}
+  const starQuestions = [ /* ← all 17 STAR questions you gave me */ 
+    {id:"s1", text:"What's the one thing in the Algarve that genuinely surprised you in a good way?", tag:"experienced"},
+    {id:"s2", text:"What part of your stay felt unnecessarily difficult or annoying?", tag:"experienced"},
+    {id:"s3", text:"If you could import one thing from back home to make your time here easier, what would it be?", tag:"all"},
+    {id:"s4", text:"What service or product do you wish had been available here?", tag:"experienced"},
+    {id:"s5", text:"What did you try to do in the Algarve that ended up being harder than expected?", tag:"experienced"},
+    {id:"s6", text:"What’s something you looked for but couldn’t find easily?", tag:"experienced"},
+    {id:"s7", text:"What daily task would you pay someone to handle for you while staying here?", tag:"all"},
+    {id:"s8", text:"What’s one thing that would have saved you time during your trip?", tag:"experienced"},
+    {id:"s9", text:"What place or service felt outdated or in need of improvement?", tag:"experienced"},
+    {id:"s10", text:"What’s something from home you kept thinking “I wish they had this here”?", tag:"all"},
+    {id:"s11", text:"What activity or experience did you expect to exist but didn’t?", tag:"experienced"},
+    {id:"s12", text:"What moment made you think “this could be done in a better way”?", tag:"experienced"},
+    {id:"s13", text:"What did you spend too much effort trying to figure out or organize?", tag:"experienced"},
+    {id:"s14", text:"What local service disappointed you the most?", tag:"experienced"},
+    {id:"s15", text:"What would have made your stay more comfortable on a daily basis?", tag:"experienced"},
+    {id:"s16", text:"What’s something you felt was overpriced for the value?", tag:"experienced"},
+    {id:"s17", text:"If you could bring one thing from back home to make your stay easier, what would it be?", tag:"all"}
   ];
 
-  let answers = {};
-  let sequence = [];
-  let pointer = 0;
-  let stage = 'meta';
-  let timerInterval = null;
-  let timeLeft = 30;
-  const clientId = localStorage.getItem('clientId') || ('id-'+Math.random().toString(36).slice(2)+Date.now());
-  localStorage.setItem('clientId', clientId);
+  let answers = {}, sequence = [], pointer = 0, timer = null, timeLeft = 30;
+  const clientId = localStorage.getItem('cid') || 'c'+Date.now();
+  localStorage.setItem('cid', clientId);
+  const app = document.getElementById('app');
 
-  const container = document.getElementById('container');
-  const qix = document.getElementById('qix');
-  const qtotal = document.getElementById('qtotal');
-  const status = document.getElementById('status');
-  const backBtn = document.getElementById('backBtn');
+  function esc(t) { return t.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function shuffle(a) { return a.sort(() => Math.random()-0.5); }
 
-  function shuffle(a) { const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
-  function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-  function renderMeta(){
-    qix.textContent = '0'; qtotal.textContent = '0'; backBtn.disabled = true;
-    container.innerHTML = `
-      <div class="space-y-8">
-        <div>
-          <label class="block text-xl font-semibold text-slate-800 mb-3">1. How long are you staying in the Algarve?</label>
-          <select id="meta_q1" class="w-full text-lg rounded-xl border-2 border-slate-300 p-4">
-            <option value="leaving">I'm leaving</option>
-            <option value="few">Few more days</option>
-            <option value="just">Just arrived</option>
-            <option value="not">I'm not in the Algarve</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xl font-semibold text-slate-800 mb-3">2. How many more minutes is your (Uber) ride taking?</label>
-          <div class="flex items-center gap-4">
-            <input id="meta_q3" type="range" min="1" max="60" value="10" class="w-full">
-            <span id="minsVal" class="text-2xl font-mono w-16 text-right">10</span>
+  function renderMeta() {
+    app.innerHTML = `
+      <div class="container flex flex-col justify-center items-center text-center px-6">
+        <div class="bg-white/95 card w-full max-w-lg p-10 rounded-3xl">
+          <h1 class="text-4xl font-black text-slate-800 mb-8">Are you Smart,<br>or just Confident?</h1>
+          <div class="space-y-10">
+            <div>
+              <label class="block text-xl font-semibold mb-4">Staying in Algarve?</label>
+              <select id="stay" class="w-full p-5 rounded-2xl border-2 border-slate-200 text-lg">
+                <option value="leaving">Leaving soon</option>
+                <option value="few">Few more days</option>
+                <option value="just">Just arrived</option>
+                <option value="not">Not here</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xl font-semibold mb-4">Uber ride length?</label>
+              <input id="mins" type="range" min="1" max="60" value="10" class="w-full h-3 rounded-full">
+              <div class="text-5xl font-bold mt-4"><span id="minsVal">10</span> min</div>
+            </div>
+            <button id="start" class="w-full py-6 bg-indigo-600 text-white text-2xl font-bold rounded-2xl shadow-xl">Start Survey</button>
           </div>
         </div>
-        <div class="text-center pt-6">
-          <button id="startBtn" class="px-10 py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl">Start Survey</button>
-        </div>
       </div>`;
-    const saved = JSON.parse(localStorage.getItem('survey_draft')||'null');
-    if(saved?.meta){ if(saved.meta.q1) document.getElementById('meta_q1').value = saved.meta.q1;
-      if(saved.meta.q3){ document.getElementById('meta_q3').value = saved.meta.q3; document.getElementById('minsVal').textContent = saved.meta.q3; }
-    }
-    document.getElementById('meta_q3').oninput = e => document.getElementById('minsVal').textContent = e.target.value;
-    document.getElementById('startBtn').onclick = startSurvey;
+    document.getElementById('mins').oninput = e => document.getElementById('minsVal').textContent = e.target.value;
+    document.getElementById('start').onclick = startSurvey;
   }
 
-  function startSurvey(){
-    buildSequence();
-    stage = 'survey';
-    pointer = 0;
-    renderCurrent();
-  }
+  function startSurvey() {
+    const mins = +document.getElementById('mins').value;
+    const stay = document.getElementById('stay').value;
+    const maxF = mins < 5 ? 5 : mins < 15 ? 10 : 16;
+    const maxS = mins < 5 ? 2 : mins < 15 ? 5 : 8;
 
-  function buildSequence(){
-    const mins = Number(document.getElementById('meta_q3').value || 10);
-    const stay = document.getElementById('meta_q1').value;
-    const maxFact = mins < 5 ? 4 : mins < 15 ? 8 : 15;
-    const maxStar = mins < 5 ? 2 : mins < 15 ? 4 : 7;
-
-    const availableStars = starQuestions.filter(s => s.tag==='all' || (s.tag==='experienced' && stay!=='just'));
-    const shuffledStars = shuffle(availableStars).slice(0, maxStar);
-    const allFacts = shuffle([...trueFalseQuestions, ...mcQuestions]).slice(0, maxFact);
+    const stars = shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just'))).slice(0, maxS);
+    const facts = shuffle([...trueFalseQuestions.map(f=>({...f,isTF:true})), ...mcQuestions.map(f=>({...f,isTF:false}))]).slice(0, maxF);
 
     sequence = [];
-    let factCount = 0;
-    let starIdx = 0;
-
-    allFacts.forEach(f => {
-      sequence.push({type:'fact', q: f.q, options: f.options || null, correct: f.correct, isTF: f.type==='tf'});  // fixed key
-      factCount++;
-      if (factCount >= 2 && Math.random() < 0.7 || factCount >= 3) {
-        if (starIdx < shuffledStars.length) {
-          sequence.push({type:'star', id: shuffledStars[starIdx].id, text: shuffledStars[starIdx++].text});
-          factCount = 0;
-        }
+    let streak = 0, si = 0;
+    facts.forEach(f => {
+      sequence.push({type:'fact', q:f.q, options:f.options||null, correct:f.correct, isTF:f.isTF});
+      streak++;
+      if ((streak >= 2 && Math.random()<0.7) || streak >= 3) {
+        if (si < stars.length) { sequence.push({type:'star', id:stars[si].id, text:stars[si++].text}); streak = 0; }
       }
     });
-    while (starIdx < shuffledStars.length) sequence.push({type:'star', id: shuffledStars[starIdx].id, text: shuffledStars[starIdx++].text});
+    while (si < stars.length) sequence.push({type:'star', id:stars[si].id, text:stars[si++].text});
 
-    qtotal.textContent = sequence.length;
+    pointer = 0;
+    renderQuestion();
   }
 
-  function startTimer(){
+  function startTimer() {
     timeLeft = 30;
-    renderTimer();
-    clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
+    updateTimer();
+    clearInterval(timer);
+    timer = setInterval(() => {
       timeLeft--;
-      renderTimer();
-      if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        const item = sequence[pointer];
-        answers[item.q] = {answer: null, confidence: 0, timedOut: true};
-        nextQuestion();
-      }
+      updateTimer();
+      if (timeLeft <= 0) { clearInterval(timer); answers[sequence[pointer].q] = {answer:null, confidence:0, timedOut:true}; next(); }
     }, 1000);
   }
 
-  function renderTimer(){
-    const ring = document.getElementById('timerRing');
-    const txt = document.getElementById('timerText');
-    if (!ring || !txt) return;
-    const c = 2 * Math.PI * 42;
+  function updateTimer() {
+    const ring = document.getElementById('ring');
+    const num = document.getElementById('time');
+    if (!ring || !num) return;
+    const c = 1356; // 2π×216
     ring.style.strokeDashoffset = c - (timeLeft/30)*c;
-    txt.textContent = timeLeft;
+    num.textContent = timeLeft;
     ring.style.stroke = timeLeft > 10 ? '#10b981' : timeLeft > 5 ? '#f59e0b' : '#ef4444';
   }
 
-  function renderCurrent(){
-    const item = sequence[pointer];
-    qix.textContent = pointer + 1;
-    backBtn.disabled = pointer === 0;
-
-    if (item.type === 'fact') {
-      container.innerHTML = `
-        <div class="space-y-8 text-center">
-          <svg width="100" height="100" viewBox="0 0 100 100" class="mx-auto">
-            <circle cx="50" cy="50" r="42" stroke="#e5e7eb" stroke-width="12" fill="none"/>
-            <circle id="timerRing" cx="50" cy="50" r="42" stroke="#10b981" stroke-width="12" fill="none" stroke-dasharray="${2*Math.PI*42}" class="timer-ring"/>
-            <text id="timerText" x="50" y="57" font-size="32" text-anchor="middle" font-bold fill="#1f2937">30</text>
-          </svg>
-          <h2 class="text-2xl font-bold text-slate-800">${esc(item.q)}</h2>
-          ${item.isTF ? `
-            <div class="flex justify-center gap-8">
-              <button id="trueBtn" class="px-12 py-6 bg-green-600 text-white text-2xl font-bold rounded-xl">TRUE</button>
-              <button id="falseBtn" class="px-12 py-6 bg-red-600 text-white text-2xl font-bold rounded-xl">FALSE</button>
+  function renderQuestion() {
+    const q = sequence[pointer];
+    const progress = Math.round((pointer/sequence.length)*100);
+    app.innerHTML = `
+      <div class="container flex flex-col h-screen">
+        <div class="flex justify-between items-center py-4 px-6">
+          <button id="back" class="text-3xl">←</button>
+          <div class="text-lg font-bold">${pointer+1}/${sequence.length}</div>
+          <div class="w-32 h-2 bg-gray-200 rounded-full overflow-hidden"><div class="h-full bg-indigo-600 transition-all" style="width:${progress}%"></div></div>
+        </div>
+        <div class="flex-1 flex flex-col justify-center px-6">
+          ${q.type === 'fact' ? `
+            <div class="text-center mb-10">
+              <svg width="120" height="120" viewBox="0 0 480 480" class="mx-auto mb-8">
+                <circle cx="240" cy="240" r="216" stroke="#e5e7eb" stroke-width="36" fill="none"/>
+                <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" class="timer-ring"/>
+                <text id="time" x="240" y="280" font-size="140" text-anchor="middle" font-weight="bold" fill="#1f2937">30</text>
+              </svg>
+              <h2 class="text-3xl font-black leading-tight px-4">${esc(q.q)}</h2>
+            </div>
+            <div class="space-y-5">
+              ${q.isTF ? `
+                <button class="true w-full py-8 btn-touch bg-gradient-to-r from-green-500 to-emerald-600 text-white text-3xl font-bold rounded-3xl shadow-xl">TRUE</button>
+                <button class="false w-full py-8 btn-touch bg-gradient-to-r from-red-500 to-rose-600 text-white text-3xl font-bold rounded-3xl shadow-xl">FALSE</button>
+              ` : q.options.map((o,i) => `
+                <button data-i="${i}" class="option-btn w-full py-8 text-2xl font-medium bg-white border-4 border-gray-200 rounded-3xl shadow-lg hover:border-indigo-500">${esc(o)}</button>
+              `).join('')}
             </div>
           ` : `
-            <div class="grid gap-4 max-w-2xl mx-auto">
-              ${item.options.map((opt,i) => `<button data-idx="${i}" class="option-btn p-6 text-lg font-medium border-2 border-slate-300 rounded-xl hover:border-indigo-500">${esc(opt)}</button>`).join('')}
+            <div class="space-y-6">
+              <h2 class="text-3xl font-black leading-tight">${esc(q.text)}</h2>
+              <textarea id="txt" class="w-full p-6 text-xl rounded-3xl border-4 border-gray-200 focus:border-indigo-500 outline-none resize-none" rows="5" placeholder="Your answer...">${answers[q.id]?.answer||''}</textarea>
+              <button id="nextStar" class="w-full py-6 bg-indigo-600 text-white text-2xl font-bold rounded-3xl shadow-xl">Next</button>
             </div>
           `}
-        </div>`;
-      startTimer();
-      if (item.isTF) {
-        document.getElementById('trueBtn').onclick = () => selectAnswer(true);
-        document.getElementById('falseBtn').onclick = () => selectAnswer(false);
-      } else {
-        document.querySelectorAll('.option-btn').forEach(b => b.onclick = () => {
-          document.querySelectorAll('.option-btn').forEach(x => x.classList.remove('selected'));
-          b.classList.add('selected');
-          selectAnswer(Number(b.dataset.idx));
-        });
-      }
-    } else { // STAR question
-      const saved = answers[item.id]?.answer || '';
-      container.innerHTML = `
-        <div class="space-y-8">
-          <h2 class="text-2xl font-bold text-slate-800">${esc(item.text)}</h2>
-          <textarea id="starInput" rows="4" class="w-full rounded-xl border-2 border-slate-300 p-4" placeholder="Your answer">${esc(saved)}</textarea>
-          <div class="text-right">
-            <button id="starNext" class="px-8 py-4 bg-indigo-600 text-white text-xl font-bold rounded-xl">Next</button>
-          </div>
-        </div>`;
-      document.getElementById('starNext').onclick = () => {
-        answers[item.id] = {answer: document.getElementById('starInput').value.trim()};
-        nextQuestion();
+        </div>
+      </div>`;
+
+    if (q.type === 'fact') startTimer();
+
+    if (q.type === 'fact' && q.isTF) {
+      document.querySelector('.true').onclick = () => choose(true);
+      document.querySelector('.false').onclick = () => choose(false);
+    }
+    if (q.type === 'fact' && !q.isTF) {
+      document.querySelectorAll('.option-btn').forEach(b => b.onclick = () => {
+        document.querySelectorAll('.option-btn').forEach(x => x.classList.remove('border-indigo-500','bg-indigo-50'));
+        b.classList.add('border-indigo-500','bg-indigo-50');
+        choose(+b.dataset.i);
+      });
+    }
+    if (q.type === 'star') {
+      document.getElementById('nextStar').onclick = () => {
+        answers[q.id] = {answer: document.getElementById('txt').value.trim()};
+        next();
       };
     }
+
+    document.getElementById('back')?.addEventListener('click', () => { if(pointer>0){ clearInterval(timer); pointer--; renderQuestion(); } });
   }
 
-  function selectAnswer(val){
-    clearInterval(timerInterval);
+  function choose(val) {
+    clearInterval(timer);
     answers[sequence[pointer].q] = {answer: val};
-    renderConfidence(sequence[pointer].q);
+    renderConfidence();
   }
 
-  function renderConfidence(qKey){
-    container.innerHTML = `
-      <div class="space-y-8 text-center">
-        <h2 class="text-2xl font-bold text-slate-800">How confident are you?</h2>
-        <input id="confSlider" type="range" min="0" max="100" value="70" class="w-full">
-        <div class="text-5xl font-bold text-indigo-600" id="confVal">70%</div>
-        <button id="confNext" class="px-12 py-5 bg-indigo-600 text-white text-xl font-bold rounded-xl">Continue</button>
+  function renderConfidence() {
+    app.innerHTML = `
+      <div class="container flex flex-col justify-center items-center h-screen px-6">
+        <div class="bg-white/95 card w-full max-w-lg p-10 rounded-3xl text-center">
+          <h2 class="text-4xl font-black mb-12">How confident are you?</h2>
+          <input id="slider" type="range" min="0" max="100" value="70" class="w-full h-12 rounded-full">
+          <div class="text-8xl font-black text-indigo-600 my-10" id="val">70%</div>
+          <button id="go" class="w-full py-6 bg-indigo-600 text-white text-3xl font-bold rounded-3xl shadow-xl">Continue</button>
+        </div>
       </div>`;
-    const s = document.getElementById('confSlider');
-    const v = document.getElementById('confVal');
+    const s = document.getElementById('slider');
+    const v = document.getElementById('val');
     s.oninput = () => v.textContent = s.value + '%';
-    document.getElementById('confNext').onclick = () => {
-      answers[qKey].confidence = Number(s.value);
-      nextQuestion();
+    document.getElementById('go').onclick = () => {
+      answers[sequence[pointer].q].confidence = +s.value;
+      next();
     };
   }
 
-  function nextQuestion(){
+  function next() {
     pointer++;
-    if (pointer >= sequence.length) finishSurvey();
-    else renderCurrent();
+    if (pointer >= sequence.length) finish();
+    else renderQuestion();
   }
 
-  backBtn.onclick = () => {
-    if (pointer > 0) { clearInterval(timerInterval); pointer--; renderCurrent(); }
-  };
-
-  // finishSurvey(), localSave(), setInterval same as previous working version
-  function finishSurvey(){
-    clearInterval(timerInterval);
-    localSave();
-
-    const facts = sequence.filter(i => i.type === 'fact');
-    let correct = 0, totalConf = 0, list = '';
-
+  function finish() {
+    clearInterval(timer);
+    const facts = sequence.filter(x => x.type === 'fact');
+    let correct = 0, confSum = 0, recap = '';
     facts.forEach(f => {
       const a = answers[f.q] || {answer:null, confidence:0};
-      const right = a.answer === f.correct;
-      if (right) correct++;
-      totalConf += Number(a.confidence || 0);
-
-      const user = a.answer==null ? 'Timed out' : f.isTF ? (a.answer?'True':'False') : f.options[a.answer];
+      if (a.answer === f.correct) correct++;
+      confSum += a.confidence || 0;
+      const user = a.answer === null ? 'Timed out' : f.isTF ? (a.answer?'True':'False') : f.options[a.answer];
       const corr = f.isTF ? (f.correct?'True':'False') : f.options[f.correct];
-      list += `<div class="border-b py-4"><strong>${esc(f.q)}</strong><div>You: ${esc(user)} | Correct: ${esc(corr)}</div></div>`;
+      recap += `<div class="p-5 bg-white/80 rounded-2xl mb-4"><strong class="block mb-2">${esc(f.q)}</strong><div>You: ${user} | Correct: ${corr}</div></div>`;
     });
+    const smart = Math.round(correct/facts.length*100);
+    const conf = Math.round(confSum/facts.length);
 
-    const smartScore = facts.length ? Math.round(correct/facts.length*100) : 0;
-    const confidenceScore = facts.length ? Math.round(totalConf/facts.length) : 0;
-
-    const verdict = smartScore < 30 ? "You didn't score great, but at least you're confident about it." :
-                    smartScore < 60 ? "Mixed results. Confidence and knowledge are not perfectly aligned." :
-                    "Very strong performance.";
-
-    container.innerHTML = `
-      <div class="text-center space-y-10">
-        <h2 class="text-4xl font-bold text-slate-800">Your Results</h2>
-        <div class="grid grid-cols-2 gap-8 max-w-md mx-auto">
-          <div class="p-8 bg-indigo-100 rounded-3xl"><div class="text-xl font-semibold">Smart Score</div><div class="text-6xl font-extrabold text-indigo-700">${smartScore}</div></div>
-          <div class="p-8 bg-pink-100 rounded-3xl"><div class="text-xl font-semibold">Confidence</div><div class="text-6xl font-extrabold text-pink-700">${confidenceScore}</div></div>
+    app.innerHTML = `
+      <div class="container flex flex-col h-screen px-6 pt-10 overflow-y-auto">
+        <h1 class="text-5xl font-black text-center mb-10">Results</h1>
+        <div class="grid grid-cols-2 gap-6 mb-10">
+          <div class="bg-indigo-100 p-8 rounded-3xl text-center"><div class="text-2xl font-bold">Smart</div><div class="text-7xl font-black text-indigo-700">${smart}</div></div>
+          <div class="bg-pink-100 p-8 rounded-3xl text-center"><div class="text-2xl font-bold">Confidence</div><div class="text-7xl font-black text-pink-700">${conf}</div></div>
         </div>
-        <p class="text-2xl font-medium text-slate-700">${verdict}</p>
-        <div class="text-left bg-slate-50 p-8 rounded-2xl max-w-4xl mx-auto">${list}</div>
-        <div class="flex gap-6 justify-center">
-          <button id="restartBtn" class="px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold">Retake Survey</button>
-        </div>
+        <div class="space-y-4 mb-10">${recap}</div>
+        <button onclick="location.reload()" class="w-full py-6 bg-indigo-600 text-white text-2xl font-bold rounded-3xl shadow-xl">Retake Survey</button>
       </div>`;
-
-    document.getElementById('restartBtn').onclick = () => { answers = {}; sequence = []; pointer = 0; stage = 'meta'; renderMeta(); };
-    try { google.script.run.submitResponse({clientId, answers, smartScore, confidenceScore}); } catch(e) {}
   }
-
-  function localSave(){
-    const meta = {q1: document.getElementById('meta_q1')?.value, q3: document.getElementById('meta_q3')?.value};
-    localStorage.setItem('survey_draft', JSON.stringify({clientId, meta, answers}));
-  }
-
-  setInterval(() => { localSave(); status.textContent = 'Autosave: local'; }, 8000);
 
   renderMeta();
 })();
