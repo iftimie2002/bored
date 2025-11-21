@@ -1,0 +1,330 @@
+<!doctype html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .card { max-width: 760px; margin: 22px auto; }
+    .timer-ring { transition: stroke-dashoffset 0.3s linear; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-pink-50 min-h-screen font-sans">
+  <div class="card p-8 bg-white/90 rounded-3xl shadow-2xl">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-3xl font-bold text-slate-800">Are you Smart, or just Confident?</h1>
+      <div id="progress" class="text-lg text-slate-600">Question <span id="qix">0</span>/<span id="qtotal">0</span></div>
+    </div>
+
+    <div id="container" class="min-h-96"></div>
+
+    <div class="mt-8 flex justify-between items-center">
+      <button id="backBtn" class="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-medium">← Back</button>
+      <div id="status" class="text-sm text-slate-500">Autosave: idle</div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const factQuestions = [
+    {id:'cloud_weight', text:'A cloud weighs around a million tons. True or False?', correct:true},
+    {id:'giraffe_lightning', text:'Giraffes are 30x more likely to be struck by lightning than humans. True or False?', correct:true},
+    {id:'twins_fingerprint', text:'Identical twins have identical fingerprints. True or False?', correct:false},
+    {id:'earth_rotation', text:'The Earth\'s rotation is speeding up. True or False?', correct:false},
+    {id:'brain_eat', text:'Your brain literally eats itself every day. True or False?', correct:true},
+    {id:'mars_shape', text:'Mars is shaped more like a rugby ball than a sphere. True or False?', correct:true},
+    {id:'cosmic_latte', text:'The universe\'s average colour is officially called Cosmic Latte. True or False?', correct:true},
+    {id:'water_wet', text:'Water itself is not wet — only objects touching it are. True or False?', correct:true},
+    {id:'chicken_headless', text:'A chicken once lived for 18 months without its head. True or False?', correct:true},
+    {id:'bacteria_body', text:'There are more bacterial cells in your body than human cells. True or False?', correct:true},
+    {id:'octopus_arms', text:'Octopuses don\'t have tentacles — only arms. True or False?', correct:true},
+    {id:'maps_wrong', text:'Most maps you see in school are actually wrong. True or False?', correct:true},
+    {id:'snails_teeth', text:'Snails can have over 10,000 teeth. True or False?', correct:true},
+    {id:'lightning_hot', text:'Lightning is hotter than the surface of the Sun. True or False?', correct:true},
+    {id:'bananas_radio', text:'Bananas are slightly radioactive. True or False?', correct:true},
+    {id:'travel_sun', text:'You travel millions of kilometres every day without realising it. True or False?', correct:true},
+    {id:'fold_paper', text:'You can fold a piece of A4 paper more than eight times. True or False?', correct:false},
+    {id:'penguin_depth', text:'A penguin has been recorded diving deeper than 500 metres. True or False?', correct:true},
+    {id:'diamond_planet', text:'There is a planet made mostly of diamond. True or False?', correct:true},
+    {id:'moon_shrinking', text:'The Moon is growing larger every year. True or False?', correct:false}
+  ];
+
+  const starQuestions = [
+    {id:'star_love', text:"What's the one thing in the Algarve that genuinely surprised you in a good way?", tag:'experienced'},
+    {id:'star_hate', text:"What part of your stay felt unnecessarily difficult or annoying?", tag:'experienced'},
+    {id:'star_import', text:"If you could import one thing from back home to make your time here easier, what would it be?", tag:'all'},
+    {id:'star_expected', text:"What's something you expected to find here but didn't?", tag:'experienced'},
+    {id:'star_improve', text:"What's one thing that would have improved your stay immediately?", tag:'experienced'}
+  ];
+
+  const lowVerdicts = ["You didn't score great... but hey, at least you're confident about it.","You might not be a genius, but you're definitely entertaining.","Your answers need a bit of work — but your confidence is impressive.","You're not on the dumbness spectrum. You're just running a different software version.","Your brain took a coffee break during the test. Totally normal.","Let's put it this way: you're great at things that aren't quizzes.","You may not win trivia night... but you'd be fun to sit next to.","This score is low, but your resilience must be high.","You're not wrong — you're just early. Very early.","You didn't do amazing, but your charisma is probably carrying you in life."];
+  const midVerdicts = ["You think you're smarter than you actually are.","Mixed pattern between confidence and performance. Pro Tip: For everyday use, Confidence works better than Knowledge... unless you're a heart surgeon.","You're smart — but calm down, you're not curing cancer yet.","You're sharp, but not sharp enough to cut diamonds. Let's call you 'Diet Einstein'.","You're smart enough to know you're not *that* smart. Respect.","You're clever, but don't start giving TED Talks just yet.","You'd survive a zombie apocalypse longer than most — that's your level.","You're smart, but still one distracted moment away from microwaving a fork."];
+  const highVerdicts = ["You might be the next Einstein. Apply here: https://www.nasa.gov/careers","You're so smart that normal conversations probably feel like tech support.","Your intelligence level is the reason group projects collapse without you.","You think fast enough that people assume you rehearsed your personality.","You're the kind of smart that makes other people double-check their own answers.","You're dangerously close to being the person everyone asks random questions to.","You're gifted enough that people either admire you... or quietly hate you."];
+
+  let answers = {};
+  let sequence = [];
+  let pointer = 0;
+  let stage = 'meta';
+  let timerInterval = null;
+  let timeLeft = 30;
+  const clientId = localStorage.getItem('clientId') || ('id-'+Math.random().toString(36).slice(2)+Date.now());
+  localStorage.setItem('clientId', clientId);
+
+  const container = document.getElementById('container');
+  const qix = document.getElementById('qix');
+  const qtotal = document.getElementById('qtotal');
+  const status = document.getElementById('status');
+  const backBtn = document.getElementById('backBtn');
+
+  function shuffle(array) { return array.sort(() => Math.random() - 0.5); }
+
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, m=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+
+  function renderMeta(){
+    stage = 'meta'; pointer = 0;
+    qix.textContent = '0'; qtotal.textContent = '0';
+    backBtn.disabled = true;
+    container.innerHTML = `
+      <div class="space-y-8">
+        <div>
+          <label class="block text-xl font-semibold text-slate-800 mb-3">1. How long are you staying in the Algarve?</label>
+          <select id="meta_q1" class="w-full text-lg rounded-xl border-2 border-slate-300 p-4 focus:border-indigo-500 focus:outline-none">
+            <option value="leaving">I'm leaving soon</option>
+            <option value="few">Few more days</option>
+            <option value="just">Just arrived</option>
+            <option value="not">I'm not in the Algarve</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xl font-semibold text-slate-800 mb-3">2. How many minutes is your (Uber) ride?</label>
+          <div class="flex items-center gap-4">
+            <input id="meta_q3" type="range" min="1" max="60" value="10" class="w-full h-3 rounded-lg appearance-none cursor-pointer bg-slate-200">
+            <span id="minsVal" class="text-2xl font-mono w-16 text-right">10</span>
+          </div>
+        </div>
+        <div class="text-center pt-6">
+          <button id="startBtn" class="px-10 py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl shadow-lg transition">Start Survey →</button>
+        </div>
+      </div>`;
+    const saved = JSON.parse(localStorage.getItem('survey_draft')||'null');
+    if(saved?.meta){ 
+      if(saved.meta.q1) document.getElementById('meta_q1').value = saved.meta.q1;
+      if(saved.meta.q3){ document.getElementById('meta_q3').value = saved.meta.q3; document.getElementById('minsVal').textContent = saved.meta.q3; }
+    }
+    document.getElementById('meta_q3').oninput = e => document.getElementById('minsVal').textContent = e.target.value;
+    document.getElementById('startBtn').onclick = startSurvey;
+  }
+
+  function startSurvey(){
+    buildSequence();
+    stage = 'survey';
+    pointer = 0;
+    renderCurrent();
+  }
+
+  function buildSequence(){
+    const mins = Number(document.getElementById('meta_q3').value || 10);
+    const stay = document.getElementById('meta_q1').value;
+    const maxFact = mins < 5 ? 3 : mins < 15 ? 6 : 12;
+    const maxStar = mins < 5 ? 1 : mins < 15 ? 2 : 3;
+
+    const availableStars = starQuestions
+      .filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just') || (stay === 'not' && q.id === 'star_import'));
+    
+    const shuffledFacts = shuffle([...factQuestions]).slice(0, maxFact);
+    const shuffledStars = shuffle(availableStars).slice(0, maxStar);
+
+    sequence = [];
+    let fi = 0, si = 0;
+    while (fi < shuffledFacts.length || si < shuffledStars.length) {
+      if (fi < shuffledFacts.length) sequence.push({type:'fact', ...shuffledFacts[fi++]});
+      if (si < shuffledStars.length && sequence.length % 3 !== 0) sequence.push({type:'star', ...shuffledStars[si++]});
+    }
+    if (si < shuffledStars.length) sequence.push({type:'star', ...shuffledStars[si++]});
+
+    qtotal.textContent = sequence.length;
+  }
+
+  function startTimer(){
+    timeLeft = 30;
+    renderTimer();
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      renderTimer();
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        // Time out = wrong answer, 0% confidence
+        const current = sequence[pointer];
+        answers[current.id] = {answer: null, confidence: 0, timedOut: true};
+        nextQuestion();
+      }
+    }, 1000);
+  }
+
+  function renderTimer(){
+    const svg = document.getElementById('timerSvg');
+    if (!svg) return;
+    const circumference = 2 * Math.PI * 42;
+    const offset = circumference - (timeLeft / 30) * circumference;
+    document.getElementById('timerRing').style.strokeDashoffset = offset;
+    document.getElementById('timerText').textContent = timeLeft;
+    document.getElementById('timerRing').style.stroke = timeLeft > 10 ? '#10b981' : timeLeft > 5 ? '#f59e0b' : '#ef4444';
+  }
+
+  function renderFact(q){
+    qix.textContent = pointer + 1;
+    backBtn.disabled = pointer === 0;
+    container.innerHTML = `
+      <div class="text-center space-y-8">
+        <div class="flex justify-center">
+          <svg width="100" height="100" viewBox="0 0 100 100" class="animate-pulse">
+            <circle cx="50" cy="50" r="42" stroke="#e5e7eb" stroke-width="12" fill="none"/>
+            <circle id="timerRing" cx="50" cy="50" r="42" stroke="#10b981" stroke-width="12" fill="none" stroke-dasharray="${2*Math.PI*42}" class="timer-ring"/>
+            <text id="timerText" x="50" y="57" font-size="32" text-anchor="middle" font-weight="bold" fill="#1f2937">30</text>
+          </svg>
+          <div id="timerSvg"></div>
+        </div>
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-800 leading-relaxed">${esc(q.text)}</h2>
+        <div class="flex justify-center gap-8">
+          <button id="trueBtn" class="px-12 py-6 bg-green-600 hover:bg-green-700 text-white text-2xl font-bold rounded-2xl shadow-lg transform hover:scale-105 transition">TRUE</button>
+          <button id="falseBtn" class="px-12 py-6 bg-red-600 hover:bg-red-700 text-white text-2xl font-bold rounded-2xl shadow-lg transform hover:scale-105 transition">FALSE</button>
+        </div>
+      </div>`;
+    startTimer();
+
+    const select = (val) => {
+      clearInterval(timerInterval);
+      answers[q.id] = answers[q.id] || {};
+      answers[q.id].answer = val;
+      renderConfidence(q.id);
+    };
+    document.getElementById('trueBtn').onclick = () => select(true);
+    document.getElementById('falseBtn').onclick = () => select(false);
+    document.addEventListener('keydown', function handler(e){ if(e.key==='Enter' || e.key===' ') select(e.key==='Enter'); });
+  }
+
+  function renderConfidence(factId){
+    clearInterval(timerInterval);
+    container.innerHTML = `
+      <div class="space-y-8 text-center">
+        <h2 class="text-2xl font-bold text-slate-800">How confident are you?</h2>
+        <input id="confSlider" type="range" min="0" max="100" value="70" class="w-full h-4 rounded-lg appearance-none cursor-pointer bg-slate-200">
+        <div class="text-5xl font-extrabold text-indigo-600" id="confVal">70%</div>
+        <button id="confNext" class="mt-8 px-12 py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl">Continue →</button>
+      </div>`;
+    const slider = document.getElementById('confSlider');
+    const val = document.getElementById('confVal');
+    slider.oninput = () => val.textContent = slider.value + '%';
+    document.getElementById('confNext').onclick = () => {
+      answers[factId].confidence = Number(slider.value);
+      nextQuestion();
+    };
+  }
+
+  function renderStar(q){
+    clearInterval(timerInterval);
+    qix.textContent = pointer + 1;
+    backBtn.disabled = pointer === 0;
+    const saved = (answers[q.id]?.answer) || '';
+    container.innerHTML = `
+      <div class="space-y-8">
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-800 leading-relaxed">${esc(q.text)}</h2>
+        <textarea id="starInput" rows="4" class="w-full text-lg rounded-xl border-2 border-slate-300 p-4 focus:border-indigo-500 focus:outline-none resize-none" placeholder="Your answer…">${saved}</textarea>
+        <div class="text-right">
+          <button id="starNext" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-xl">Next →</button>
+        </div>
+      </div>`;
+    document.getElementById('starNext').onclick = () => {
+      answers[q.id] = {answer: document.getElementById('starInput').value.trim()};
+      nextQuestion();
+    };
+  }
+
+  function nextQuestion(){
+    pointer++;
+    if (pointer >= sequence.length) finishSurvey();
+    else renderCurrent();
+  }
+
+  function renderCurrent(){
+    const item = sequence[pointer];
+    if (item.type === 'fact') renderFact(item);
+    else renderStar(item);
+  }
+
+  backBtn.onclick = () => {
+    if (pointer > 0) {
+      pointer--;
+      clearInterval(timerInterval);
+      renderCurrent();
+    }
+  };
+
+  function finishSurvey(){
+    clearInterval(timerInterval);
+    localSave();
+    const facts = sequence.filter(s => s.type === 'fact');
+    let correct = 0, totalConf = 0;
+    facts.forEach(f => {
+      const a = answers[f.id] || {answer: null, confidence: 0};
+      if (a.answer === f.correct) correct++;
+      totalConf += Number(a.confidence || 0);
+    });
+    const smartScore = facts.length ? Math.round((correct / facts.length) * 100) : 0;
+    const confidenceScore = facts.length ? Math.round(totalConf / facts.length) : 0;
+
+    let verdict = '';
+    if (smartScore < 30) verdict = lowVerdicts[Math.floor(Math.random()*lowVerdicts.length)];
+    else if (smartScore < 50) verdict = midVerdicts[Math.floor(Math.random()*midVerdicts.length)];
+    else if (smartScore >= 85) verdict = highVerdicts[Math.floor(Math.random()*highVerdicts.length)];
+    else verdict = midVerdicts[Math.floor(Math.random()*midVerdicts.length)];
+
+    container.innerHTML = `
+      <div class="text-center space-y-10">
+        <h2 class="text-4xl font-bold text-slate-800">Your Results</h2>
+        <div class="grid grid-cols-2 gap-8 max-w-md mx-auto">
+          <div class="p-8 bg-indigo-100 rounded-3xl">
+            <div class="text-xl font-semibold">Smart Score</div>
+            <div class="text-6xl font-extrabold text-indigo-700 mt-2">${smartScore}</div>
+          </div>
+          <div class="p-8 bg-pink-100 rounded-3xl">
+            <div class="text-xl font-semibold">Confidence</div>
+            <div class="text-6xl font-extrabold text-pink-700 mt-2">${confidenceScore}</div>
+          </div>
+        </div>
+        <p class="text-2xl font-medium text-slate-700 max-w-2xl mx-auto">${esc(verdict)}</p>
+        <div class="flex justify-center gap-6 mt-12">
+          <button id="moreBtn" class="px-8 py-4 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold">Answer more questions</button>
+          <button id="restartBtn" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold">Retake Survey</button>
+        </div>
+      </div>`;
+
+    document.getElementById('moreBtn').onclick = () => {
+      const remaining = factQuestions.filter(f => !answers[f.id]).map(f => ({type:'fact', ...f}));
+      if (remaining.length === 0) { alert('You’ve already answered everything!'); return; }
+      sequence = shuffle(remaining);
+      pointer = 0;
+      renderCurrent();
+    };
+    document.getElementById('restartBtn').onclick = () => { answers = {}; renderMeta(); };
+
+    try { google.script.run.submitResponse({clientId, answers, smartScore, confidenceScore}); } catch(e) {}
+  }
+
+  function localSave(){
+    const meta = { q1: document.getElementById('meta_q1')?.value, q3: document.getElementById('meta_q3')?.value };
+    localStorage.setItem('survey_draft', JSON.stringify({clientId, meta, answers}));
+  }
+
+  setInterval(() => {
+    localSave();
+    status.textContent = 'Autosave: local';
+    try { google.script.run.saveDraft({clientId, data:{meta:{q1:document.getElementById('meta_q1')?.value, q3:document.getElementById('meta_q3')?.value}, answers}}); } catch(e) {}
+  }, 8000);
+
+  renderMeta();
+})();
+</script>
+</body>
+</html>
