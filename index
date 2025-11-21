@@ -1,0 +1,231 @@
+<!doctype html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>.card{max-width:760px;margin:22px auto}</style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-pink-50 min-h-screen font-sans">
+  <div class="card p-6 bg-white/80 rounded-2xl shadow-xl">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-semibold text-slate-800">Are you Smart, or just Confident?</h1>
+      <div id="progress" class="text-sm text-slate-500">Question <span id="qix">0</span>/<span id="qtotal">0</span></div>
+    </div>
+    <div id="container" class="min-h-[220px]"></div>
+    <div class="mt-6 flex items-center justify-between">
+      <div class="text-sm text-slate-500" id="status">Autosave: idle</div>
+      <div>
+        <button id="backBtn" class="mr-2 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg">Back</button>
+        <button id="nextBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Next</button>
+      </div>
+    </div>
+  </div>
+<script>
+(function(){
+  const factQuestions = [
+    {id:'cloud_weight', text:'A cloud weighs around a million tons. True or False?', correct:true},
+    {id:'giraffe_lightning', text:'Giraffes are 30x more likely to be struck by lightning than humans. True or False?', correct:true},
+    {id:'twins_fingerprint', text:'Identical twins have identical fingerprints. True or False?', correct:false},
+    {id:'earth_rotation', text:'The Earth\'s rotation is speeding up. True or False?', correct:false},
+    {id:'brain_eat', text:'Your brain literally eats itself every day. True or False?', correct:true},
+    {id:'mars_shape', text:'Mars is shaped more like a rugby ball than a sphere. True or False?', correct:true},
+    {id:'cosmic_latte', text:'The universe\'s average colour is officially called Cosmic Latte. True or False?', correct:true},
+    {id:'water_wet', text:'Water itself is not wet — only objects touching it are. True or False?', correct:true},
+    {id:'chicken_headless', text:'A chicken once lived for 18 months without its head. True or False?', correct:true},
+    {id:'bacteria_body', text:'There are more bacterial cells in your body than human cells. True or False?', correct:true},
+    {id:'octopus_arms', text:'Octopuses don\'t have tentacles — only arms. True or False?', correct:true},
+    {id:'maps_wrong', text:'Most maps you see in school are actually wrong. True or False?', correct:true},
+    {id:'snails_teeth', text:'Snails can have over 10,000 teeth. True or False?', correct:true},
+    {id:'lightning_hot', text:'Lightning is hotter than the surface of the Sun. True or False?', correct:true},
+    {id:'bananas_radio', text:'Bananas are slightly radioactive. True or False?', correct:true},
+    {id:'travel_sun', text:'You travel millions of kilometres every day without realising it. True or False?', correct:true},
+    {id:'fold_paper', text:'You can fold a piece of A4 paper more than eight times. True or False?', correct:false},
+    {id:'penguin_depth', text:'A penguin has been recorded diving deeper than 500 metres. True or False?', correct:true},
+    {id:'diamond_planet', text:'There is a planet made mostly of diamond. True or False?', correct:true},
+    {id:'moon_shrinking', text:'The Moon is growing larger every year. True or False?', correct:false}
+  ];
+  const starQuestions = [
+    {id:'star_love', text:"What's the one thing in the Algarve that genuinely surprised you in a good way?", tag:'experienced'},
+    {id:'star_hate', text:"What part of your stay felt unnecessarily difficult or annoying?", tag:'experienced'},
+    {id:'star_import', text:"If you could import one thing from back home to make your time here easier, what would it be?", tag:'all'},
+    {id:'star_expected', text:"What's something you expected to find here but didn't?", tag:'experienced'},
+    {id:'star_improve', text:"What's one thing that would have improved your stay immediately?", tag:'experienced'}
+  ];
+
+  let answers = {};
+  let sequence = [];
+  let pointer = 0;
+  let stage = 'meta';
+  let clientId = localStorage.getItem('clientId') || ('id-'+Math.random().toString(36).slice(2)+Date.now());
+  localStorage.setItem('clientId', clientId);
+
+  const container = document.getElementById('container');
+  const qix = document.getElementById('qix');
+  const qtotal = document.getElementById('qtotal');
+  const status = document.getElementById('status');
+  const backBtn = document.getElementById('backBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+  function renderMeta(){
+    qix.innerText = 0; qtotal.innerText = 0; backBtn.disabled = true;
+    container.innerHTML = '\n      <div class="p-4">\n        <label class="block text-slate-700 font-semibold mb-2">1) How long are you staying in the Algarve?</label>\n        <select id="meta_q1" class="w-full rounded-lg border p-2">\n          <option value="leaving">I\'m leaving</option>\n          <option value="few">Few more days</option>\n          <option value="just">Just arrived</option>\n          <option value="not">I\'m not in the Algarve</option>\n        </select>\n      </div>\n      <div class="p-4 mt-4">\n        <label class="block text-slate-700 font-semibold mb-2">3) How many more minutes is your (uber) ride taking?</label>\n        <div class="flex items-center gap-4">\n          <input id="meta_q3" type="range" min="1" max="60" value="10" class="w-full" oninput="document.getElementById(\'minsVal\').innerText=this.value">\n          <div id="minsVal" class="w-14 text-right font-mono">10</div>\n        </div>\n      </div>';
+    const saved = JSON.parse(localStorage.getItem('survey_draft')||'null');
+    if(saved && saved.meta){ if(saved.meta.q1) document.getElementById('meta_q1').value = saved.meta.q1; if(saved.meta.q3){ document.getElementById('meta_q3').value = saved.meta.q3; document.getElementById('minsVal').innerText=saved.meta.q3; } }
+    nextBtn.onclick = nextQuestion; backBtn.onclick = prevQuestion; status.innerText='Ready';
+  }
+
+  function buildSequence(){
+    sequence = [];
+    const mins = Number(document.getElementById('meta_q3').value||10);
+    const stay = document.getElementById('meta_q1').value;
+    const maxFact = mins<5?3:mins<15?6:Math.min(14,Math.floor(mins/1.5));
+    const maxStar = mins<5?1:mins<15?2:3;
+    const starPool = starQuestions.filter(s => s.tag==='all' || (s.tag==='experienced' && stay!=='just') || (stay==='not' && s.id==='star_import'));
+    let fidx=0, sidx=0;
+    for(let i=0;i<maxFact && fidx<factQuestions.length;i++){
+      sequence.push({type:'fact', ...factQuestions[fidx]}); fidx++;
+      if(i%2===1 && sidx<Math.min(maxStar, starPool.length)){ sequence.push({type:'star', id:starPool[sidx].id, text:starPool[sidx].text}); sidx++; }
+    }
+    if(sidx===0 && maxStar>0 && starPool.length>0) sequence.push({type:'star', id:starPool[0].id, text:starPool[0].text});
+    qtotal.innerText = sequence.length;
+  }
+
+  function renderFact(q){ qix.innerText = pointer+1; container.innerHTML = '<div class="p-4">'+
+      '<div class="text-lg font-medium text-slate-800 mb-3">'+esc(q.text)+'</div>'+
+      '<div class="text-sm text-slate-500 mb-2">Correct answer will be shown at the end.</div>'+
+      '<div class="flex gap-3">'+
+        '<button id="trueBtn" class="px-4 py-2 rounded-lg border bg-white">True</button>'+
+        '<button id="falseBtn" class="px-4 py-2 rounded-lg border bg-white">False</button>'+
+      '</div>'+
+    '</div>';
+    document.getElementById('trueBtn').onclick = function(){ answers[q.id]=answers[q.id]||{}; answers[q.id].answer=true; renderConfidence(q.id); };
+    document.getElementById('falseBtn').onclick = function(){ answers[q.id]=answers[q.id]||{}; answers[q.id].answer=false; renderConfidence(q.id); };
+  }
+
+  function renderConfidence(factId){
+    container.innerHTML = '<div class="p-4">'+
+      '<div class="text-lg font-medium text-slate-800 mb-3">How confident are you in your last answer?</div>'+
+      '<div class="mt-3">'+
+        '<input id="confSlider" type="range" min="0" max="100" value="60" class="w-full">'+
+        '<div class="text-right mt-2 text-sm text-slate-600" id="confVal">60%</div>'+
+        '<div class="mt-3 flex justify-end">'+
+          '<button id="confNext" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Next</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+    var slider = document.getElementById('confSlider');
+    var confVal = document.getElementById('confVal');
+    slider.oninput = function(){ confVal.innerText = this.value + '%'; };
+    document.getElementById('confNext').onclick = function(){ var v = Number(document.getElementById('confSlider').value||60); answers[factId].confidence = v; advancePointer(); };
+  }
+
+  function renderStar(item){ qix.innerText = pointer+1; container.innerHTML = '<div class="p-4">'+
+      '<div class="text-lg font-medium text-slate-800 mb-3">'+esc(item.text)+'</div>'+
+      '<div class="text-sm text-slate-500 mb-2">Correct answer will be shown at the end.</div>'+
+      '<input id="starInput" type="text" class="w-full rounded-lg border p-2" placeholder="Short answer">'+
+      '<div class="mt-3 flex justify-end"><button id="starNext" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Next</button></div>'+
+    '</div>';
+    var saved = answers[item.id] && answers[item.id].answer ? answers[item.id].answer : '';
+    document.getElementById('starInput').value = saved;
+    document.getElementById('starNext').onclick = function(){ answers[item.id]=answers[item.id]||{}; answers[item.id].answer = document.getElementById('starInput').value||''; advancePointer(); };
+  }
+
+  function advancePointer(){ pointer++; if(pointer >= sequence.length) finishSurvey(); else renderCurrent(); }
+
+  function renderCurrent(){ backBtn.disabled = pointer<=0; qtotal.innerText = sequence.length; var item = sequence[pointer]; if(!item) return; if(item.type==='fact') renderFact(item); else renderStar(item); }
+
+  function nextQuestion(){ if(stage==='meta'){ buildSequence(); stage='survey'; pointer=0; renderCurrent(); return; } var item = sequence[pointer]; if(!item) return; if(item.type==='star'){ var val = document.getElementById('starInput'); if(val){ answers[item.id]=answers[item.id]||{}; answers[item.id].answer = val.value||''; advancePointer(); } } }
+
+  function prevQuestion(){ if(stage==='meta') return; if(pointer>0){ pointer--; renderCurrent(); } }
+
+  function finishSurvey(){ localSave(); var factItems = sequence.filter(s=>s.type==='fact'); var correctCount=0; var totalFacts=factItems.length; var confSum=0; factItems.forEach(function(f){ var a=answers[f.id]||{}; var ans=a.answer; var conf=Number(a.confidence||0); if(ans===f.correct) correctCount++; confSum+=conf; }); var smartScore = totalFacts? Math.round((correctCount/totalFacts)*100):0; var confidenceScore = totalFacts? Math.round(confSum/totalFacts):0; var verdict = '';
+    if(smartScore<30){ var lowOpts = [
+      "You didn't score great... but hey, at least you're confident about it.",
+      "You might not be a genius, but you're definitely entertaining.",
+      "Your answers need a bit of work — but your confidence is impressive.",
+      "You're not on the dumbness spectrum. You're just running a different software version.",
+      "Your brain took a coffee break during the test. Totally normal.",
+      "Let's put it this way: you're great at things that aren't quizzes.",
+      "You may not win trivia night... but you'd be fun to sit next to.",
+      "This score is low, but your resilience must be high.",
+      "You're not wrong — you're just early. Very early.",
+      "You didn't do amazing, but your charisma is probably carrying you in life."
+    ]; verdict = lowOpts[Math.floor(Math.random()*lowOpts.length)]; }
+    else if(smartScore<50) verdict = "You think you're smarter than you actually are.";
+    else if(smartScore>=85){ var topOpts = [
+      "You might be the next Einstein. Apply here: https://www.nasa.gov/careers",
+      "You're so smart that normal conversations probably feel like tech support.",
+      "Your intelligence level is the reason group projects collapse without you.",
+      "You think fast enough that people assume you rehearsed your personality.",
+      "You're the kind of smart that makes other people double-check their own answers.",
+      "You're dangerously close to being the person everyone asks random questions to.",
+      "You're gifted enough that people either admire you... or quietly hate you."
+    ]; verdict = topOpts[Math.floor(Math.random()*topOpts.length)]; }
+    else if(smartScore>=70){ var opts = [
+      "Mixed pattern between confidence and performance. Pro Tip: For everyday use, Confidence works better than Knowledge... unless you're a heart surgeon.",
+      "You're smart — but calm down, you're not curing cancer yet.",
+      "You're sharp, but not sharp enough to cut diamonds. Let's call you 'Diet Einstein'.",
+      "You're smart — smart enough to know you're not *that* smart. Respect.",
+      "You're clever, but don't start giving TED Talks just yet.",
+      "You're smart — like a high-quality toaster. Reliable and effective, but not exactly a scientific breakthrough.",
+      "You'd survive a zombie apocalypse longer than most — that's your level.",
+      "You're smart, but your brain isn't leaking electricity. Let's keep expectations reasonable.",
+      "Imagine a smart dog. Now double it. That's you.",
+      "You're smart — but still one distracted moment away from microwaving a fork.",
+      "You didn't score great... but hey, at least you're confident about it.",
+      "You might not be a genius, but you're definitely entertaining.",
+      "Your answers need a bit of work — but your confidence is impressive.",
+      "You're not on the dumbness spectrum. You're just running a different software version.",
+      "Your brain took a coffee break during the test. Totally normal.",
+      "Let's put it this way: you're great at things that aren't quizzes.",
+      "You may not win trivia night... but you'd be fun to sit next to.",
+      "This score is low, but your resilience must be high.",
+      "You're not wrong — you're just early. Very early.",
+      "You didn't do amazing, but your charisma is probably carrying you in life."
+    ]; verdict = opts[Math.floor(Math.random()*opts.length)]; }
+    else verdict = "Mixed pattern between confidence and performance. Pro Tip: For everyday use, Confidence works better than Knowledge... unless you're a heart surgeon.";
+
+    var correctList = '';
+    factItems.forEach(function(f){ var a=answers[f.id]||{}; correctList += '- ' + f.text + '\nYour answer: ' + String(a.answer) + '\nCorrect: ' + String(f.correct) + '\n\n'; });
+
+    container.innerHTML = '<div class="p-6 text-center">' +
+      '<h2 class="text-2xl font-bold text-slate-800 mb-4">Your Results</h2>' +
+      '<div class="grid grid-cols-2 gap-4 mb-6">' +
+        '<div class="p-4 bg-indigo-100 rounded-xl"><div class="text-xl font-bold">Smart Score</div><div class="text-4xl font-extrabold text-indigo-700">' + smartScore + '</div></div>' +
+        '<div class="p-4 bg-pink-100 rounded-xl"><div class="text-xl font-bold">Confidence Score</div><div class="text-4xl font-extrabold text-pink-700">' + confidenceScore + '</div></div>' +
+      '</div>' +
+      '<div class="text-lg text-slate-800 mb-6">' + esc(verdict) + '</div>' +
+      '<div class="text-left bg-slate-50 p-4 rounded-lg text-sm mb-6"><strong>Correct answers:</strong><pre style="white-space:pre-wrap;">' + esc(correctList) + '</pre></div>' +
+      '<div class="flex gap-3 justify-center">' +
+        '<button id="moreBtn" class="px-4 py-2 bg-slate-200 rounded-lg">Answer more questions</button>' +
+        '<button id="restartBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Retake full survey</button>' +
+      '</div>' +
+    '</div>';
+
+    document.getElementById('moreBtn').onclick = function(){
+      var remainingFacts = factQuestions.filter(function(f){ return !answers[f.id]; });
+      var remainingStars = starQuestions.filter(function(s){ return !answers[s.id]; });
+      var combined = [];
+      remainingFacts.forEach(function(f){ combined.push({type:'fact', id:f.id, text:f.text, correct:f.correct}); });
+      remainingStars.forEach(function(s){ combined.push({type:'star', id:s.id, text:s.text}); });
+      if(combined.length===0){ alert('No more questions'); return; }
+      sequence = combined; pointer = 0; stage = 'survey'; renderCurrent();
+    };
+
+    document.getElementById('restartBtn').onclick = function(){ answers = {}; sequence = []; pointer = 0; stage = 'meta'; renderMeta(); nextBtn.onclick = nextQuestion; backBtn.onclick = prevQuestion; };
+
+    try{ google.script.run.submitResponse({clientId:clientId, answers:answers, smartScore:smartScore, confidenceScore:confidenceScore, starIds: starQuestions.map(function(s){ return s.id; })}); }catch(e){}
+  }
+
+  function localSave(){ var meta = { q1: document.getElementById('meta_q1') ? document.getElementById('meta_q1').value : null, q3: document.getElementById('meta_q3') ? document.getElementById('meta_q3').value : null, sequence: sequence }; localStorage.setItem('survey_draft', JSON.stringify({clientId:clientId, meta:meta, answers:answers})); }
+
+  setInterval(function(){ localSave(); status.innerText = 'Autosave: local'; try{ google.script.run.saveDraft({clientId:clientId, data:{meta:{ q1: document.getElementById('meta_q1') ? document.getElementById('meta_q1').value : null, q3: document.getElementById('meta_q3') ? document.getElementById('meta_q3').value : null }, answers:answers}}); }catch(e){} },8000);
+
+  renderMeta();
+})();
+</script>
+</body>
+</html>
