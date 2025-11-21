@@ -18,7 +18,9 @@
       <h1 class="text-3xl font-bold text-slate-800">Are you Smart, or just Confident?</h1>
       <div id="progress" class="text-lg text-slate-600">Question <span id="qix">0</span>/<span id="qtotal">0</span></div>
     </div>
+
     <div id="container" class="min-h-96"></div>
+
     <div class="mt-8 flex justify-between items-center">
       <button id="backBtn" class="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-medium">← Back</button>
       <div id="status" class="text-sm text-slate-500">Autosave: idle</div>
@@ -27,7 +29,7 @@
 
 <script>
 (function(){
-  // ====================== FACT QUESTIONS ======================
+  // === ORIGINAL TRUE/FALSE QUESTIONS (kept exactly as before) ===
   const trueFalseQuestions = [
     {type:"tf", q:'A cloud weighs around a million tons.', correct:true},
     {type:"tf", q:'Giraffes are 30x more likely to be struck by lightning than humans.', correct:true},
@@ -51,55 +53,57 @@
     {type:"tf", q:'The Moon is growing larger every year.', correct:false}
   ];
 
+  // === NEW MULTIPLE-CHOICE QUESTIONS ===
   const mcQuestions = [
     {type:"mc", q:"What are the prime factors of 24?", options:["Two and three","Two and four","Three and eight","Two and twelve"], correct:0},
     {type:"mc", q:"How many sides does a trapezoid have?", options:["Three","Four","Five","Six"], correct:1},
-    {type:"mc", q:"Which theorem: in a right triangle A² + B² = C²?", options:["Euclid","Pythagorean Theorem","Fermat","Pascal"], correct:1},
-    {type:"mc", q:"How many degrees in a circle?", options:["180","270","360","365"], correct:2},
-    {type:"mc", q:"How many yards in a mile?", options:["1000","1760","2000","5280"], correct:1},
-    {type:"mc", q:"What produces most breathable oxygen?", options:["Trees","Grass","The oceans","Rainforests"], correct:2},
-    {type:"mc", q:"Which is faster: sound or light?", options:["Sound","Light","Same","Depends"], correct:1},
-    {type:"mc", q:"What mineral makes things float easier in water?", options:["Sugar","Salt","Iron","Baking soda"], correct:1},
-    {type:"mc", q:"Earth spin speed at equator (mph)?", options:["500","1000","1500","2000"], correct:1},
-    {type:"mc", q:"Elements on periodic table (2025)?", options:["92","108","118","124"], correct:2},
-    {type:"mc", q:"Universal blood donor?", options:["AB+","A-","O-","B+"], correct:2},
-    {type:"mc", q:"Neptune moons (2025)?", options:["8","14","27","63"], correct:1},
-    {type:"mc", q:"Disease eradicated 1980?", options:["Polio","Measles","Smallpox","Malaria"], correct:2},
-    {type:"mc", q:"First American woman in space?", options:["Tereshkova","Jemison","Sally Ride","Resnik"], correct:2},
-    {type:"mc", q:"Pounds in a US ton?", options:["1000","2000","2204","2240"], correct:1},
-    {type:"mc", q:"Largest human bone?", options:["Tibia","Femur","Humerus","Spine"], correct:1},
-    {type:"mc", q:"Planets in solar system?", options:["7","8","9","10"], correct:1},
-    {type:"mc", q:"Colors in a rainbow?", options:["6","7","8","Infinite"], correct:1},
-    {type:"mc", q:"Astronomer in “Bohemian Rhapsody”?", options:["Copernicus","Kepler","Galileo","Newton"], correct:2},
-    {type:"mc", q:"Fear of flowers?", options:["Floraphobia","Anthophobia","Botanophobia","Petalphobia"], correct:1}
+    {type:"mc", q:"Which math theorem states that in a right triangle, A² + B² = C²?", options:["Euclid's Theorem","Pythagorean Theorem","Fermat's Last Theorem","Pascal's Theorem"], correct:1},
+    {type:"mc", q:"How many degrees are in a circle?", options:["180","270","360","365"], correct:2},
+    {type:"mc", q:"How many yards are in a mile?", options:["1000","1760","2000","5280"], correct:1},
+    {type:"mc", q:"What produces the majority of the breathable air on earth?", options:["Trees","Grass","The oceans","Algae in rainforests"], correct:2},
+    {type:"mc", q:"Which travels faster: Sound or light?", options:["Sound","Light","Same speed","Depends"], correct:1},
+    {type:"mc", q:"What mineral can you add to water to make things float easier?", options:["Sugar","Salt","Iron","Baking soda"], correct:1},
+    {type:"mc", q:"Roughly how many mph does Earth spin at the equator?", options:["500","1000","1500","2000"], correct:1},
+    {type:"mc", q:"How many elements are on the periodic table (2025)?", options:["92","108","118","124"], correct:2},
+    {type:"mc", q:"Which blood type is the universal donor?", options:["AB+","A-","O-","B+"], correct:2},
+    {type:"mc", q:"How many moons does Neptune have (2025)?", options:["8","14","27","63"], correct:1},
+    {type:"mc", q:"Which disease was eradicated in 1980?", options:["Polio","Measles","Smallpox","Malaria"], correct:2},
+    {type:"mc", q:"Who was the first American woman in space?", options:["Valentina Tereshkova","Mae Jemison","Sally Ride","Judith Resnik"], correct:2},
+    {type:"mc", q:"How many pounds in a US ton?", options:["1000","2000","2204","2240"], correct:1},
+    {type:"mc", q:"Largest bone in the human body?", options:["Tibia","Femur","Humerus","Spine"], correct:1},
+    {type:"mc", q:"How many planets in the solar system?", options:["7","8","9","10"], correct:1},
+    {type:"mc", q:"How many colors in a rainbow?", options:["6","7","8","Indefinite"], correct:1},
+    {type:"mc", q:"Which astronomer is named in “Bohemian Rhapsody”?", options:["Copernicus","Kepler","Galileo","Newton"], correct:2},
+    {type:"mc", q:"Fear of flowers is called?", options:["Floraphobia","Anthophobia","Botanophobia","Petalphobia"], correct:1}
   ];
 
-  // ====================== ALL STAR QUESTIONS (18 total) ======================
+  // === STAR (open text) QUESTIONS (updated with new ones) ===
   const starQuestions = [
-    {id:"s1", text:"What's the one thing in the Algarve that genuinely surprised you in a good way?"},
-    {id:"s2", text:"What part of your stay felt unnecessarily difficult or annoying?"},
-    {id:"s3", text:"What service or product do you wish had been available here?"},
-    {id:"s4", text:"What did you try to do in the Algarve that ended up being harder than expected?"},
-    {id:"s5", text:"What’s something you looked for but couldn’t find easily?"},
-    {id:"s6", text:"What daily task would you pay someone to handle for you while staying here?"},
-    {id:"s7", text:"What’s one thing that would have saved you time during your trip?"},
-    {id:"s8", text:"What place or service felt outdated or in need of improvement?"},
-    {id:"s9", text:"What’s something from home you kept thinking “I wish they had this here”?"},
-    {id:"s10", text:"What activity or experience did you expect to exist but didn’t?"},
-    {id:"s11", text:"What moment made you think “this could be done in a better way”?"},
-    {id:"s12", text:"What did you spend too much effort trying to figure out or organize?"},
-    {id:"s13", text:"What local service disappointed you the most?"},
-    {id:"s14", text:"What would have made your stay more comfortable on a daily basis?"},
-    {id:"s15", text:"What’s something you felt was overpriced for the value?"},
-    {id:"s16", text:"If you could bring one thing from back home to make your stay easier, what would it be?"},
-    {id:"s17", text:"What’s one thing that would have improved your stay immediately?"},
-    {id:"s18", text:"What’s something you expected to find here but didn't?"}
+    {id:'star_love', text:"What's the one thing in the Algarve that genuinely surprised you in a good way?", tag:'experienced'},
+    {id:'star_hate', text:"What part of your stay felt unnecessarily difficult or annoying?", tag:'experienced'},
+    {id:'star_import', text:"If you could import one thing from back home to make your time here easier, what would it be?", tag:'all'},
+    {id:'star_expected', text:"What's something you expected to find here but didn't?", tag:'experienced'},
+    {id:'star_improve', text:"What's one thing that would have improved your stay immediately?", tag:'experienced'},
+    {id:'star_wish_available', text:"What service or product do you wish had been available here?", tag:'experienced'},
+    {id:'star_harder_expected', text:"What did you try to do in the Algarve that ended up being harder than expected?", tag:'experienced'},
+    {id:'star_couldnt_find', text:"What’s something you looked for but couldn’t find easily?", tag:'experienced'},
+    {id:'star_pay_handle', text:"What daily task would you pay someone to handle for you while staying here?", tag:'all'},
+    {id:'star_save_time', text:"What’s one thing that would have saved you time during your trip?", tag:'experienced'},
+    {id:'star_outdated', text:"What place or service felt outdated or in need of improvement?", tag:'experienced'},
+    {id:'star_wish_from_home', text:"What’s something from home you kept thinking “I wish they had this here”?", tag:'all'},
+    {id:'star_expect_exist', text:"What activity or experience did you expect to exist but didn’t?", tag:'experienced'},
+    {id:'star_better_way', text:"What moment made you think “this could be done in a better way”?", tag:'experienced'},
+    {id:'star_too_much_effort', text:"What did you spend too much effort trying to figure out or organize?", tag:'experienced'},
+    {id:'star_disappointed_service', text:"What local service disappointed you the most?", tag:'experienced'},
+    {id:'star_more_comfortable', text:"What would have made your stay more comfortable on a daily basis?", tag:'experienced'},
+    {id:'star_overpriced', text:"What’s something you felt was overpriced for the value?", tag:'experienced'},
+    {id:'star_bring_from_home', text:"If you could bring one thing from back home to make your stay easier, what would it be?", tag:'all'}
   ];
 
-  // ====================== VERDICTS ======================
-  const lowVerdicts = ["Ouch… but confidence is half the battle!","You may not know much, but you know how to commit.","Trivia night champion? Maybe not. Fun drinking buddy? Absolutely.","Your brain was clearly on holiday too.","You're running on a very custom OS."];
-  const midVerdicts = ["Confidence and knowledge are fighting… it's a draw.","You're smart enough to be dangerous.","Diet Einstein.","You'd do well on a game show… with phone-a-friend."];
-  const highVerdicts = ["NASA is calling.","You're why group projects succeed.","People quietly hate you in pubs.","You're one search away from being everyone's Google."];
+  // === VERDICTS ===
+  const lowVerdicts = ["You didn't score great... but confidence is everything, right?","You might not be a genius, but you're definitely entertaining.","Your answers need work — but your confidence is chef's kiss.","You're running a very unique operating system.","Your brain was clearly on vacation.","Trivia night isn't your event, but karaoke probably is.","You'd be the fun one at the pub quiz."];
+  const midVerdicts = ["You think you're smarter than you are.","Confidence and knowledge are having a friendly wrestling match.","Pro tip: confidence wins in life (except surgery).","Diet Einstein.","Smart enough to know you're not THAT smart. Respect.","You'd survive a zombie apocalypse... for a while."];
+  const highVerdicts = ["Next stop: NASA.","Normal conversations must feel like tech support to you.","Group projects collapse without you.","You're the person everyone Googles next to.","Dangerously close to being the trivia night champion.","People either love you or quietly hate you for this."];
 
   let answers = {};
   let sequence = [];
@@ -116,163 +120,183 @@
   const status = document.getElementById('status');
   const backBtn = document.getElementById('backBtn');
 
-  function shuffle(a) { const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
-  function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function shuffle(a) { return a.sort(() => Math.random() - 0.5); }
+
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   function renderMeta(){
-    stage = 'meta'; pointer = 0; qix.textContent='0'; qtotal.textContent='0'; backBtn.disabled=true;
+    qix.textContent = 0; qtotal.textContent = 0; backBtn.disabled = true;
     container.innerHTML = `
-      <div class="space-y-10 text-center">
-        <h2 class="text-3xl font-bold text-slate-800">Welcome to the Algarve Feedback + Brain Teaser</h2>
-        <div class="space-y-8 max-w-md mx-auto">
-          <div>
-            <label class="block text-xl font-semibold mb-3">How long are you staying?</label>
-            <select id="meta_q1" class="w-full text-lg rounded-xl border-2 border-slate-300 p-4">
-              <option value="leaving">Leaving today/tomorrow</option>
-              <option value="few">Few more days</option>
-              <option value="week">1–2 weeks</option>
-              <option value="just">Just arrived</option>
-              <option value="not">Not in the Algarve</option>
-            </select>
+      <div class="space-y-8">
+        <div>
+          <label class="block text-xl font-semibold text-slate-800 mb-3">1. How long are you staying in the Algarve?</label>
+          <select id="meta_q1" class="w-full text-lg rounded-xl border-2 border-slate-300 p-4 focus:border-indigo-500 focus:outline-none">
+            <option value="leaving">I'm leaving</option>
+            <option value="few">Few more days</option>
+            <option value="just">Just arrived</option>
+            <option value="not">I'm not in the Algarve</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xl font-semibold text-slate-800 mb-3">2. How many more minutes is your (Uber) ride taking?</label>
+          <div class="flex items-center gap-4">
+            <input id="meta_q3" type="range" min="1" max="60" value="10" class="w-full h-3 rounded-lg appearance-none cursor-pointer bg-slate-200">
+            <span id="minsVal" class="text-2xl font-mono w-16 text-right">10</span>
           </div>
-          <div>
-            <label class="block text-xl font-semibold mb-3">How many minutes is your ride?</label>
-            <div class="flex items-center gap-4">
-              <input id="meta_q3" type="range" min="1" max="60" value="12" class="w-full">
-              <span id="minsVal" class="text-3xl font-mono w-20 text-right">12</span>
-            </div>
-          </div>
-          <button id="startBtn" class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl">Start →</button>
+        </div>
+        <div class="text-center pt-6">
+          <button id="startBtn" class="px-10 py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl shadow-lg transition">Start Survey →</button>
         </div>
       </div>`;
     const saved = JSON.parse(localStorage.getItem('survey_draft')||'null');
-    if(saved?.meta){ if(saved.meta.q1) document.getElementById('meta_q1').value = saved.meta.q1;
+    if(saved && saved.meta){ 
+      if(saved.meta.q1) document.getElementById('meta_q1').value = saved.meta.q1;
       if(saved.meta.q3){ document.getElementById('meta_q3').value = saved.meta.q3; document.getElementById('minsVal').textContent = saved.meta.q3; }
     }
     document.getElementById('meta_q3').oninput = e => document.getElementById('minsVal').textContent = e.target.value;
     document.getElementById('startBtn').onclick = startSurvey;
+    status.textContent = 'Ready';
   }
 
   function startSurvey(){
     buildSequence();
-    stage = 'survey'; pointer = 0;
+    stage = 'survey';
+    pointer = 0;
     renderCurrent();
   }
 
   function buildSequence(){
-    const mins = Number(document.getElementById('meta_q3').value || 12);
-    const maxFact = mins < 6 ? 5 : mins < 15 ? 10 : 16;
-    const maxStar = mins < 6 ? 2 : mins < 15 ? 5 : 8;
+    const mins = Number(document.getElementById('meta_q3').value || 10);
+    const stay = document.getElementById('meta_q1').value;
+    const maxFact = mins < 5 ? 4 : mins < 15 ? 8 : 15;
+    const maxStar = mins < 5 ? 2 : mins < 15 ? 4 : 7;
 
-    const shuffledStars = shuffle(starQuestions).slice(0, maxStar);
+    const availableStars = starQuestions.filter(s => s.tag==='all' || (s.tag==='experienced' && stay!=='just') || (stay==='not' && s.id.includes('import')));
+    const shuffledStars = shuffle([...availableStars]).slice(0, maxStar);
+
     const allFacts = shuffle([...trueFalseQuestions, ...mcQuestions]).slice(0, maxFact);
 
     sequence = [];
-    let factsSinceStar = 0;
+    let factCountSinceStar = 0;
     let starIdx = 0;
 
     allFacts.forEach(fact => {
-      sequence.push({type:'fact', ...fact});
-      factsSinceStar++;
-      if ((factsSinceStar === 2 && Math.random() < 0.7) || factsSinceStar >= 3) {
+      sequence.push({type:'fact', id: fact.q, ...fact});
+      factCountSinceStar++;
+      if ((factCountSinceStar >= 2 && Math.random() < 0.6) || factCountSinceStar >= 3) {
         if (starIdx < shuffledStars.length) {
           sequence.push({type:'star', ...shuffledStars[starIdx++]});
-          factsSinceStar = 0;
+          factCountSinceStar = 0;
         }
       }
     });
-    while (starIdx < shuffledStars.length) sequence.push({type:'star', ...shuffledStars[starIdx++]});
+    while (starIdx < shuffledStars.length) {
+      sequence.push({type:'star', ...shuffledStars[starIdx++]});
+    }
 
     qtotal.textContent = sequence.length;
   }
 
   function startTimer(){
     timeLeft = 30;
-    const timerHTML = `<div class="flex justify-center mb-8">
-      <svg width="110" height="110"><circle cx="55" cy="55" r="48" stroke="#e5e7eb" stroke-width="10" fill="none"/>
-      <circle id="timerRing" cx="55" cy="55" r="48" stroke="#10b981" stroke-width="10" fill="none" stroke-dasharray="301.6" class="timer-ring"/>
-      <text id="timerText" x="55" y="62" font-size="36" text-anchor="middle" font-weight="bold" fill="#1f2937">30</text></svg></div>`;
-    if (!document.getElementById('timerRing')) container.insertAdjacentHTML('afterbegin', timerHTML);
     renderTimer();
     clearInterval(timerInterval);
     timerInterval = setInterval(() => {
       timeLeft--;
       renderTimer();
-      if (timeLeft <= 0) { clearInterval(timerInterval); const cur = sequence[pointer]; answers[cur.q] = {answer:null, confidence:0, timedOut:true}; nextQuestion(); }
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        const item = sequence[pointer];
+        answers[item.id] = {answer: null, confidence: 0, timedOut: true};
+        nextQuestion();
+      }
     }, 1000);
   }
 
   function renderTimer(){
-    if (!document.getElementById('timerRing')) return;
-    const circ = 301.6;
-    const offset = circ - (timeLeft/30)*circ;
+    const svg = document.getElementById('timerSvg');
+    if (!svg) return;
+    const circumference = 2 * Math.PI * 42;
+    const offset = circumference - (timeLeft / 30) * circumference;
     document.getElementById('timerRing').style.strokeDashoffset = offset;
     document.getElementById('timerText').textContent = timeLeft;
     document.getElementById('timerRing').style.stroke = timeLeft > 10 ? '#10b981' : timeLeft > 5 ? '#f59e0b' : '#ef4444';
   }
 
   function renderFact(item){
-    qix.textContent = pointer + 1; backBtn.disabled = pointer === 0; startTimer();
-    let html = '<div class="space-y-8">';
+    qix.textContent = pointer + 1;
+    backBtn.disabled = pointer === 0;
+    container.innerHTML = `
+      <div class="space-y-8">
+        <div class="flex justify-center">
+          <svg id="timerSvg" width="100" height="100" viewBox="0 0 100 100" class="animate-pulse">
+            <circle cx="50" cy="50" r="42" stroke="#e5e7eb" stroke-width="12" fill="none"/>
+            <circle id="timerRing" cx="50" cy="50" r="42" stroke="#10b981" stroke-width="12" fill="none" stroke-dasharray="${2*Math.PI*42}" class="timer-ring"/>
+            <text id="timerText" x="50" y="57" font-size="32" text-anchor="middle" font-weight="bold" fill="#1f2937">30</text>
+          </svg>
+        </div>
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-800 leading-relaxed text-center">${esc(item.q)}</h2>
+        ${item.type === 'tf' ? `
+          <div class="flex justify-center gap-8">
+            <button id="trueBtn" class="px-12 py-6 bg-green-600 hover:bg-green-700 text-white text-2xl font-bold rounded-2xl shadow-lg transform hover:scale-105 transition">TRUE</button>
+            <button id="falseBtn" class="px-12 py-6 bg-red-600 hover:bg-red-700 text-white text-2xl font-bold rounded-2xl shadow-lg transform hover:scale-105 transition">FALSE</button>
+          </div>
+        ` : `
+          <div class="grid gap-4">
+            ${item.options.map((opt, i) => `<button data-idx="${i}" class="option-btn px-6 py-4 text-lg font-medium text-slate-800 bg-white border-2 border-slate-300 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 transition">${esc(opt)}</button>`).join('')}
+          </div>
+        `}
+      </div>`;
+    startTimer();
     if (item.type === 'tf') {
-      html += `<h2 class="text-3xl font-bold text-center leading-relaxed text-slate-800">${esc(item.q)}</h2>
-        <div class="flex justify-center gap-10">
-          <button class="true-btn px-16 py-8 bg-green-600 hover:bg-green-700 text-white text-3xl font-bold rounded-3xl shadow-xl">TRUE</button>
-          <button class="false-btn px-16 py-8 bg-red-600 hover:bg-red-700 text-white text-3xl font-bold rounded-3xl shadow-xl">FALSE</button>
-        </div></div>`;
-      container.innerHTML = html;
-      document.querySelector('.true-btn').onclick = () => selectAnswer(true);
-      document.querySelector('.false-btn').onclick = () => selectAnswer(false);
+      document.getElementById('trueBtn').onclick = () => selectAnswer(true, item.id);
+      document.getElementById('falseBtn').onclick = () => selectAnswer(false, item.id);
     } else {
-      const opts = item.options.map((o,i) => `<button data-idx="${i}" class="option-btn p-6 text-xl font-medium border-2 border-slate-300 rounded-2xl text-left hover:border-indigo-500">${esc(o)}</button>`).join('');
-      html += `<h2 class="text-3xl font-bold text-center leading-relaxed text-slate-800">${esc(item.q)}</h2>
-        <div class="grid gap-4 max-w-3xl mx-auto">${opts}</div></div>`;
-      container.innerHTML = html;
       document.querySelectorAll('.option-btn').forEach(btn => {
         btn.onclick = () => {
-          document.querySelectorAll('.option-btn').forEach(b=>b.classList.remove('selected'));
+          document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
           btn.classList.add('selected');
-          clearInterval(timerInterval);
-          answers[item.q] = {answer: Number(btn.dataset.idx)};
-          setTimeout(() => renderConfidence(item.q), 500);
+          selectAnswer(Number(btn.dataset.idx), item.id);
         };
       });
     }
   }
 
-  function selectAnswer(val){
+  function selectAnswer(val, id){
     clearInterval(timerInterval);
-    answers[sequence[pointer].q] = {answer: val};
-    renderConfidence(sequence[pointer].q);
+    answers[id] = {answer: val, confidence: null};
+    renderConfidence(id);
   }
 
-  function renderConfidence(key){
-    clearInterval(timerInterval);
+  function renderConfidence(id){
     container.innerHTML = `
-      <div class="text-center space-y-10">
-        <h2 class="text-3xl font-bold text-slate-800">How confident are you?</h2>
-        <input id="confSlider" type="range" min="0" max="100" value="65" class="w-full h-4 rounded-lg appearance-none cursor-pointer bg-slate-200">
-        <div id="confVal" class="text-6xl font-extrabold text-indigo-600">65%</div>
-        <button id="confNext" class="px-12 py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-2xl">Continue →</button>
+      <div class="space-y-8 text-center">
+        <h2 class="text-2xl font-bold text-slate-800">How confident are you?</h2>
+        <input id="confSlider" type="range" min="0" max="100" value="70" class="w-full h-4 rounded-lg appearance-none cursor-pointer bg-slate-200">
+        <div class="text-5xl font-extrabold text-indigo-600" id="confVal">70%</div>
+        <button id="confNext" class="mt-8 px-12 py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl">Continue →</button>
       </div>`;
     const slider = document.getElementById('confSlider');
     const val = document.getElementById('confVal');
     slider.oninput = () => val.textContent = slider.value + '%';
     document.getElementById('confNext').onclick = () => {
-      answers[key].confidence = Number(slider.value);
+      answers[id].confidence = Number(slider.value);
       nextQuestion();
     };
   }
 
   function renderStar(item){
     clearInterval(timerInterval);
-    qix.textContent = pointer + 1; backBtn.disabled = pointer === 0;
+    qix.textContent = pointer + 1;
+    backBtn.disabled = pointer === 0;
     const saved = answers[item.id]?.answer || '';
     container.innerHTML = `
       <div class="space-y-8">
-        <h2 class="text-3xl font-bold text-slate-800 leading-relaxed">${esc(item.text)}</h2>
-        <textarea id="starInput" rows="5" class="w-full text-lg rounded-xl border-2 border-slate-300 p-4 focus:border-indigo-500 resize-none" placeholder="Your thoughts…">${saved}</textarea>
-        <div class="text-right"><button id="starNext" class="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-xl">Next →</button></div>
+        <h2 class="text-2xl md:text-3xl font-bold text-slate-800 leading-relaxed">${esc(item.text)}</h2>
+        <textarea id="starInput" rows="4" class="w-full text-lg rounded-xl border-2 border-slate-300 p-4 focus:border-indigo-500 focus:outline-none resize-none" placeholder="Your answer…">${esc(saved)}</textarea>
+        <div class="text-right">
+          <button id="starNext" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-xl">Next →</button>
+        </div>
       </div>`;
     document.getElementById('starNext').onclick = () => {
       answers[item.id] = {answer: document.getElementById('starInput').value.trim()};
@@ -280,78 +304,107 @@
     };
   }
 
-  function nextQuestion(){ pointer++; if(pointer >= sequence.length) finishSurvey(); else renderCurrent(); }
+  function nextQuestion(){
+    pointer++;
+    if (pointer >= sequence.length) finishSurvey();
+    else renderCurrent();
+  }
 
   function renderCurrent(){
     const item = sequence[pointer];
-    if(item.type==='fact') renderFact(item);
+    if (item.type === 'fact') renderFact(item);
     else renderStar(item);
   }
 
-  backBtn.onclick = () => { if(pointer>0){ pointer--; clearInterval(timerInterval); renderCurrent(); }};
+  backBtn.onclick = () => {
+    if (pointer > 0) {
+      clearInterval(timerInterval);
+      pointer--;
+      renderCurrent();
+    }
+  };
 
   function finishSurvey(){
-    clearInterval(timerInterval); localSave();
-
-    const facts = sequence.filter(x=>x.type==='fact');
-    let correct = 0, confSum = 0;
+    clearInterval(timerInterval);
+    localSave();
+    const facts = sequence.filter(s => s.type === 'fact');
+    let correctCount = 0, confSum = 0;
+    let correctList = '';
     facts.forEach(f => {
-      const a = answers[f.q] || {answer:null, confidence:0};
-      const right = (f.type==='tf' && a.answer===f.correct) || (f.type==='mc' && a.answer===f.correct);
-      if(right) correct++;
+      const a = answers[f.id] || {answer: null, confidence: 0};
+      const isCorrect = (f.type === 'tf' ? a.answer === f.correct : a.answer === f.correct);
+      if (isCorrect) correctCount++;
       confSum += Number(a.confidence || 0);
+      const userAns = a.answer == null ? 'Timed out' : (f.type === 'tf' ? (a.answer ? 'True' : 'False') : f.options[a.answer]);
+      const correctAns = f.type === 'tf' ? (f.correct ? 'True' : 'False') : f.options[f.correct];
+      correctList += `
+        <div class="border-b py-4">
+          <strong class="block mb-2">${esc(f.q)}</strong>
+          <div><span class="text-slate-600">Your answer:</span> ${esc(userAns)}</div>
+          <div><span class="text-green-600">Correct:</span> ${esc(correctAns)}</div>
+        </div>`;
     });
-    const smartScore = facts.length ? Math.round(correct/facts.length*100) : 0;
-    const confidenceScore = facts.length ? Math.round(confSum/facts.length) : 0;
+    const smartScore = facts.length ? Math.round((correctCount / facts.length) * 100) : 0;
+    const confidenceScore = facts.length ? Math.round(confSum / facts.length) : 0;
 
-    let verdict = '';
-    if(smartScore < 35) verdict = lowVerdicts[Math.floor(Math.random()*lowVerdicts.length)];
-    else if(smartScore < 65) verdict = midVerdicts[Math.floor(Math.random()*midVerdicts.length)];
-    else verdict = highVerdicts[Math.floor(Math.random()*highVerdicts.length)];
-
-    let answerList = '';
-    facts.forEach(f => {
-      const a = answers[f.q] || {};
-      const user = f.type==='tf' ? (a.answer===true?'True':a.answer===false?'False':'Timed out') :
-                   f.type==='mc' ? (a.answer!=null ? f.options[a.answer] : 'Timed out') : '';
-      const corr = f.type==='tf' ? (f.correct?'True':'False') : f.options[f.correct];
-      answerList += `<div class="border-b py-5"><div class="font-semibold mb-1">${esc(f.q)}</div>
-        <div class="text-slate-600">You: <span class="font-medium text-slate-900">${esc(user)}</span></div>
-        <div class="text-green-600">Correct: <span class="font-medium">${esc(corr)}</span></div></div>`;
-    });
+    let verdictPool = smartScore < 30 ? lowVerdicts : smartScore < 50 ? midVerdicts : highVerdicts;
+    const verdict = verdictPool[Math.floor(Math.random() * verdictPool.length)];
 
     container.innerHTML = `
-      <div class="text-center space-y-12">
-        <h2 class="text-4xl font-bold text-slate-800">Results</h2>
+      <div class="text-center space-y-10">
+        <h2 class="text-4xl font-bold text-slate-800">Your Results</h2>
         <div class="grid grid-cols-2 gap-8 max-w-md mx-auto">
-          <div class="p-8 bg-indigo-100 rounded-3xl"><div class="text-xl font-semibold">Smart Score</div><div class="text-6xl font-extrabold text-indigo-700">${smartScore}</div></div>
-          <div class="p-8 bg-pink-100 rounded-3xl"><div class="text-xl font-semibold">Confidence</div><div class="text-6xl font-extrabold text-pink-700">${confidenceScore}</div></div>
+          <div class="p-8 bg-indigo-100 rounded-3xl">
+            <div class="text-xl font-semibold">Smart Score</div>
+            <div class="text-6xl font-extrabold text-indigo-700 mt-2">${smartScore}</div>
+          </div>
+          <div class="p-8 bg-pink-100 rounded-3xl">
+            <div class="text-xl font-semibold">Confidence Score</div>
+            <div class="text-6xl font-extrabold text-pink-700 mt-2">${confidenceScore}</div>
+          </div>
         </div>
-        <p class="text-2xl font-medium text-slate-700 max-w-4xl mx-auto">${esc(verdict)}</p>
-
-        <div class="max-w-4xl mx-auto bg-slate-50 rounded-3xl p-8 text-left">
-          <h3 class="text-2xl font-bold mb-6">Your Fact Answers</h3>
-          ${answerList}
+        <div class="text-lg text-slate-800 mb-6">${esc(verdict)}</div>
+        <div class="text-left bg-slate-50 p-8 rounded-2xl text-sm mb-6">
+          <strong class="text-xl block mb-4">Correct answers:</strong>
+          ${correctList}
         </div>
-
-        <div class="flex justify-center gap-6">
-          <button id="moreBtn" class="px-8 py-4 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold">More questions</button>
-          <button id="restartBtn" class="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold">Retake Survey</button>
+        <div class="flex gap-3 justify-center">
+          <button id="moreBtn" class="px-4 py-2 bg-slate-200 rounded-lg">Answer more questions</button>
+          <button id="restartBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Retake full survey</button>
         </div>
       </div>`;
 
-    document.getElementById('moreBtn').onclick = () => { sequence = shuffle([...trueFalseQuestions, ...mcQuestions]); pointer=0; renderCurrent(); };
-    document.getElementById('restartBtn').onclick = () => { answers={}; renderMeta(); };
+    document.getElementById('moreBtn').onclick = () => {
+      const allFactsCombined = [...trueFalseQuestions, ...mcQuestions];
+      const remainingFacts = shuffle(allFactsCombined.filter(f => !answers[f.q])).slice(0, 10).map(f => ({type:'fact', id: f.q, ...f}));
+      const remainingStars = shuffle(starQuestions.filter(s => !answers[s.id])).slice(0, 3).map(s => ({type:'star', ...s}));
+      const combinedRemaining = [];
+      let fi = 0, si = 0;
+      while (fi < remainingFacts.length || si < remainingStars.length) {
+        if (fi < remainingFacts.length) combinedRemaining.push(remainingFacts[fi++]);
+        if (si < remainingStars.length && combinedRemaining.length % 3 !== 0) combinedRemaining.push(remainingStars[si++]);
+      }
+      if (combinedRemaining.length === 0) { alert('No more questions!'); return; }
+      sequence = combinedRemaining;
+      pointer = 0;
+      renderCurrent();
+    };
+
+    document.getElementById('restartBtn').onclick = () => { answers = {}; sequence = []; pointer = 0; stage = 'meta'; renderMeta(); };
 
     try { google.script.run.submitResponse({clientId, answers, smartScore, confidenceScore}); } catch(e) {}
   }
 
   function localSave(){
-    const meta = {q1: document.getElementById('meta_q1')?.value, q3: document.getElementById('meta_q3')?.value};
+    const meta = { q1: document.getElementById('meta_q1')?.value, q3: document.getElementById('meta_q3')?.value };
     localStorage.setItem('survey_draft', JSON.stringify({clientId, meta, answers}));
   }
 
-  setInterval(() => { localSave(); status.textContent='Autosaved'; }, 8000);
+  setInterval(() => {
+    localSave();
+    status.textContent = 'Autosave: local';
+    try { google.script.run.saveDraft({clientId, data: {meta: {q1: document.getElementById('meta_q1')?.value, q3: document.getElementById('meta_q3')?.value}, answers}}); } catch(e) {}
+  }, 8000);
 
   renderMeta();
 })();
