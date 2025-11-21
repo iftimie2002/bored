@@ -29,7 +29,6 @@
 
 <script>
 (function(){
-  // ORIGINAL TRUE/FALSE QUESTIONS
   const trueFalseQuestions = [
     {type:"tf", q:'A cloud weighs around a million tons.', correct:true},
     {type:"tf", q:'Giraffes are 30x more likely to be struck by lightning than humans.', correct:true},
@@ -53,7 +52,6 @@
     {type:"tf", q:'The Moon is growing larger every year.', correct:false}
   ];
 
-  // MULTIPLE-CHOICE QUESTIONS
   const mcQuestions = [
     {type:"mc", q:"What are the prime factors of 24?", options:["Two and three","Two and four","Three and eight","Two and twelve"], correct:0},
     {type:"mc", q:"How many sides does a trapezoid have?", options:["Three","Four","Five","Six"], correct:1},
@@ -77,7 +75,6 @@
     {type:"mc", q:"Fear of flowers is called?", options:["Floraphobia","Anthophobia","Botanophobia","Petalphobia"], correct:1}
   ];
 
-  // ALL STAR QUESTIONS YOU REQUESTED
   const starQuestions = [
     {id:"q1", text:"What's the one thing in the Algarve that genuinely surprised you in a good way?", tag:"experienced"},
     {id:"q2", text:"What part of your stay felt unnecessarily difficult or annoying?", tag:"experienced"},
@@ -170,16 +167,16 @@
     let starIdx = 0;
 
     allFacts.forEach(f => {
-      sequence.push({type:'fact', key: f.q, ...f});
+      sequence.push({type:'fact', q: f.q, options: f.options || null, correct: f.correct, isTF: f.type==='tf'});  // fixed key
       factCount++;
       if (factCount >= 2 && Math.random() < 0.7 || factCount >= 3) {
         if (starIdx < shuffledStars.length) {
-          sequence.push({type:'star', ...shuffledStars[starIdx++]});
+          sequence.push({type:'star', id: shuffledStars[starIdx].id, text: shuffledStars[starIdx++].text});
           factCount = 0;
         }
       }
     });
-    while (starIdx < shuffledStars.length) sequence.push({type:'star', ...shuffledStars[starIdx++]});
+    while (starIdx < shuffledStars.length) sequence.push({type:'star', id: shuffledStars[starIdx].id, text: shuffledStars[starIdx++].text});
 
     qtotal.textContent = sequence.length;
   }
@@ -194,7 +191,7 @@
       if (timeLeft <= 0) {
         clearInterval(timerInterval);
         const item = sequence[pointer];
-        answers[item.key || item.id] = {answer: null, confidence: 0, timedOut: true};
+        answers[item.q] = {answer: null, confidence: 0, timedOut: true};
         nextQuestion();
       }
     }, 1000);
@@ -210,49 +207,66 @@
     ring.style.stroke = timeLeft > 10 ? '#10b981' : timeLeft > 5 ? '#f59e0b' : '#ef4444';
   }
 
-  function renderFact(item){
+  function renderCurrent(){
+    const item = sequence[pointer];
     qix.textContent = pointer + 1;
     backBtn.disabled = pointer === 0;
-    container.innerHTML = `
-      <div class="space-y-8 text-center">
-        <svg width="100" height="100" viewBox="0 0 100 100" class="mx-auto">
-          <circle cx="50" cy="50" r="42" stroke="#e5e7eb" stroke-width="12" fill="none"/>
-          <circle id="timerRing" cx="50" cy="50" r="42" stroke="#10b981" stroke-width="12" fill="none" stroke-dasharray="${2*Math.PI*42}" class="timer-ring"/>
-          <text id="timerText" x="50" y="57" font-size="32" text-anchor="middle" font-bold fill="#1f2937">30</text>
-        </svg>
-        <h2 class="text-2xl font-bold text-slate-800">${esc(item.q)}</h2>
-        ${item.type === 'tf' ? `
-          <div class="flex justify-center gap-8">
-            <button id="trueBtn" class="px-12 py-6 bg-green-600 text-white text-2xl font-bold rounded-xl">TRUE</button>
-            <button id="falseBtn" class="px-12 py-6 bg-red-600 text-white text-2xl font-bold rounded-xl">FALSE</button>
-          </div>
-        ` : `
-          <div class="grid gap-4 max-w-2xl mx-auto">
-            ${item.options.map((opt,i) => `<button data-idx="${i}" class="option-btn p-6 text-lg font-medium border-2 border-slate-300 rounded-xl hover:border-indigo-500">${esc(opt)}</button>`).join('')}
-          </div>
-        `}
-      </div>`;
-    startTimer();
 
-    if (item.type === 'tf') {
-      document.getElementById('trueBtn').onclick = () => selectAnswer(item, true);
-      document.getElementById('falseBtn').onclick = () => selectAnswer(item, false);
-    } else {
-      document.querySelectorAll('.option-btn').forEach(b => b.onclick = () => {
-        document.querySelectorAll('.option-btn').forEach(x => x.classList.remove('selected'));
-        b.classList.add('selected');
-        selectAnswer(item, Number(b.dataset.idx));
-      });
+    if (item.type === 'fact') {
+      container.innerHTML = `
+        <div class="space-y-8 text-center">
+          <svg width="100" height="100" viewBox="0 0 100 100" class="mx-auto">
+            <circle cx="50" cy="50" r="42" stroke="#e5e7eb" stroke-width="12" fill="none"/>
+            <circle id="timerRing" cx="50" cy="50" r="42" stroke="#10b981" stroke-width="12" fill="none" stroke-dasharray="${2*Math.PI*42}" class="timer-ring"/>
+            <text id="timerText" x="50" y="57" font-size="32" text-anchor="middle" font-bold fill="#1f2937">30</text>
+          </svg>
+          <h2 class="text-2xl font-bold text-slate-800">${esc(item.q)}</h2>
+          ${item.isTF ? `
+            <div class="flex justify-center gap-8">
+              <button id="trueBtn" class="px-12 py-6 bg-green-600 text-white text-2xl font-bold rounded-xl">TRUE</button>
+              <button id="falseBtn" class="px-12 py-6 bg-red-600 text-white text-2xl font-bold rounded-xl">FALSE</button>
+            </div>
+          ` : `
+            <div class="grid gap-4 max-w-2xl mx-auto">
+              ${item.options.map((opt,i) => `<button data-idx="${i}" class="option-btn p-6 text-lg font-medium border-2 border-slate-300 rounded-xl hover:border-indigo-500">${esc(opt)}</button>`).join('')}
+            </div>
+          `}
+        </div>`;
+      startTimer();
+      if (item.isTF) {
+        document.getElementById('trueBtn').onclick = () => selectAnswer(true);
+        document.getElementById('falseBtn').onclick = () => selectAnswer(false);
+      } else {
+        document.querySelectorAll('.option-btn').forEach(b => b.onclick = () => {
+          document.querySelectorAll('.option-btn').forEach(x => x.classList.remove('selected'));
+          b.classList.add('selected');
+          selectAnswer(Number(b.dataset.idx));
+        });
+      }
+    } else { // STAR question
+      const saved = answers[item.id]?.answer || '';
+      container.innerHTML = `
+        <div class="space-y-8">
+          <h2 class="text-2xl font-bold text-slate-800">${esc(item.text)}</h2>
+          <textarea id="starInput" rows="4" class="w-full rounded-xl border-2 border-slate-300 p-4" placeholder="Your answer">${esc(saved)}</textarea>
+          <div class="text-right">
+            <button id="starNext" class="px-8 py-4 bg-indigo-600 text-white text-xl font-bold rounded-xl">Next</button>
+          </div>
+        </div>`;
+      document.getElementById('starNext').onclick = () => {
+        answers[item.id] = {answer: document.getElementById('starInput').value.trim()};
+        nextQuestion();
+      };
     }
   }
 
-  function selectAnswer(item, val){
+  function selectAnswer(val){
     clearInterval(timerInterval);
-    answers[item.key] = {answer: val};
-    renderConfidence(item.key);
+    answers[sequence[pointer].q] = {answer: val};
+    renderConfidence(sequence[pointer].q);
   }
 
-  function renderConfidence(key){
+  function renderConfidence(qKey){
     container.innerHTML = `
       <div class="space-y-8 text-center">
         <h2 class="text-2xl font-bold text-slate-800">How confident are you?</h2>
@@ -264,26 +278,7 @@
     const v = document.getElementById('confVal');
     s.oninput = () => v.textContent = s.value + '%';
     document.getElementById('confNext').onclick = () => {
-      answers[key].confidence = Number(s.value);
-      nextQuestion();
-    };
-  }
-
-  function renderStar(item){
-    clearInterval(timerInterval);
-    qix.textContent = pointer + 1;
-    backBtn.disabled = pointer === 0;
-    const saved = answers[item.id]?.answer || '';
-    container.innerHTML = `
-      <div class="space-y-8">
-        <h2 class="text-2xl font-bold text-slate-800">${esc(item.text)}</h2>
-        <textarea id="starInput" rows="4" class="w-full rounded-xl border-2 border-slate-300 p-4" placeholder="Your answer">${esc(saved)}</textarea>
-        <div class="text-right">
-          <button id="starNext" class="px-8 py-4 bg-indigo-600 text-white text-xl font-bold rounded-xl">Next</button>
-        </div>
-      </div>`;
-    document.getElementById('starNext').onclick = () => {
-      answers[item.id] = {answer: document.getElementById('starInput').value.trim()};
+      answers[qKey].confidence = Number(s.value);
       nextQuestion();
     };
   }
@@ -294,16 +289,11 @@
     else renderCurrent();
   }
 
-  function renderCurrent(){
-    const item = sequence[pointer];
-    if (item.type === 'fact') renderFact(item);
-    else renderStar(item);
-  }
-
   backBtn.onclick = () => {
     if (pointer > 0) { clearInterval(timerInterval); pointer--; renderCurrent(); }
   };
 
+  // finishSurvey(), localSave(), setInterval same as previous working version
   function finishSurvey(){
     clearInterval(timerInterval);
     localSave();
@@ -312,32 +302,22 @@
     let correct = 0, totalConf = 0, list = '';
 
     facts.forEach(f => {
-      const a = answers[f.key] || {answer:null, confidence:0};
-      const right = (f.type==='tf' ? a.answer===f.correct : a.answer===f.correct);
+      const a = answers[f.q] || {answer:null, confidence:0};
+      const right = a.answer === f.correct;
       if (right) correct++;
       totalConf += Number(a.confidence || 0);
 
-      const user = a.answer==null ? 'Timed out' : f.type==='tf' ? (a.answer?'True':'False') : f.options[a.answer];
-      const corr = f.type==='tf' ? (f.correct?'True':'False') : f.options[f.correct];
+      const user = a.answer==null ? 'Timed out' : f.isTF ? (a.answer?'True':'False') : f.options[a.answer];
+      const corr = f.isTF ? (f.correct?'True':'False') : f.options[f.correct];
       list += `<div class="border-b py-4"><strong>${esc(f.q)}</strong><div>You: ${esc(user)} | Correct: ${esc(corr)}</div></div>`;
     });
 
     const smartScore = facts.length ? Math.round(correct/facts.length*100) : 0;
     const confidenceScore = facts.length ? Math.round(totalConf/facts.length) : 0;
 
-    const verdicts = smartScore < 30 ? [
-      "You didn't score great, but at least you're confident about it.",
-      "Your answers need work, but your confidence is impressive.",
-      "Not a genius, but definitely entertaining."
-    ] : smartScore < 60 ? [
-      "Mixed results. Confidence and knowledge are not perfectly aligned.",
-      "You think you're smarter than you are."
-    ] : [
-      "Very strong performance.",
-      "You're clearly knowledgeable.",
-      "Excellent score."
-    ];
-    const verdict = verdicts[Math.floor(Math.random()*verdicts.length)];
+    const verdict = smartScore < 30 ? "You didn't score great, but at least you're confident about it." :
+                    smartScore < 60 ? "Mixed results. Confidence and knowledge are not perfectly aligned." :
+                    "Very strong performance.";
 
     container.innerHTML = `
       <div class="text-center space-y-10">
@@ -354,7 +334,6 @@
       </div>`;
 
     document.getElementById('restartBtn').onclick = () => { answers = {}; sequence = []; pointer = 0; stage = 'meta'; renderMeta(); };
-
     try { google.script.run.submitResponse({clientId, answers, smartScore, confidenceScore}); } catch(e) {}
   }
 
