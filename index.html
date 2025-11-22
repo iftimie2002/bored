@@ -14,7 +14,7 @@
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
   </style>
 
-  <!-- THIS LINE MAKES google.script.run WORK -->
+  <!-- google.script.run -->
   <script src="https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec"></script>
 </head>
 <body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
@@ -22,18 +22,20 @@
 
 <script>
 (function(){
-  // AUTO DARK MODE
-  if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => document.documentElement.classList.toggle('dark', e.matches));
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+    document.documentElement.classList.add('dark');
 
-    // ==================== AUTO-SAVE TO GOOGLE FORMS ====================
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =>
+    document.documentElement.classList.toggle('dark', e.matches)
+  );
+
   const FORMS_SUBMIT_URL = 'https://docs.google.com/forms/u/0/d/18oiKT8hgdlp07pFuTAkpKsU0UTehrIv9fEVbJ5LTTP8/formResponse';
-
   const ENTRY_CLIENTID = 'entry.951439171';
   const ENTRY_TIMESTAMP = 'entry.1884708533';
   const ENTRY_DATA = 'entry.1365875270';
 
   let saveTimeout;
+
   function autoSave(isFinal = false) {
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(() => {
@@ -43,7 +45,7 @@
           mins: document.getElementById('mins')?.value || null
         },
         answers: answers,
-        sequence: sequence.map(q => q.type === 'star' ? {type:'star', id: q.id} : {type:'fact', q: q.q}),
+        sequence: sequence.map(q => q.type === 'star' ? {type:'star', id:q.id} : {type:'fact', q:q.q}),
         pointer: pointer
       };
       if (isFinal) {
@@ -56,17 +58,11 @@
       formData.append(ENTRY_TIMESTAMP, new Date().toISOString());
       formData.append(ENTRY_DATA, JSON.stringify(payload));
 
-      fetch(FORMS_SUBMIT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: formData
-      }).then(() => console.log(isFinal ? '✓ Final saved' : '✓ Draft saved'))
-        .catch(err => console.error('Save failed:', err));
-    }, 800); // 800ms debounce for near real-time
+      fetch(FORMS_SUBMIT_URL, { method:'POST', mode:'no-cors', body:formData });
+    }, 800);
   }
-  // =================================================================
 
-    let clientId = localStorage.getItem('surveyClientId');
+  let clientId = localStorage.getItem('surveyClientId');
   if (!clientId) {
     clientId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
       const r = Math.random() * 16 | 0;
@@ -80,70 +76,72 @@
     {type:"tf", q:'Giraffes are 30x more likely to be struck by lightning than humans.', correct:true},
     {type:"tf", q:'Identical twins have identical fingerprints.', correct:false},
     {type:"tf", q:"The Earth's rotation is speeding up.", correct:false},
-    {type:"tf", q:'Your brain literally eats itself every day.', correct:true},
-    {type:"tf", q:'Mars is shaped more like a rugby ball than a sphere.', correct:true},
-    {type:"tf", q:"The universe's average colour is officially called Cosmic Latte.", correct:true},
-    {type:"tf", q:'Water itself is not wet — only objects touching it are.', correct:true},
-    {type:"tf", q:'A chicken once lived for 18 months without its head.', correct:true},
-    {type:"tf", q:'There are more bacterial cells in your body than human cells.', correct:true},
-    {type:"tf", q:"Octopuses don't have tentacles — only arms.", correct:true},
-    {type:"tf", q:'Most maps you see in school are actually wrong.', correct:true},
-    {type:"tf", q:'Snails can have over 10,000 teeth.', correct:true},
-    {type:"tf", q:'Lightning is hotter than the surface of the Sun.', correct:true},
-    {type:"tf", q:'Bananas are slightly radioactive.', correct:true},
-    {type:"tf", q:'You travel millions of kilometres every day without realising it.', correct:true},
-    {type:"tf", q:'You can fold a piece of A4 paper more than eight times.', correct:false},
-    {type:"tf", q:'A penguin has been recorded diving deeper than 500 metres.', correct:true},
-    {type:"tf", q:'There is a planet made mostly of diamond.', correct:true},
-    {type:"tf", q:'The Moon is growing larger every year.', correct:false}
+    {type:"tf", q:'Your brain eats itself every day.', correct:true},
+    {type:"tf", q:'Mars is shaped more like a rugby ball.', correct:true},
+    {type:"tf", q:"The universe's average colour is Cosmic Latte.", correct:true},
+    {type:"tf", q:'Water is not wet.', correct:true},
+    {type:"tf", q:'A chicken lived 18 months without its head.', correct:true},
+    {type:"tf", q:'More bacterial cells than human cells.', correct:true},
+    {type:"tf", q:"Octopuses have arms, not tentacles.", correct:true},
+    {type:"tf", q:'Most school maps are wrong.', correct:true},
+    {type:"tf", q:'Snails can have 10,000+ teeth.', correct:true},
+    {type:"tf", q:'Lightning is hotter than the Sun surface.', correct:true},
+    {type:"tf", q:'Bananas are radioactive.', correct:true},
+    {type:"tf", q:'You travel millions of km daily.', correct:true},
+    {type:"tf", q:'You can fold A4 more than eight times.', correct:false},
+    {type:"tf", q:'Penguin recorded diving 500m+', correct:true},
+    {type:"tf", q:'There is a diamond planet.', correct:true},
+    {type:"tf", q:'The Moon grows each year.', correct:false}
   ];
+
   const mcQuestions = [
-    {type:"mc", q:"What are the prime factors of 24?", options:["Two and three","Two and four","Three and eight","Two and twelve"], correct:0},
-    {type:"mc", q:"How many sides does a trapezoid have?", options:["Three","Four","Five","Six"], correct:1},
-    {type:"mc", q:"Which math theorem states that in a right triangle, A² + B² = C²?", options:["Euclid's Theorem","Pythagorean Theorem","Fermat's Last Theorem","Pascal's Theorem"], correct:1},
-    {type:"mc", q:"How many degrees are in a circle?", options:["180","270","360","365"], correct:2},
-    {type:"mc", q:"How many yards are in a mile?", options:["1000","1760","2000","5280"], correct:1},
-    {type:"mc", q:"What produces the majority of the breathable air on earth?", options:["Trees","Grass","The oceans","Algae in rainforests"], correct:2},
-    {type:"mc", q:"Which travels faster: Sound or light?", options:["Sound","Light","Same speed","Depends"], correct:1},
-    {type:"mc", q:"What mineral can you add to water to make things float easier?", options:["Sugar","Salt","Iron","Baking soda"], correct:1},
-    {type:"mc", q:"Roughly how many mph does Earth spin at the equator?", options:["500","1000","1500","2000"], correct:1},
-    {type:"mc", q:"How many elements are on the periodic table?", options:["92","108","118","124"], correct:2},
-    {type:"mc", q:"Which blood type is the universal donor?", options:["AB+","A-","O-","B+"], correct:2},
-    {type:"mc", q:"How many moons does Neptune have?", options:["8","14","27","63"], correct:1},
-    {type:"mc", q:"Which disease was eradicated in 1980?", options:["Polio","Measles","Smallpox","Malaria"], correct:2},
-    {type:"mc", q:"Who was the first American woman in space?", options:["Valentina Tereshkova","Mae Jemison","Sally Ride","Judith Resnik"], correct:2},
-    {type:"mc", q:"How many pounds in a US ton?", options:["1000","2000","2204","2240"], correct:1},
-    {type:"mc", q:"Largest bone in the human body?", options:["Tibia","Femur","Humerus","Spine"], correct:1},
-    {type:"mc", q:"How many planets in the solar system?", options:["7","8","9","10"], correct:1},
-    {type:"mc", q:"How many colors in a rainbow?", options:["6","7","8","Indefinite"], correct:1},
-    {type:"mc", q:"Which astronomer is named in “Bohemian Rhapsody”?", options:["Copernicus","Kepler","Galileo","Newton"], correct:2},
-    {type:"mc", q:"Fear of flowers is called?", options:["Floraphobia","Anthophobia","Botanophobia","Petalphobia"], correct:1}
+    {type:"mc", q:"Prime factors of 24?", options:["Two and three","Two and four","Three and eight","Two and twelve"], correct:0},
+    {type:"mc", q:"Sides of a trapezoid?", options:["Three","Four","Five","Six"], correct:1},
+    {type:"mc", q:"A² + B² = C² theorem?", options:["Euclid","Pythagoras","Fermat","Pascal"], correct:1},
+    {type:"mc", q:"Degrees in a circle?", options:["180","270","360","365"], correct:2},
+    {type:"mc", q:"Yards in a mile?", options:["1000","1760","2000","5280"], correct:1},
+    {type:"mc", q:"Majority of breathable air comes from?", options:["Trees","Grass","Oceans","Rainforest algae"], correct:2},
+    {type:"mc", q:"Faster: Sound or light?", options:["Sound","Light","Same","Depends"], correct:1},
+    {type:"mc", q:"Add this to water to float easier:", options:["Sugar","Salt","Iron","Baking soda"], correct:1},
+    {type:"mc", q:"Earth spin mph equator?", options:["500","1000","1500","2000"], correct:1},
+    {type:"mc", q:"Elements on periodic table?", options:["92","108","118","124"], correct:2},
+    {type:"mc", q:"Universal donor?", options:["AB+","A-","O-","B+"], correct:2},
+    {type:"mc", q:"Moons of Neptune?", options:["8","14","27","63"], correct:1},
+    {type:"mc", q:"Disease eradicated in 1980?", options:["Polio","Measles","Smallpox","Malaria"], correct:2},
+    {type:"mc", q:"First American woman in space?", options:["Tereshkova","Jemison","Sally Ride","Resnik"], correct:2},
+    {type:"mc", q:"Pounds in US ton?", options:["1000","2000","2204","2240"], correct:1},
+    {type:"mc", q:"Largest bone?", options:["Tibia","Femur","Humerus","Spine"], correct:1},
+    {type:"mc", q:"Planets in solar system?", options:["7","8","9","10"], correct:1},
+    {type:"mc", q:"Colours in a rainbow?", options:["6","7","8","Indefinite"], correct:1},
+    {type:"mc", q:"Astronomer in Bohemian Rhapsody?", options:["Copernicus","Kepler","Galileo","Newton"], correct:2},
+    {type:"mc", q:"Fear of flowers?", options:["Floraphobia","Anthophobia","Botanophobia","Petalphobia"], correct:1}
   ];
+
   const starQuestions = [
-    {id:"s1", text:"What's the one thing in the Algarve that genuinely surprised you in a good way?", tag:"experienced"},
-    {id:"s2", text:"What part of your stay felt unnecessarily difficult or annoying?", tag:"experienced"},
-    {id:"s3", text:"If you could import one thing from back home to make your time here easier, what would it be?", tag:"all"},
-    {id:"s4", text:"What service or product do you wish had been available here?", tag:"experienced"},
-    {id:"s5", text:"What did you try to do in the Algarve that ended up being harder than expected?", tag:"experienced"},
-    {id:"s6", text:"What’s something you looked for but couldn’t find easily in the Algarve?", tag:"experienced"},
-    {id:"s7", text:"What daily task would you pay someone to handle for you while staying here?", tag:"all"},
-    {id:"s8", text:"What’s one thing that would have saved you time during your stay?", tag:"experienced"},
-    {id:"s9", text:"What place or service felt outdated or in need of improvement, in the Algarve?", tag:"experienced"},
-    {id:"s10", text:"What’s something from home you kept thinking “I wish they had this here”?", tag:"all"},
-    {id:"s11", text:"What activity or experience did you expect to exist here, but didn’t?", tag:"experienced"},
-    {id:"s12", text:"What moment during your trip made you think “this could be done in a better way”?", tag:"experienced"},
-    {id:"s13", text:"What did you spend too much effort trying to figure out or organize during your stay?", tag:"experienced"},
-    {id:"s14", text:"What local service disappointed you the most?", tag:"experienced"},
-    {id:"s15", text:"What would have made your stay in the Algarve more comfortable on a daily basis?", tag:"experienced"},
-    {id:"s16", text:"What’s something you felt was overpriced for the value?", tag:"experienced"},
-    {id:"s17", text:"If you could bring one thing from back home to make your stay easier, what would it be?", tag:"all"}
+    {id:"s1", text:"What surprised you the most in the Algarve?", tag:"experienced"},
+    {id:"s2", text:"What felt unnecessarily difficult?", tag:"experienced"},
+    {id:"s3", text:"What would you import from home to make things easier?", tag:"all"},
+    {id:"s4", text:"What service should exist here?", tag:"experienced"},
+    {id:"s5", text:"What was harder than expected?", tag:"experienced"},
+    {id:"s6", text:"What did you look for but couldn’t find easily?", tag:"experienced"},
+    {id:"s7", text:"What daily task would you pay someone to do?", tag:"all"},
+    {id:"s8", text:"What would've saved you time?", tag:"experienced"},
+    {id:"s9", text:"What felt outdated or needed improvement?", tag:"experienced"},
+    {id:"s10", text:"What from home did you miss the most?", tag:"all"},
+    {id:"s11", text:"What expected activity didn’t exist?", tag:"experienced"},
+    {id:"s12", text:"What moment made you think it could be improved?", tag:"experienced"},
+    {id:"s13", text:"What took too much effort to figure out?", tag:"experienced"},
+    {id:"s14", text:"What local service disappointed you?", tag:"experienced"},
+    {id:"s15", text:"What would've made your stay more comfortable?", tag:"experienced"},
+    {id:"s16", text:"What felt overpriced?", tag:"experienced"},
+    {id:"s17", text:"What would you bring from home to make your stay easier?", tag:"all"}
   ];
 
   let answers = {}, sequence = [], pointer = 0, timer = null, timeLeft = 30;
   const app = document.getElementById('app');
 
-  function esc(t) { return t.replace(/[&<>"']/g, r => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[r])); }
-  function shuffle(a) { return a.map(x=>[Math.random(),x]).sort(([a],[b])=>a-b).map(([_,x])=>x); }
+  function esc(t){ return t.replace(/[&<>"']/g, r=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[r])); }
+  function shuffle(a){ return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); }
 
   function renderMeta() {
     app.innerHTML = `
@@ -153,27 +151,30 @@
           <div class="space-y-8">
             <div>
               <label class="block text-xl font-semibold mb-3">Staying in Algarve?</label>
-              <select id="stay" class="w-full p-5 rounded-2xl border-2 border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-lg">
+              <select id="stay" class="w-full p-5 rounded-2xl border-[3px] border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-lg">
                 <option value="leaving">Leaving soon</option>
                 <option value="few">Few more days</option>
                 <option value="just">Just arrived</option>
                 <option value="not">Not here</option>
               </select>
             </div>
+
             <div>
               <label class="block text-xl font-semibold mb-3">Uber ride (min)?</label>
               <input id="mins" type="range" min="1" max="60" value="10" class="w-full">
               <div class="text-center text-5xl font-bold mt-4"><span id="minsVal">10</span></div>
             </div>
-            <button id="start" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-3xl shadow-xl transition">Start</button>
+
+            <button id="start" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-3xl shadow-xl">Start</button>
           </div>
         </div>
       </div>`;
+
     document.getElementById('mins').oninput = e => {
       document.getElementById('minsVal').textContent = e.target.value;
       autoSave();
     };
-    document.getElementById('stay').onchange = autoSave; 
+
     document.getElementById('stay').onchange = () => autoSave();
     document.getElementById('start').onclick = startSurvey;
   }
@@ -181,20 +182,37 @@
   function startSurvey() {
     const mins = +document.getElementById('mins').value;
     const stay = document.getElementById('stay').value;
+
     const maxF = mins < 5 ? 5 : mins < 15 ? 10 : 16;
     const maxS = mins < 5 ? 2 : mins < 15 ? 5 : 8;
+
     const stars = shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just'))).slice(0, maxS);
-    const facts = shuffle([...trueFalseQuestions.map(f=>({...f,isTF:true})), ...mcQuestions.map(f=>({...f,isTF:false}))]).slice(0, maxF);
+
+    const facts = shuffle([
+      ...trueFalseQuestions.map(f => ({...f,isTF:true})),
+      ...mcQuestions.map(f => ({...f,isTF:false}))
+    ]).slice(0, maxF);
+
     sequence = [];
     let streak = 0, si = 0;
+
     facts.forEach(f => {
       sequence.push({type:'fact', q:f.q, options:f.options||null, correct:f.correct, isTF:f.isTF});
       streak++;
       if ((streak >= 2 && Math.random()<0.7) || streak >= 3) {
-        if (si < stars.length) { sequence.push({type:'star', id:stars[si].id, text:stars[si++].text}); streak = 0; }
+        if (si < stars.length) {
+          sequence.push({type:'star', id:stars[si].id, text:stars[si].text});
+          si++;
+          streak = 0;
+        }
       }
     });
-    while (si < stars.length) sequence.push({type:'star', id:stars[si].id, text:stars[si++].text});
+
+    while (si < stars.length) {
+      sequence.push({type:'star', id:stars[si].id, text:stars[si].text});
+      si++;
+    }
+
     pointer = 0;
     answers = {};
     renderQuestion();
@@ -210,7 +228,7 @@
       updateTimer();
       if (timeLeft <= 0) {
         clearInterval(timer);
-        answers[sequence[pointer].q] = {answer: null, confidence: 0, timedOut: true};
+        answers[sequence[pointer].q] = {answer:null, confidence:0, timedOut:true};
         autoSave();
         next();
       }
@@ -220,7 +238,7 @@
   function updateTimer() {
     const ring = document.getElementById('ring');
     const num = document.getElementById('time');
-    if (!ring || !num) return;
+    if (!ring) return;
     const c = 1356;
     ring.style.strokeDashoffset = c - (timeLeft/30)*c;
     num.textContent = timeLeft;
@@ -230,66 +248,73 @@
   function renderQuestion() {
     const q = sequence[pointer];
     const progress = Math.round((pointer / sequence.length) * 100);
+
     app.innerHTML = `
       <div class="container flex flex-col h-full">
         <div class="flex justify-between items-center py-4 px-6">
           <button id="back" class="text-3xl">←</button>
           <div class="text-lg font-bold">${pointer+1}/${sequence.length}</div>
-          <div class="w-32 h-2 bg-gray-300 dark:bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-indigo-600 transition-all duration-300" style="width:${progress}%"></div></div>
+          <div class="w-32 h-2 bg-gray-300 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div class="h-full bg-indigo-600 transition-all duration-300" style="width:${progress}%"></div>
+          </div>
         </div>
+
         <div class="flex-1 flex flex-col justify-center px-6">
           ${q.type === 'fact' ? `
             <div class="text-center mb-8">
               <svg width="90" height="90" viewBox="0 0 480 480" class="mx-auto">
                 <circle cx="240" cy="240" r="216" stroke="#e2e8f0" stroke-width="36" fill="none" class="dark:stroke-[#334155]"/>
-                <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" class="timer-ring" style="stroke-dashoffset: 1356;"/>
+                <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" style="stroke-dashoffset:1356" class="timer-ring"/>
                 <text id="time" x="240" y="280" font-size="120" text-anchor="middle" font-weight="bold" fill="currentColor">30</text>
               </svg>
               <h2 class="text-2xl font-black leading-tight mt-6">${esc(q.q)}</h2>
             </div>
+
             <div class="space-y-3 mt-auto">
               ${q.isTF ? `
                 <button class="true w-full py-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-2xl font-bold rounded-3xl shadow-xl">TRUE</button>
                 <button class="false w-full py-6 bg-gradient-to-r from-red-500 to-rose-600 text-white text-2xl font-bold rounded-3xl shadow-xl">FALSE</button>
               ` : q.options.map((o,i) => `
-                <button data-i="${i}" class="option w-full py-5 text-xl font-medium bg-white dark:bg-slate-800 border-3 border-gray-300 dark:border-slate-700 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-400 transition">${esc(o)}</button>
+                <button data-i="${i}" class="option w-full py-5 text-xl font-medium bg-white dark:bg-slate-800 border-[3px] border-gray-300 dark:border-slate-700 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-400 transition">${esc(o)}</button>
               `).join('')}
             </div>
           ` : `
             <div class="flex-1 flex flex-col justify-center">
               <h2 class="text-2xl font-black leading-tight mb-6">${esc(q.text)}</h2>
-              <textarea id="txt" class="flex-1 min-h-0 p-5 text-lg rounded-2xl border-3 border-gray-300 dark:border-slate-700 dark:bg-slate-800 focus:border-indigo-500 outline-none resize-none" placeholder="Your answer...">${answers[q.id]?.answer||''}</textarea>
+              <textarea id="txt" class="flex-1 min-h-0 p-5 text-lg rounded-2xl border-[3px] border-gray-300 dark:border-slate-700 dark:bg-slate-800 focus:border-indigo-500 outline-none resize-none" placeholder="Your answer...">${answers[q.id]?.answer||''}</textarea>
               <button id="nextStar" class="mt-6 w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl shadow-xl">Next</button>
             </div>
           `}
         </div>
       </div>`;
 
-    // Reset timer visuals
     const ring = document.getElementById('ring');
-    if (ring) ring.style.strokeDashoffset = '1356';
+    if (ring) ring.style.strokeDashoffset = 1356;
 
     if (q.type === 'fact') startTimer();
 
     if (q.type === 'fact' && q.isTF) {
-      document.querySelector('.true').onclick = () => choose(true);       autoSave();
-      document.querySelector('.false').onclick = () => choose(false);      autoSave();
+      document.querySelector('.true').onclick = () => choose(true);
+      document.querySelector('.false').onclick = () => choose(false);
     }
+
     if (q.type === 'fact' && !q.isTF) {
-      document.querySelectorAll('.option').forEach(b => b.onclick = () => {
-        document.querySelectorAll('.option').forEach(x => x.classList.remove('border-indigo-500','bg-indigo-50','dark:bg-indigo-900'));
-        b.classList.add('border-indigo-500','bg-indigo-50','dark:bg-indigo-900');
-        choose(+b.dataset.i);       autoSave();
+      document.querySelectorAll('.option').forEach(b => {
+        b.onclick = () => {
+          document.querySelectorAll('.option').forEach(x => x.classList.remove('border-indigo-500','bg-indigo-50','dark:bg-indigo-900'));
+          b.classList.add('border-indigo-500','bg-indigo-50','dark:bg-indigo-900');
+          choose(+b.dataset.i);
+        };
       });
     }
+
     if (q.type === 'star') {
       const textarea = document.getElementById('txt');
       textarea.addEventListener('input', () => {
-  answers[q.id] = { answer: textarea.value.trim() };
-  autoSave();
-});
-
+        answers[q.id] = {answer: textarea.value.trim()};
+        autoSave();
       });
+
       document.getElementById('nextStar').onclick = () => {
         answers[q.id] = {answer: textarea.value.trim()};
         autoSave();
@@ -297,20 +322,20 @@
       };
     }
 
-    document.getElementById('back')?.addEventListener('click', () => {
+    document.getElementById('back').onclick = () => {
       if (pointer > 0) {
         clearInterval(timer);
         pointer--;
         renderQuestion();
       }
-    });
+    };
   }
 
   function choose(val) {
     clearInterval(timer);
     answers[sequence[pointer].q] = {answer: val};
-    autoSave();
     renderConfidence();
+    autoSave();
   }
 
   function renderConfidence() {
@@ -327,12 +352,13 @@
 
     const s = document.getElementById('slider');
     const v = document.getElementById('val');
+
     s.oninput = () => {
       v.textContent = s.value + '%';
-          answers[sequence[pointer].q].confidence = +s.value;
       answers[currentQ].confidence = +s.value;
       autoSave();
     };
+
     document.getElementById('go').onclick = () => {
       answers[currentQ].confidence = +s.value;
       autoSave();
@@ -343,48 +369,67 @@
   function next() {
     pointer++;
     autoSave();
-    if (pointer >= sequence.length) {
-      finish();
-    } else {
-      renderQuestion();
-    }
+    if (pointer >= sequence.length) finish();
+    else renderQuestion();
   }
+
+  let smart = 0, conf = 0;
 
   function finish() {
     clearInterval(timer);
+
     const facts = sequence.filter(x => x.type === 'fact');
-    let correct = 0, confSum = 0, recap = '';
+
+    let correct = 0;
+    let confSum = 0;
+    let recap = '';
+
     facts.forEach(f => {
       const a = answers[f.q] || {answer:null, confidence:0};
-      if (a.answer === f.correct || (a.answer === null && f.correct === null)) correct++;
+      if (a.answer === f.correct) correct++;
       confSum += a.confidence || 0;
+
       const user = a.answer === null ? 'Timed out' : f.isTF ? (a.answer ? 'True' : 'False') : f.options[a.answer];
       const corr = f.isTF ? (f.correct ? 'True' : 'False') : f.options[f.correct];
-      recap += `<div class="p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl mb-3"><strong class="block mb-1">${esc(f.q)}</strong><div>You: ${user} | Correct: ${corr}</div></div>`;
-    });
-    const smart = facts.length ? Math.round(correct / facts.length * 100) : 0;
-    const conf = facts.length ? Math.round(confSum / facts.length) : 0;
-      autoSave(true); // Send final complete data
 
-    // Show results IMMEDIATELY
+      recap += `
+        <div class="p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl mb-3">
+          <strong class="block mb-1">${esc(f.q)}</strong>
+          <div>You: ${user} | Correct: ${corr}</div>
+        </div>`;
+    });
+
+    smart = facts.length ? Math.round(correct / facts.length * 100) : 0;
+    conf = facts.length ? Math.round(confSum / facts.length) : 0;
+
+    autoSave(true);
+
     app.innerHTML = `
       <div class="container flex flex-col h-full px-6 pt-8 overflow-y-auto">
         <h1 class="text-5xl font-black text-center mb-8">Results</h1>
+
         <div class="grid grid-cols-2 gap-5 mb-8">
-          <div class="bg-indigo-100 dark:bg-indigo-900 p-6 rounded-3xl text-center"><div class="text-xl font-bold">Smart</div><div class="text-6xl font-black">${smart}</div></div>
-          <div class="bg-pink-100 dark:bg-pink-900 p-6 rounded-3xl text-center"><div class="text-xl font-bold">Confidence</div><div class="text-6xl font-black">${conf}</div></div>
+          <div class="bg-indigo-100 dark:bg-indigo-900 p-6 rounded-3xl text-center">
+            <div class="text-xl font-bold">Smart</div>
+            <div class="text-6xl font-black">${smart}</div>
+          </div>
+          <div class="bg-pink-100 dark:bg-pink-900 p-6 rounded-3xl text-center">
+            <div class="text-xl font-bold">Confidence</div>
+            <div class="text-6xl font-black">${conf}</div>
+          </div>
         </div>
+
         <div class="space-y-3 flex-1 overflow-y-auto">${recap}</div>
+
         <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white text-xl font-bold rounded-2xl shadow-xl mt-6">Retake Survey</button>
       </div>`;
 
-    // Submit in background (non-blocking)
     google.script.run
-      .withSuccessHandler(() => console.log('✓ Final response submitted + draft deleted'))
-      .withFailureHandler(err => console.error('✗ Submit failed (draft kept):', err.message || err))
+      .withSuccessHandler(() => {})
+      .withFailureHandler(err => console.error('Submit failed:', err))
       .submitResponse({
-        clientId: clientId,
-        answers: answers,
+        clientId,
+        answers,
         smartScore: smart,
         confidenceScore: conf,
         starIds: sequence.filter(q => q.type === 'star').map(q => q.id)
