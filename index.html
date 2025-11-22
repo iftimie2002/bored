@@ -13,6 +13,9 @@
     .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
   </style>
+
+  <!-- THIS LINE MAKES google.script.run WORK -->
+  <script src="https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec"></script>
 </head>
 <body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
   <div id="app" class="h-full flex flex-col"></div>
@@ -41,8 +44,8 @@
         clientId: clientId,
         data: {
           meta: {
-            stay: document.getElementById('stay')?.value,
-            mins: document.getElementById('mins')?.value
+            stay: document.getElementById('stay')?.value || null,
+            mins: document.getElementById('mins')?.value || null
           },
           answers: answers,
           sequence: sequence.map(q => q.type === 'star' ? {type:'star', id: q.id} : {type:'fact', q: q.q}),
@@ -50,10 +53,11 @@
           timestamp: new Date().toISOString()
         }
       };
-      google.script.run.withFailureHandler((err) => console.error('Save failed:', err))
-        .withSuccessHandler(() => console.log('Saved draft'))
+      google.script.run
+        .withSuccessHandler(() => console.log('✓ Draft saved'))
+        .withFailureHandler(err => console.error('✗ Draft save failed:', err.message || err))
         .saveDraft(payload);
-    }, 800); // debounced ~real-time
+    }, 800);
   }
   // ==========================================================
 
@@ -151,7 +155,6 @@
           </div>
         </div>
       </div>`;
-
     document.getElementById('mins').oninput = e => {
       document.getElementById('minsVal').textContent = e.target.value;
       autoSave();
@@ -178,8 +181,9 @@
     });
     while (si < stars.length) sequence.push({type:'star', id:stars[si].id, text:stars[si++].text});
     pointer = 0;
+    answers = {};
     renderQuestion();
-    autoSave(); // save as soon as survey starts
+    autoSave();
   }
 
   function startTimer() {
@@ -189,7 +193,12 @@
     timer = setInterval(() => {
       timeLeft--;
       updateTimer();
-      if (timeLeft <= 0) { clearInterval(timer); answers[sequence[pointer].q] = {answer:null, confidence:0, timedOut:true}; autoSave(); next(); }
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        answers[sequence[pointer].q] = {answer: null, confidence: 0, timedOut: true};
+        autoSave();
+        next();
+      }
     }, 1000);
   }
 
@@ -218,7 +227,7 @@
             <div class="text-center mb-8">
               <svg width="90" height="90" viewBox="0 0 480 480" class="mx-auto">
                 <circle cx="240" cy="240" r="216" stroke="#e2e8f0" stroke-width="36" fill="none" class="dark:stroke-[#334155]"/>
-                <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" class="timer-ring"/>
+                <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" class="timer-ring" style="stroke-dashoffset: 1356;"/>
                 <text id="time" x="240" y="280" font-size="120" text-anchor="middle" font-weight="bold" fill="currentColor">30</text>
               </svg>
               <h2 class="text-2xl font-black leading-tight mt-6">${esc(q.q)}</h2>
@@ -240,6 +249,10 @@
           `}
         </div>
       </div>`;
+
+    // Reset timer visuals
+    const ring = document.getElementById('ring');
+    if (ring) ring.style.strokeDashoffset = '1356';
 
     if (q.type === 'fact') startTimer();
 
@@ -268,7 +281,11 @@
     }
 
     document.getElementById('back')?.addEventListener('click', () => {
-      if(pointer>0){ clearInterval(timer); pointer--; renderQuestion(); }
+      if (pointer > 0) {
+        clearInterval(timer);
+        pointer--;
+        renderQuestion();
+      }
     });
   }
 
@@ -280,12 +297,13 @@
   }
 
   function renderConfidence() {
+    const currentQ = sequence[pointer].q;
     app.innerHTML = `
       <div class="container flex flex-col justify-center items-center h-full px-6">
         <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md text-center">
           <h2 class="text-3xl font-black mb-10">How confident are you?</h2>
-          <input id="slider" type="range" min="0" max="100" value="70" class="w-full h-10 rounded-full">
-          <div class="text-7xl font-black my-8" id="val">70%</div>
+          <input id="slider" type="range" min="0" max="100" value="${answers[currentQ]?.confidence || 70}" class="w-full h-10 rounded-full">
+          <div class="text-7xl font-black my-8" id="val">${answers[currentQ]?.confidence || 70}%</div>
           <button id="go" class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-2xl shadow-xl">Continue</button>
         </div>
       </div>`;
@@ -294,12 +312,11 @@
     const v = document.getElementById('val');
     s.oninput = () => {
       v.textContent = s.value + '%';
-      // save confidence as user drags
-      answers[sequence[pointer].q].confidence = +s.value;
+      answers[currentQ].confidence = +s.value;
       autoSave();
     };
     document.getElementById('go').onclick = () => {
-      answers[sequence[pointer].q].confidence = +s.value;
+      answers[currentQ].confidence = +s.value;
       autoSave();
       next();
     };
@@ -307,8 +324,12 @@
 
   function next() {
     pointer++;
-    if (pointer >= sequence.length) finish();
-    else renderQuestion();
+    autoSave();
+    if (pointer >= sequence.length) {
+      finish();
+    } else {
+      renderQuestion();
+    }
   }
 
   function finish() {
@@ -317,26 +338,16 @@
     let correct = 0, confSum = 0, recap = '';
     facts.forEach(f => {
       const a = answers[f.q] || {answer:null, confidence:0};
-      if (a.answer === f.correct) correct++;
+      if (a.answer === f.correct || (a.answer === null && f.correct === null)) correct++;
       confSum += a.confidence || 0;
-      const user = a.answer === null ? 'Timed out' : f.isTF ? (a.answer?'True':'False') : f.options[a.answer];
-      const corr = f.isTF ? (f.correct?'True':'False') : f.options[f.correct];
+      const user = a.answer === null ? 'Timed out' : f.isTF ? (a.answer ? 'True' : 'False') : f.options[a.answer];
+      const corr = f.isTF ? (f.correct ? 'True' : 'False') : f.options[f.correct];
       recap += `<div class="p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl mb-3"><strong class="block mb-1">${esc(f.q)}</strong><div>You: ${user} | Correct: ${corr}</div></div>`;
     });
-    const smart = Math.round(correct/facts.length*100);
-    const conf = Math.round(confSum/facts.length);
+    const smart = facts.length ? Math.round(correct / facts.length * 100) : 0;
+    const conf = facts.length ? Math.round(confSum / facts.length) : 0;
 
-    // FINAL SUBMISSION (deletes draft automatically via your Code.gs)
-    google.script.run.withFailureHandler((err) => console.error('Submit failed:', err))
-      .withSuccessHandler(() => console.log('Submitted response'))
-      .submitResponse({
-        clientId: clientId,
-        answers: answers,
-        smartScore: smart,
-        confidenceScore: conf,
-        starIds: sequence.filter(q => q.type === 'star').map(q => q.id)
-      });
-
+    // Show results IMMEDIATELY
     app.innerHTML = `
       <div class="container flex flex-col h-full px-6 pt-8 overflow-y-auto">
         <h1 class="text-5xl font-black text-center mb-8">Results</h1>
@@ -347,6 +358,18 @@
         <div class="space-y-3 flex-1 overflow-y-auto">${recap}</div>
         <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white text-xl font-bold rounded-2xl shadow-xl mt-6">Retake Survey</button>
       </div>`;
+
+    // Submit in background (non-blocking)
+    google.script.run
+      .withSuccessHandler(() => console.log('✓ Final response submitted + draft deleted'))
+      .withFailureHandler(err => console.error('✗ Submit failed (draft kept):', err.message || err))
+      .submitResponse({
+        clientId: clientId,
+        answers: answers,
+        smartScore: smart,
+        confidenceScore: conf,
+        starIds: sequence.filter(q => q.type === 'star').map(q => q.id)
+      });
   }
 
   renderMeta();
