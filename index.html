@@ -13,8 +13,6 @@
     .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
   </style>
-  <!-- Google Apps Script Web App requirement -->
-  <script src="https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec"></script>
 </head>
 <body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
   <div id="app" class="h-full flex flex-col"></div>
@@ -52,7 +50,9 @@
           timestamp: new Date().toISOString()
         }
       };
-      google.script.run.saveDraft(payload);
+      google.script.run.withFailureHandler((err) => console.error('Save failed:', err))
+        .withSuccessHandler(() => console.log('Saved draft'))
+        .saveDraft(payload);
     }, 800); // debounced ~real-time
   }
   // ==========================================================
@@ -189,7 +189,7 @@
     timer = setInterval(() => {
       timeLeft--;
       updateTimer();
-      if (timeLeft <= 0) { clearInterval(timer); answers[sequence[pointer].q] = {answer:null, confidence:0, timedOut:true}; next(); }
+      if (timeLeft <= 0) { clearInterval(timer); answers[sequence[pointer].q] = {answer:null, confidence:0, timedOut:true}; autoSave(); next(); }
     }, 1000);
   }
 
@@ -217,7 +217,7 @@
           ${q.type === 'fact' ? `
             <div class="text-center mb-8">
               <svg width="90" height="90" viewBox="0 0 480 480" class="mx-auto">
-                <circle cx="240" cy="240" r="216" stroke="#e2e8f0 dark:#334155" stroke-width="36" fill="none"/>
+                <circle cx="240" cy="240" r="216" stroke="#e2e8f0" stroke-width="36" fill="none" class="dark:stroke-[#334155]"/>
                 <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" class="timer-ring"/>
                 <text id="time" x="240" y="280" font-size="120" text-anchor="middle" font-weight="bold" fill="currentColor">30</text>
               </svg>
@@ -327,13 +327,15 @@
     const conf = Math.round(confSum/facts.length);
 
     // FINAL SUBMISSION (deletes draft automatically via your Code.gs)
-    google.script.run.submitResponse({
-      clientId: clientId,
-      answers: answers,
-      smartScore: smart,
-      confidenceScore: conf,
-      starIds: sequence.filter(q => q.type === 'star').map(q => q.id)
-    });
+    google.script.run.withFailureHandler((err) => console.error('Submit failed:', err))
+      .withSuccessHandler(() => console.log('Submitted response'))
+      .submitResponse({
+        clientId: clientId,
+        answers: answers,
+        smartScore: smart,
+        confidenceScore: conf,
+        starIds: sequence.filter(q => q.type === 'star').map(q => q.id)
+      });
 
     app.innerHTML = `
       <div class="container flex flex-col h-full px-6 pt-8 overflow-y-auto">
