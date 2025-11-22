@@ -26,8 +26,47 @@
   if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => document.documentElement.classList.toggle('dark', e.matches));
 
-  // ==================== AUTO-SAVE SYSTEM ====================
-  let clientId = localStorage.getItem('surveyClientId');
+    // ==================== AUTO-SAVE TO GOOGLE FORMS ====================
+  const FORMS_SUBMIT_URL = 'https://docs.google.com/forms/u/0/d/18oiKT8hgdlp07pFuTAkpKsU0UTehrIv9fEVbJ5LTTP8/formResponse';
+
+  const ENTRY_CLIENTID = 'entry.951439171';
+  const ENTRY_TIMESTAMP = 'entry.1884708533';
+  const ENTRY_DATA = 'entry.1365875270';
+
+  let saveTimeout;
+  function autoSave(isFinal = false) {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      const payload = {
+        meta: {
+          stay: document.getElementById('stay')?.value || null,
+          mins: document.getElementById('mins')?.value || null
+        },
+        answers: answers,
+        sequence: sequence.map(q => q.type === 'star' ? {type:'star', id: q.id} : {type:'fact', q: q.q}),
+        pointer: pointer
+      };
+      if (isFinal) {
+        payload.smartScore = smart;
+        payload.confidenceScore = conf;
+        payload.starIds = sequence.filter(q => q.type === 'star').map(q => q.id);
+      }
+      const formData = new FormData();
+      formData.append(ENTRY_CLIENTID, clientId);
+      formData.append(ENTRY_TIMESTAMP, new Date().toISOString());
+      formData.append(ENTRY_DATA, JSON.stringify(payload));
+
+      fetch(FORMS_SUBMIT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: formData
+      }).then(() => console.log(isFinal ? '✓ Final saved' : '✓ Draft saved'))
+        .catch(err => console.error('Save failed:', err));
+    }, 800); // 800ms debounce for near real-time
+  }
+  // =================================================================
+
+    let clientId = localStorage.getItem('surveyClientId');
   if (!clientId) {
     clientId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
       const r = Math.random() * 16 | 0;
@@ -35,31 +74,6 @@
     });
     localStorage.setItem('surveyClientId', clientId);
   }
-
-  let saveTimeout;
-  function autoSave() {
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-      const payload = {
-        clientId: clientId,
-        data: {
-          meta: {
-            stay: document.getElementById('stay')?.value || null,
-            mins: document.getElementById('mins')?.value || null
-          },
-          answers: answers,
-          sequence: sequence.map(q => q.type === 'star' ? {type:'star', id: q.id} : {type:'fact', q: q.q}),
-          pointer: pointer,
-          timestamp: new Date().toISOString()
-        }
-      };
-      google.script.run
-        .withSuccessHandler(() => console.log('✓ Draft saved'))
-        .withFailureHandler(err => console.error('✗ Draft save failed:', err.message || err))
-        .saveDraft(payload);
-    }, 800);
-  }
-  // ==========================================================
 
   const trueFalseQuestions = [
     {type:"tf", q:'A cloud weighs around a million tons.', correct:true},
@@ -159,7 +173,8 @@
       document.getElementById('minsVal').textContent = e.target.value;
       autoSave();
     };
-    document.getElementById('stay').onchange = autoSave;
+    document.getElementById('stay').onchange = autoSave; 
+    document.getElementById('stay').onchange = () => autoSave();
     document.getElementById('start').onclick = startSurvey;
   }
 
@@ -257,19 +272,19 @@
     if (q.type === 'fact') startTimer();
 
     if (q.type === 'fact' && q.isTF) {
-      document.querySelector('.true').onclick = () => choose(true);
-      document.querySelector('.false').onclick = () => choose(false);
+      document.querySelector('.true').onclick = () => choose(true);       autoSave();
+      document.querySelector('.false').onclick = () => choose(false);      autoSave();
     }
     if (q.type === 'fact' && !q.isTF) {
       document.querySelectorAll('.option').forEach(b => b.onclick = () => {
         document.querySelectorAll('.option').forEach(x => x.classList.remove('border-indigo-500','bg-indigo-50','dark:bg-indigo-900'));
         b.classList.add('border-indigo-500','bg-indigo-50','dark:bg-indigo-900');
-        choose(+b.dataset.i);
+        choose(+b.dataset.i);       autoSave();
       });
     }
     if (q.type === 'star') {
       const textarea = document.getElementById('txt');
-      textarea.addEventListener('input', () => {
+      textarea.addEventListener('input', autoSave) => {
         answers[q.id] = {answer: textarea.value.trim()};
         autoSave();
       });
@@ -312,6 +327,7 @@
     const v = document.getElementById('val');
     s.oninput = () => {
       v.textContent = s.value + '%';
+          answers[sequence[pointer].q].confidence = +s.value;
       answers[currentQ].confidence = +s.value;
       autoSave();
     };
@@ -346,6 +362,7 @@
     });
     const smart = facts.length ? Math.round(correct / facts.length * 100) : 0;
     const conf = facts.length ? Math.round(confSum / facts.length) : 0;
+      autoSave(true); // Send final complete data
 
     // Show results IMMEDIATELY
     app.innerHTML = `
