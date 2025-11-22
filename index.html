@@ -284,9 +284,11 @@
     }
     if (q.type === 'star') {
       const textarea = document.getElementById('txt');
-      textarea.addEventListener('input', autoSave) => {
-        answers[q.id] = {answer: textarea.value.trim()};
-        autoSave();
+      textarea.addEventListener('input', () => {
+  answers[q.id] = { answer: textarea.value.trim() };
+  autoSave();
+});
+
       });
       document.getElementById('nextStar').onclick = () => {
         answers[q.id] = {answer: textarea.value.trim()};
