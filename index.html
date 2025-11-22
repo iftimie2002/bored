@@ -13,6 +13,8 @@
     .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
   </style>
+  <!-- Google Apps Script Web App requirement -->
+  <script src="https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec"></script>
 </head>
 <body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
   <div id="app" class="h-full flex flex-col"></div>
@@ -22,6 +24,38 @@
   // AUTO DARK MODE
   if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => document.documentElement.classList.toggle('dark', e.matches));
+
+  // ==================== AUTO-SAVE SYSTEM ====================
+  let clientId = localStorage.getItem('surveyClientId');
+  if (!clientId) {
+    clientId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+    localStorage.setItem('surveyClientId', clientId);
+  }
+
+  let saveTimeout;
+  function autoSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      const payload = {
+        clientId: clientId,
+        data: {
+          meta: {
+            stay: document.getElementById('stay')?.value,
+            mins: document.getElementById('mins')?.value
+          },
+          answers: answers,
+          sequence: sequence.map(q => q.type === 'star' ? {type:'star', id: q.id} : {type:'fact', q: q.q}),
+          pointer: pointer,
+          timestamp: new Date().toISOString()
+        }
+      };
+      google.script.run.saveDraft(payload);
+    }, 800); // debounced ~real-time
+  }
+  // ==========================================================
 
   const trueFalseQuestions = [
     {type:"tf", q:'A cloud weighs around a million tons.', correct:true},
@@ -45,7 +79,6 @@
     {type:"tf", q:'There is a planet made mostly of diamond.', correct:true},
     {type:"tf", q:'The Moon is growing larger every year.', correct:false}
   ];
-
   const mcQuestions = [
     {type:"mc", q:"What are the prime factors of 24?", options:["Two and three","Two and four","Three and eight","Two and twelve"], correct:0},
     {type:"mc", q:"How many sides does a trapezoid have?", options:["Three","Four","Five","Six"], correct:1},
@@ -68,7 +101,6 @@
     {type:"mc", q:"Which astronomer is named in “Bohemian Rhapsody”?", options:["Copernicus","Kepler","Galileo","Newton"], correct:2},
     {type:"mc", q:"Fear of flowers is called?", options:["Floraphobia","Anthophobia","Botanophobia","Petalphobia"], correct:1}
   ];
-
   const starQuestions = [
     {id:"s1", text:"What's the one thing in the Algarve that genuinely surprised you in a good way?", tag:"experienced"},
     {id:"s2", text:"What part of your stay felt unnecessarily difficult or annoying?", tag:"experienced"},
@@ -119,7 +151,12 @@
           </div>
         </div>
       </div>`;
-    document.getElementById('mins').oninput = e => document.getElementById('minsVal').textContent = e.target.value;
+
+    document.getElementById('mins').oninput = e => {
+      document.getElementById('minsVal').textContent = e.target.value;
+      autoSave();
+    };
+    document.getElementById('stay').onchange = autoSave;
     document.getElementById('start').onclick = startSurvey;
   }
 
@@ -128,10 +165,8 @@
     const stay = document.getElementById('stay').value;
     const maxF = mins < 5 ? 5 : mins < 15 ? 10 : 16;
     const maxS = mins < 5 ? 2 : mins < 15 ? 5 : 8;
-
     const stars = shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just'))).slice(0, maxS);
     const facts = shuffle([...trueFalseQuestions.map(f=>({...f,isTF:true})), ...mcQuestions.map(f=>({...f,isTF:false}))]).slice(0, maxF);
-
     sequence = [];
     let streak = 0, si = 0;
     facts.forEach(f => {
@@ -142,9 +177,9 @@
       }
     });
     while (si < stars.length) sequence.push({type:'star', id:stars[si].id, text:stars[si++].text});
-
     pointer = 0;
     renderQuestion();
+    autoSave(); // save as soon as survey starts
   }
 
   function startTimer() {
@@ -178,12 +213,11 @@
           <div class="text-lg font-bold">${pointer+1}/${sequence.length}</div>
           <div class="w-32 h-2 bg-gray-300 dark:bg-slate-700 rounded-full overflow-hidden"><div class="h-full bg-indigo-600 transition-all duration-300" style="width:${progress}%"></div></div>
         </div>
-
         <div class="flex-1 flex flex-col justify-center px-6">
           ${q.type === 'fact' ? `
             <div class="text-center mb-8">
               <svg width="90" height="90" viewBox="0 0 480 480" class="mx-auto">
-                <circle cx="240 cy240 r216 stroke="#e2e8f0 dark:#334155" stroke-width="36" fill="none"/>
+                <circle cx="240" cy="240" r="216" stroke="#e2e8f0 dark:#334155" stroke-width="36" fill="none"/>
                 <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" class="timer-ring"/>
                 <text id="time" x="240" y="280" font-size="120" text-anchor="middle" font-weight="bold" fill="currentColor">30</text>
               </svg>
@@ -221,18 +255,27 @@
       });
     }
     if (q.type === 'star') {
+      const textarea = document.getElementById('txt');
+      textarea.addEventListener('input', () => {
+        answers[q.id] = {answer: textarea.value.trim()};
+        autoSave();
+      });
       document.getElementById('nextStar').onclick = () => {
-        answers[q.id] = {answer: document.getElementById('txt').value.trim()};
+        answers[q.id] = {answer: textarea.value.trim()};
+        autoSave();
         next();
       };
     }
 
-    document.getElementById('back')?.addEventListener('click', () => { if(pointer>0){ clearInterval(timer); pointer--; renderQuestion(); } });
+    document.getElementById('back')?.addEventListener('click', () => {
+      if(pointer>0){ clearInterval(timer); pointer--; renderQuestion(); }
+    });
   }
 
   function choose(val) {
     clearInterval(timer);
     answers[sequence[pointer].q] = {answer: val};
+    autoSave();
     renderConfidence();
   }
 
@@ -246,11 +289,18 @@
           <button id="go" class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-2xl shadow-xl">Continue</button>
         </div>
       </div>`;
+
     const s = document.getElementById('slider');
     const v = document.getElementById('val');
-    s.oninput = () => v.textContent = s.value + '%';
+    s.oninput = () => {
+      v.textContent = s.value + '%';
+      // save confidence as user drags
+      answers[sequence[pointer].q].confidence = +s.value;
+      autoSave();
+    };
     document.getElementById('go').onclick = () => {
       answers[sequence[pointer].q].confidence = +s.value;
+      autoSave();
       next();
     };
   }
@@ -275,6 +325,15 @@
     });
     const smart = Math.round(correct/facts.length*100);
     const conf = Math.round(confSum/facts.length);
+
+    // FINAL SUBMISSION (deletes draft automatically via your Code.gs)
+    google.script.run.submitResponse({
+      clientId: clientId,
+      answers: answers,
+      smartScore: smart,
+      confidenceScore: conf,
+      starIds: sequence.filter(q => q.type === 'star').map(q => q.id)
+    });
 
     app.innerHTML = `
       <div class="container flex flex-col h-full px-6 pt-8 overflow-y-auto">
