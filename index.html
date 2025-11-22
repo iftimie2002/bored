@@ -246,8 +246,8 @@
   }
 
   function renderQuestion() {
-    const q = sequence[pointer];
-    const progress = Math.round((pointer / sequence.length) * 100);
+      const q = sequence[pointer];
+      const progress = Math.round(((pointer + 1) / sequence.length) * 100);
 
     app.innerHTML = `
       <div class="container flex flex-col h-full">
