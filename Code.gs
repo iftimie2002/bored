@@ -2,9 +2,8 @@
 // Copy/paste this entire file into a new Apps Script file (e.g., Code.gs) in your project.
 // Requirements:
 //   1) Paste the jsrsasign library (with the navigator/window shims) into its own file in the same project.
-//   2) Paste the CryptoJS library (core + enc-base64 + mode-cbc + pad-pkcs7 + aes) into another file (or below).
-//   3) Set the PRIVATE_KEY_PEM (and optionally PUBLIC_KEY_PEM) in Script Properties.
-//   4) Ensure a sheet/tab named "RawData" exists; otherwise the first tab will be used.
+//   2) Set the PRIVATE_KEY_PEM (and optionally PUBLIC_KEY_PEM) in Script Properties.
+//   3) Ensure a sheet/tab named "RawData" exists; otherwise the first tab will be used.
 
 function doGet() {
   // Returns the public key so the browser can encrypt payloads.
@@ -23,11 +22,10 @@ function doPost(e) {
       return respond(400, { error: 'Invalid JSON', detail: String(err) });
     }
 
-    if (!body || !body.key || !body.iv || !body.ciphertext) {
-      return respond(400, { error: 'Missing key/iv/ciphertext' });
-    }
+    const cipherTextB64 = body && body.ciphertext;
+    if (!cipherTextB64) return respond(400, { error: 'Missing ciphertext' });
 
-    const plaintext = decryptCiphertext(body);
+    const plaintext = decryptCiphertext(cipherTextB64);
     const payload = JSON.parse(plaintext);
 
     appendRow(payload);
@@ -52,59 +50,40 @@ function appendRow(payload) {
   ]);
 }
 
-function decryptCiphertext(body) {
-  if (typeof CryptoJS === 'undefined') throw new Error('Missing CryptoJS library');
-
+function decryptCiphertext(cipherTextB64) {
   const privatePem = PropertiesService.getScriptProperties().getProperty('PRIVATE_KEY_PEM');
   if (!privatePem) throw new Error('Missing PRIVATE_KEY_PEM');
 
-  // 1) RSA-decrypt the wrapped AES key (encrypted raw bytes with RSA-OAEP).
   const rsa = new RSAKey();
   rsa.readPrivateKeyFromPEMString(privatePem);
 
-  const aesKeyBytes = rsaDecryptToBytes(rsa, body.key);
-  const aesKeyWords = CryptoJS.lib.WordArray.create(aesKeyBytes);
-
-  // 2) AES-CBC decrypt the payload using the IV and ciphertext.
-  const ivWords = CryptoJS.enc.Base64.parse(body.iv);
-  const cipherParams = CryptoJS.lib.CipherParams.create({
-    ciphertext: CryptoJS.enc.Base64.parse(body.ciphertext)
-  });
-
-  const decrypted = CryptoJS.AES.decrypt(cipherParams, aesKeyWords, {
-    iv: ivWords,
-    mode: CryptoJS.mode.CBC,
-    padding: CryptoJS.pad.Pkcs7
-  });
-
-  const plaintext = CryptoJS.enc.Utf8.stringify(decrypted);
-  if (!plaintext) throw new Error('AES decryption failed (malformed UTF-8)');
-  return plaintext;
-}
-
-function rsaDecryptToBytes(rsa, cipherTextB64) {
   // jsrsasign expects hex; convert base64 → bytes → hex.
   const bytes = Utilities.base64Decode(cipherTextB64);
   const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
-
   // Prefer OAEP (matches browser Web Crypto). Fallback to PKCS1 v1.5 if OAEP is unavailable.
   const decrypted =
     (typeof rsa.decryptOAEP === 'function' ? rsa.decryptOAEP(hex, 'sha256') : null) ||
     rsa.decrypt(hex);
-  if (!decrypted) throw new Error('RSA decryption failed');
-
-  // Convert decrypted string (raw bytes) back to a Uint8Array.
-  const out = new Uint8Array(decrypted.length);
-  for (let i = 0; i < decrypted.length; i++) {
-    out[i] = decrypted.charCodeAt(i) & 0xff;
-  }
-  return out;
+  if (!decrypted) throw new Error('Decryption failed');
+  return decrypted;
 }
 
 function getPublicKey() {
+  // Use Script Property PUBLIC_KEY_PEM if present; otherwise fall back to the bundled key.
   const stored = PropertiesService.getScriptProperties().getProperty('PUBLIC_KEY_PEM');
-  if (!stored) throw new Error('PUBLIC_KEY_PEM is missing in Script Properties');
-  return stored;
+  if (stored) return stored;
+
+  return `
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAosrKjxh9+l3IFR557b4Z
+Pm240gpFj0vYwKkqfPLMtEqgcYEKnYAw2AuWoszm/5aBc3AGsnF5im1NgGntTRGL
+ZY5+1D5SwlNAiijTyoNoiMVNqh0/VSc9Y1JZqzbXsdvXu6Uc5utIe5DQ/UzpLsEF
+topZsEjphI0PFtI2S0ByxH4LKA6x6gcz3dmzFOkKxsUwdCoWbjy23E0RltcYBA8U
+6Q3k1AHLwNIPpHbmlm2Dy7WCIhPpzzGVouXx7FzFKHecZciVZXnqzFrO6hjOKY6v
+j6/8Fhbsetk1vRz+ejy48JRB2V+VJ3vaG2k4Joj08/XWRZdTaOfiHMOfs+tYK4sC
+jwIDAQAB
+-----END PUBLIC KEY-----
+`;
 }
 
 function respond(status, obj) {

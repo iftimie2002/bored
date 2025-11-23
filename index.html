@@ -13,10 +13,14 @@
     .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
   </style>
-
 </head>
+
 <body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
+
   <div id="app" class="h-full flex flex-col"></div>
+
+  <!-- ADDED STATUS BAR -->
+  <div id="status" style="text-align:center; margin:8px; font-weight:bold;"></div>
 
 <script>
 (function(){
@@ -27,53 +31,21 @@
     document.documentElement.classList.toggle('dark', e.matches)
   );
 
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxwbL1uIv3nyjMz9s0h8lDQoltaeLar6v3_DiY977s75IBhPDG-g8QDzKfty7222pR-_Q/exec';
-  // Optional: paste your current RSA public key PEM here as a fallback if the fetch fails.
-  const FALLBACK_PUBLIC_KEY = '';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwe2BjJ7F4z6kThUDddWWJk7UJUmRKJvU6ocqvvyZDlLt1WhuzQFBCNL90xX3IK_mhqjg/exec';
+  const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxWwSLTeQoGM5Gvb9yBBJ
+7Q4CFpNu3baUSEfm3NJb5LI59HdM66o3h0Sl2RTbwW2Q9zK1kDqLTf/J5kMnwtU9
+GKcEuKD1UYWvzZO9C/ekPoKhzMWccdFujIrTeLPJGjncSr0QZ9ZfAoSAYMamdtlR
+lfsNZjrUwEL9NsrPd4RMgaYHAI28TlceDhObgZPzjwBPOy0zEQiqW6NA+eQh88ES
+/CKvTjFt8E+jZzmFdqPFKHZ56scmThT7VK1IisRCnQFSRKqyKXBBg9C5Qmro7+3p
+KiZAS/mG2QMYEwpVeJ5GzvH3ENBgNBps84YivNU0P0OtJ1vz24meWgemkppqadr+
+ZwIDAQAB
+-----END PUBLIC KEY-----`;
   let publicKeyPromise = null;
-  // Status badge shown in the corner; expose setStatus on window so event handlers always find it.
-  const statusBox = document.createElement('div');
-  statusBox.id = 'status-box';
-  statusBox.style.position = 'fixed';
-  statusBox.style.bottom = '1rem';
-  statusBox.style.right = '1rem';
-  statusBox.style.padding = '0.75rem 1rem';
-  statusBox.style.borderRadius = '0.75rem';
-  statusBox.style.background = 'rgba(15, 23, 42, 0.85)';
-  statusBox.style.color = 'white';
-  statusBox.style.fontSize = '0.9rem';
-  statusBox.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
-  statusBox.style.zIndex = '50';
-  statusBox.textContent = 'Ready';
-  document.body.appendChild(statusBox);
 
-  function setStatus(text, isError = false) {
-    statusBox.textContent = text;
-    statusBox.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
-  }
-
-  // Guard against scope issues in some browsers by placing references on window for debugging.
-  window.__statusBox = statusBox;
-  window.setStatus = setStatus;
-
-  function cleanPem(pem) {
-    if (!pem || typeof pem !== 'string') throw new Error('Missing PEM');
-    const trimmed = pem.trim();
-    if (!trimmed.includes('BEGIN PUBLIC KEY')) throw new Error('PEM is not a public key');
-    return trimmed
-      .replace(/\r/g, '\n')
-      .replace(/\n+/g, '\n')
-      .replace(/\s*-----BEGIN PUBLIC KEY-----\s*/g, '-----BEGIN PUBLIC KEY-----\n')
-      .replace(/\s*-----END PUBLIC KEY-----\s*/g, '\n-----END PUBLIC KEY-----')
-      .trim();
-  }
 
   function pemToArrayBuffer(pem) {
-    const b64 = cleanPem(pem)
-      .replace(/\s*-----BEGIN [^-]+-----\s*/g, '')
-      .replace(/\s*-----END [^-]+-----\s*/g, '')
-      .replace(/\s+/g, '')
-      .trim();
+    const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
     const raw = atob(b64);
     const buffer = new ArrayBuffer(raw.length);
     const view = new Uint8Array(buffer);
@@ -81,116 +53,76 @@
     return buffer;
   }
 
-  async function importPemPublicKey(pem) {
-    return crypto.subtle.importKey(
-      'spki',
-      pemToArrayBuffer(pem),
-      { name: 'RSA-OAEP', hash: 'SHA-256' },
-      false,
-      ['encrypt']
-    );
-  }
-
-  async function getPublicKey() {
+    async function getPublicKey() {
     if (!publicKeyPromise) {
-      publicKeyPromise = (async () => {
-        try {
-          const res = await fetch(WEB_APP_URL, { mode: 'cors', cache: 'no-store' });
-          if (!res.ok) throw new Error(`Public key fetch failed: ${res.status}`);
-          const data = await res.json();
-          const pem = typeof data?.publicKey === 'string' ? data.publicKey : '';
-          if (!pem) throw new Error('Missing public key from server');
-          return importPemPublicKey(pem);
-        } catch (err) {
-          console.warn('Public key fetch failed', err);
-          const fallback = (FALLBACK_PUBLIC_KEY || '').trim();
-          if (!fallback) {
-            setStatus('Public key missing—set PUBLIC_KEY_PEM in Apps Script or add FALLBACK_PUBLIC_KEY', true);
-            throw err;
-          }
-          return importPemPublicKey(fallback);
-        }
-      })();
+      publicKeyPromise = crypto.subtle.importKey(
+        'spki',
+        pemToArrayBuffer(PUBLIC_KEY_PEM),
+        { name: 'RSA-OAEP', hash: 'SHA-256' },
+        false,
+        ['encrypt']
+      );
     }
     return publicKeyPromise;
   }
 
-  const encoder = new TextEncoder();
+   async function encryptPayload(payload) {
+    const publicKey = await getPublicKey();
 
-  function toB64(buffer) {
-    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
-  }
+    // 1) Plaintext
+    const plaintext = new TextEncoder().encode(JSON.stringify(payload));
 
-  async function encryptPayload(payload) {
-    let publicKey;
-    try {
-      publicKey = await getPublicKey();
-    } catch (err) {
-      console.error('Public key missing/invalid – paste your PEM into FALLBACK_PUBLIC_KEY', err);
-      setStatus('Add your public key to FALLBACK_PUBLIC_KEY', true);
-      throw err;
-    }
+    // 2) AES-256-CBC key
+    const aesKey = await crypto.subtle.generateKey(
+      { name: 'AES-CBC', length: 256 },
+      true,
+      ['encrypt']
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(16));
 
-    // Generate a random AES-256 key and IV for the payload, then wrap the key with RSA.
-    const aesKeyBytes = crypto.getRandomValues(new Uint8Array(32));
-    const ivBytes = crypto.getRandomValues(new Uint8Array(16));
+    // 3) Encrypt payload with AES
+    const ciphertextBuffer = await crypto.subtle.encrypt(
+      { name: 'AES-CBC', iv },
+      aesKey,
+      plaintext
+    );
 
-    const aesKey = await crypto.subtle.importKey('raw', aesKeyBytes, { name: 'AES-CBC' }, true, ['encrypt']);
-    const encoded = encoder.encode(JSON.stringify(payload));
-    const ciphertextBuf = await crypto.subtle.encrypt({ name: 'AES-CBC', iv: ivBytes }, aesKey, encoded);
+    // 4) Export AES key (raw bytes → base64)
+    const rawAesKey = await crypto.subtle.exportKey('raw', aesKey);
+    const aesKeyB64 = btoa(String.fromCharCode(...new Uint8Array(rawAesKey)));
 
-    // Wrap the raw AES key bytes with RSA-OAEP to avoid text encoding issues.
-    const rsaEncryptedKey = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, aesKeyBytes);
+    // 5) Encrypt AES key base64 string with RSA-OAEP
+    const wrappedKeyBuffer = await crypto.subtle.encrypt(
+      { name: 'RSA-OAEP' },
+      publicKey,
+      new TextEncoder().encode(aesKeyB64)
+    );
 
+    // 6) Return pieces exactly as Code.gs expects
     return {
-      ciphertext: toB64(ciphertextBuf),
-      iv: toB64(ivBytes.buffer),
-      key: toB64(rsaEncryptedKey),
-      testPing: payload?.testPing || undefined
+      key: btoa(String.fromCharCode(...new Uint8Array(wrappedKeyBuffer))),
+      iv: btoa(String.fromCharCode(...iv)),
+      ciphertext: btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)))
     };
   }
 
   async function sendEncryptedPayload(payload) {
     try {
-      const wrapped = await encryptPayload(payload);
-      const bodyJson = JSON.stringify(wrapped);
-
-      // Primary path: CORS text/plain POST (simple request, no preflight) so doPost fires reliably.
-      try {
-        const res = await fetch(WEB_APP_URL, {
-          method: 'POST',
-          mode: 'cors',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'text/plain' },
-          body: bodyJson
-        });
-        if (!res.ok) throw new Error(`POST failed: ${res.status}`);
-      } catch (err) {
-        console.warn('CORS text/plain POST failed, trying no-cors text/plain', err);
-        try {
-          await fetch(WEB_APP_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            cache: 'no-store',
-            headers: { 'Content-Type': 'text/plain' },
-            body: bodyJson
-          });
-        } catch (fallbackErr) {
-          console.warn('no-cors POST failed, falling back to sendBeacon', fallbackErr);
-          const ok = navigator.sendBeacon(
-            WEB_APP_URL,
-            new Blob([bodyJson], { type: 'text/plain' })
-          );
-          if (!ok) throw new Error('sendBeacon failed to dispatch');
-        }
-      }
-
-      setStatus(`Sent ${payload?.testPing ? 'test ping' : 'autosave'} @ ${new Date().toLocaleTimeString()}`);
+      const envelope = await encryptPayload(payload);
+      await fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(envelope)
+      });
+      setStatus('Sent test ping');
     } catch (err) {
       console.error('Failed to send encrypted payload', err);
-      setStatus('Send failed (see console)', true);
+      setStatus('Error sending payload');
     }
   }
+
+
 
   let saveTimeout;
 
@@ -260,8 +192,10 @@
       confidenceScore: 0,
       testPing: true
     };
+
     setStatus('Sending test ping…');
     await sendEncryptedPayload(payload);
+    setStatus('Test ping sent!');
   }
 
   let clientId = localStorage.getItem('surveyClientId');
@@ -630,11 +564,19 @@
 
         <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white text-xl font-bold rounded-2xl shadow-xl mt-6">Retake Survey</button>
       </div>`;
-
   }
 
   renderMeta();
 })();
 </script>
+
+<!-- ADDED setStatus FUNCTION -->
+<script>
+function setStatus(text) {
+  const el = document.getElementById('status');
+  if (el) el.textContent = text;
+}
+</script>
+
 </body>
 </html>
