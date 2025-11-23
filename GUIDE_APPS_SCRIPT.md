@@ -1,182 +1,158 @@
-# Encrypting survey submissions with Google Apps Script (hybrid RSA + AES)
+# Encrypting survey submissions with Google Apps Script
 
-This guide matches the current `index.html` client and the `Code.gs` backend in this repo. The browser encrypts each payload with a random AES-256 key and IV, then wraps that AES key with your RSA public key. Apps Script decrypts the RSA-wrapped key, then AES-decrypts the payload, and appends it to the **RawData** sheet.
+This guide shows how to encrypt survey payloads in the browser with a public key, send them to a Google Apps Script web app, decrypt them with a private key stored in script properties, and write the plaintext into the connected Google Sheet.
 
-## 1) Generate a key pair (once)
+## 1) Generate a key pair (do this once)
+
+Run these commands locally (not in the browser) to create a 2048-bit RSA key pair:
 
 ```bash
 openssl genrsa -out private.pem 2048
 openssl rsa -in private.pem -pubout -out public.pem
 ```
 
-Keep `private.pem` secret. The `public.pem` goes in the HTML and/or Script Properties.
+Keep `private.pem` secret. The `public.pem` contents are safe to embed in your HTML/JS.
 
-## 2) Prepare the Sheet and Script Properties
+## 2) Prepare the Google Sheet and Apps Script project
 
-1. Open your Google Sheet → **Extensions → Apps Script**.
-2. In **Project Settings**, enable **Show "appsscript.json" manifest file** (helps with deployments).
-3. In **Project Properties → Script Properties**, add `PRIVATE_KEY_PEM` with the full contents of `private.pem` (including the `BEGIN/END` lines). Optionally add `PUBLIC_KEY_PEM` with your public key PEM.
-4. Make sure a tab named **RawData** exists; if not, the first tab will be used.
+1. Create or open the Google Sheet that will store responses.
+2. In the Sheet, click **Extensions → Apps Script** to open the Script Editor.
+3. In **Project Settings**, turn on **Show "appsscript.json" manifest file** (helps with deployments).
+4. In **Project Properties → Script Properties**, add a property named `PRIVATE_KEY_PEM` and paste the full contents of `private.pem` (including the `BEGIN/END` lines). This keeps the private key out of the client.
 
-## 3) Add the required libraries (one-time)
+## 3) Add the Apps Script code
 
-Apps Script lacks Web Crypto, so we add two pure-JS libraries as separate files in the project:
-
-1. **jsrsasign** (RSA decrypt): create `jsrsasign.js.gs`, paste the two shim lines below at the very top, then paste the minified library from https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js under them.
-2. **CryptoJS** (AES-CBC decrypt): create `cryptojs.js.gs` and paste the minified AES build from https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js.
-
-Shims to paste at the top of the jsrsasign file (prevents `window`/`navigator` reference errors when running server-side):
-```javascript
-var window = typeof window !== 'undefined' ? window : {};
-var navigator = window.navigator || { userAgent: 'AppsScript' };
-```
-
-After pasting both files, click **Deploy → Manage deployments → Edit → Deploy** so the new libraries are active.
-
-## 4) Add the backend (Code.gs)
-
-Create or replace `Code.gs` with this exact code (it expects the libraries above):
+Create a new file `Code.gs` in the Script Editor and paste:
 
 ```javascript
-// Apps Script backend for encrypted autosaves/test pings written from index.html.
-// Requirements:
-//   1) jsrsasign (with shims) pasted into its own file.
-//   2) CryptoJS (core + enc-base64 + mode-cbc + pad-pkcs7 + aes) pasted into its own file.
-//   3) PRIVATE_KEY_PEM set in Script Properties; PUBLIC_KEY_PEM optional.
-//   4) A sheet/tab named "RawData" (falls back to the first tab).
+// Decrypt RSA-OAEP ciphertexts produced in the browser and append rows to the active sheet.
+// Requires the jsrsasign library pasted into a separate file (see below).
 
-function doGet() {
-  return respond(200, { publicKey: getPublicKey() });
+function doGet(e) {
+  // Publish the public key so the browser can encrypt.
+  const publicKey = getPublicKey();
+  return ContentService
+    .createTextOutput(JSON.stringify({ publicKey }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
-  return withErrorHandling(() => {
-    const rawBody = e && e.postData && e.postData.contents;
-    if (!rawBody) return respond(400, { error: 'Missing body' });
+  const body = JSON.parse(e.postData.contents || '{}');
+  const cipherTextB64 = body.ciphertext;
+  if (!cipherTextB64) return respond(400, { error: 'Missing ciphertext' });
 
-    let body;
-    try {
-      body = JSON.parse(rawBody);
-    } catch (err) {
-      return respond(400, { error: 'Invalid JSON', detail: String(err) });
-    }
+  const plaintext = decryptCiphertext(cipherTextB64);
+  const payload = JSON.parse(plaintext);
 
-    if (!body || !body.key || !body.iv || !body.ciphertext) {
-      return respond(400, { error: 'Missing key/iv/ciphertext' });
-    }
-
-    const plaintext = decryptCiphertext(body);
-    const payload = JSON.parse(plaintext);
-
-    appendRow(payload);
-    return respond(200, { status: 'ok' });
-  });
-}
-
-function appendRow(payload) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('RawData') || ss.getSheets()[0];
+  // Append to the first sheet; adjust columns as needed
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   sheet.appendRow([
     new Date(),
-    payload.clientId || '',
-    payload.timestamp || '',
-    JSON.stringify(payload.meta || {}),
-    JSON.stringify(payload.answers || {}),
-    JSON.stringify(payload.sequence || {}),
-    payload.pointer !== undefined ? payload.pointer : '',
-    payload.smartScore !== undefined ? payload.smartScore : '',
-    payload.confidenceScore !== undefined ? payload.confidenceScore : '',
-    payload.testPing ? 'test' : ''
+    payload.clientId,
+    JSON.stringify(payload.meta),
+    JSON.stringify(payload.answers),
+    JSON.stringify(payload.sequence),
+    payload.pointer,
+    payload.smartScore,
+    payload.confidenceScore,
   ]);
+
+  return respond(200, { status: 'ok' });
 }
 
-function decryptCiphertext(body) {
-  if (typeof CryptoJS === 'undefined') throw new Error('Missing CryptoJS library');
-
+function decryptCiphertext(cipherTextB64) {
   const privatePem = PropertiesService.getScriptProperties().getProperty('PRIVATE_KEY_PEM');
   if (!privatePem) throw new Error('Missing PRIVATE_KEY_PEM');
 
-  // 1) RSA-decrypt the AES key (browser wraps a base64 AES key string with RSA-OAEP).
   const rsa = new RSAKey();
   rsa.readPrivateKeyFromPEMString(privatePem);
-  const aesKeyB64 = rsaDecryptToString(rsa, body.key);
-  const aesKeyBytes = Utilities.base64Decode(aesKeyB64);
-  const aesKeyWords = CryptoJS.lib.WordArray.create(aesKeyBytes);
 
-  // 2) AES-CBC decrypt the payload using IV + ciphertext from the browser.
-  const ivWords = CryptoJS.enc.Base64.parse(body.iv);
-  const cipherParams = CryptoJS.lib.CipherParams.create({
-    ciphertext: CryptoJS.enc.Base64.parse(body.ciphertext)
-  });
-
-  const decrypted = CryptoJS.AES.decrypt(cipherParams, aesKeyWords, {
-    iv: ivWords,
-    mode: CryptoJS.mode.CBC,
-    padding: CryptoJS.pad.Pkcs7
-  });
-
-  const plaintext = CryptoJS.enc.Utf8.stringify(decrypted);
-  if (!plaintext) throw new Error('AES decryption failed');
-  return plaintext;
-}
-
-function rsaDecryptToString(rsa, cipherTextB64) {
+  // jsrsasign expects hex; convert base64 → bytes → hex
   const bytes = Utilities.base64Decode(cipherTextB64);
   const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
-  const decrypted =
-    (typeof rsa.decryptOAEP === 'function' ? rsa.decryptOAEP(hex, 'sha256') : null) ||
-    rsa.decrypt(hex);
-  if (!decrypted) throw new Error('RSA decryption failed');
+  const decrypted = rsa.decrypt(hex);
+  if (!decrypted) throw new Error('Decryption failed');
   return decrypted;
 }
 
 function getPublicKey() {
-  const stored = PropertiesService.getScriptProperties().getProperty('PUBLIC_KEY_PEM');
-  if (stored) return stored;
-  // Fallback to the bundled key if Script Properties is empty; replace with your own PEM if desired.
-  return `
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAosrKjxh9+l3IFR557b4Z
-Pm240gpFj0vYwKkqfPLMtEqgcYEKnYAw2AuWoszm/5aBc3AGsnF5im1NgGntTRGL
-ZY5+1D5SwlNAiijTyoNoiMVNqh0/VSc9Y1JZqzbXsdvXu6Uc5utIe5DQ/UzpLsEF
-topZsEjphI0PFtI2S0ByxH4LKA6x6gcz3dmzFOkKxsUwdCoWbjy23E0RltcYBA8U
-6Q3k1AHLwNIPpHbmlm2Dy7WCIhPpzzGVouXx7FzFKHecZciVZXnqzFrO6hjOKY6v
-j6/8Fhbsetk1vRz+ejy48JRB2V+VJ3vaG2k4Joj08/XWRZdTaOfiHMOfs+tYK4sC
-jwIDAQAB
------END PUBLIC KEY-----
-`;
+  // Store the PEM as a file named public.pem in your Apps Script project, or hardcode it here
+  const file = DriveApp.getFilesByName('public.pem');
+  if (!file.hasNext()) throw new Error('public.pem file not found in Drive');
+  return file.next().getBlob().getDataAsString();
 }
 
 function respond(status, obj) {
-  const output = ContentService.createTextOutput(JSON.stringify(obj));
-  output.setMimeType(ContentService.MimeType.JSON);
-  return output;
-}
-
-function doOptions() {
-  return respond(200, { status: 'ok' });
-}
-
-function withErrorHandling(fn) {
-  try {
-    return fn();
-  } catch (err) {
-    console.error(err);
-    return respond(500, { error: String(err) });
-  }
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    .setHeader('Access-Control-Allow-Methods', 'POST, GET')
+    .setHeader('Access-Control-Allow-Credentials', 'true')
+    .setHeader('Access-Control-Allow-Private-Network', 'true')
+    .setHeader('X-Content-Type-Options', 'nosniff')
+    .setHeader('X-Frame-Options', 'SAMEORIGIN')
+    .setHeader('Cache-Control', 'no-store')
+    .setHeader('status', status);
 }
 ```
 
-## 5) Deploy the web app
+### Add the jsrsasign library (for RSA-OAEP decryption)
+
+Apps Script does not include Web Crypto, so we add a pure-JS RSA helper:
+
+1. Create a new file in the Apps Script project named `jsrsasign.js`.
+2. Paste the contents of the minified library from https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js
+3. Save the project. (You do **not** need to expose this file publicly; it stays server-side.)
+
+## 4) Deploy the web app endpoint
 
 1. In the Script Editor, click **Deploy → New deployment**.
-2. Type: **Web app**. **Execute as**: **Me**. **Who has access**: **Anyone** (or restrict by domain if preferred).
-3. Click **Deploy** and copy the **Web app URL**; set this as `WEB_APP_URL` in `index.html`.
+2. Type: **Web app**. Set **Execute as**: **Me**. Set **Who has access**: **Anyone** (or restrict by Google account domain if you prefer).
+3. Click **Deploy** and copy the **Web app URL**; this will be your `WEB_APP_URL` for submissions.
+
+## 5) Update the HTML to encrypt before sending
+
+1. Fetch the public key from the web app: `fetch(WEB_APP_URL)` will return `{ publicKey: "-----BEGIN PUBLIC KEY-----..." }`.
+2. Import the public key into the browser using the Web Crypto API:
+
+```javascript
+const publicKey = await crypto.subtle.importKey(
+  'spki',
+  pemToArrayBuffer(pubKeyPem),
+  { name: 'RSA-OAEP', hash: 'SHA-256' },
+  false,
+  ['encrypt']
+);
+```
+
+3. Encrypt your JSON payload:
+
+```javascript
+const encoded = new TextEncoder().encode(JSON.stringify(payload));
+const cipherBuffer = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, encoded);
+const cipherTextB64 = btoa(String.fromCharCode(...new Uint8Array(cipherBuffer)));
+```
+
+4. POST the ciphertext to the web app:
+
+```javascript
+await fetch(WEB_APP_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ ciphertext: cipherTextB64 })
+});
+```
 
 ## 6) Test end-to-end
 
-1. Open the web app URL in a browser; you should see JSON with your public key (confirms **doGet** works).
-2. Run the HTML locally (e.g., `python -m http.server 8000` and visit `http://localhost:8000`).
-3. Click **Send test to Sheet** on the landing screen. Watch the floating status badge for “Sent test ping …”.
-4. In the Google Sheet, check the **RawData** tab for a new row. If none appears, open **Apps Script → Executions** to see errors (decryption or missing libs). Fix, redeploy, and try again.
+1. Open the deployed web app URL in a tab and confirm it returns your public key JSON.
+2. Submit a test payload from the browser and check that the Sheet shows decrypted data in new rows.
+3. If decryption fails, confirm the key pair matches (regenerate both) and that `PRIVATE_KEY_PEM` is set.
 
+## Key handling reminders
+
+* Never embed the private key in HTML or JavaScript sent to users.
+* Rotate keys periodically: repeat step 1 and update `PRIVATE_KEY_PEM` (and the public key) when needed.
+* Restrict who can access the Sheet; only decrypted data is stored there, but the sheet itself holds sensitive responses.
