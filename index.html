@@ -31,8 +31,18 @@
     document.documentElement.classList.toggle('dark', e.matches)
   );
 
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxwbL1uIv3nyjMz9s0h8lDQoltaeLar6v3_DiY977s75IBhPDG-g8QDzKfty7222pR-_Q/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxwbL1uIv3nyjMz9s0h8lDQoltaeLar6v3_DiY977s75IBhPDG-g8QDzKfty7222pR-_Q/exec';
+  const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxWwSLTeQoGM5Gvb9yBBJ
+7Q4CFpNu3baUSEfm3NJb5LI59HdM66o3h0Sl2RTbwW2Q9zK1kDqLTf/J5kMnwtU9
+GKcEuKD1UYWvzZO9C/ekPoKhzMWccdFujIrTeLPJGjncSr0QZ9ZfAoSAYMamdtlR
+lfsNZjrUwEL9NsrPd4RMgaYHAI28TlceDhObgZPzjwBPOy0zEQiqW6NA+eQh88ES
+/CKvTjFt8E+jZzmFdqPFKHZ56scmThT7VK1IisRCnQFSRKqyKXBBg9C5Qmro7+3p
+KiZAS/mG2QMYEwpVeJ5GzvH3ENBgNBps84YivNU0P0OtJ1vz24meWgemkppqadr+
+ZwIDAQAB
+-----END PUBLIC KEY-----`;
   let publicKeyPromise = null;
+
 
   function pemToArrayBuffer(pem) {
     const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
@@ -43,76 +53,75 @@
     return buffer;
   }
 
-  async function getPublicKey() {
+    async function getPublicKey() {
     if (!publicKeyPromise) {
-      publicKeyPromise = (async () => {
-        const res = await fetch(WEB_APP_URL);
-        const data = await res.json();
-        return crypto.subtle.importKey(
-          'spki',
-          pemToArrayBuffer(data.publicKey),
-          { name: 'RSA-OAEP', hash: 'SHA-256' },
-          false,
-          ['encrypt']
-        );
-      })();
+      publicKeyPromise = crypto.subtle.importKey(
+        'spki',
+        pemToArrayBuffer(PUBLIC_KEY_PEM),
+        { name: 'RSA-OAEP', hash: 'SHA-256' },
+        false,
+        ['encrypt']
+      );
     }
     return publicKeyPromise;
   }
 
-  async function encryptPayload(payload) {
-  const publicKey = await getPublicKey();
+   async function encryptPayload(payload) {
+    const publicKey = await getPublicKey();
 
-  // 1) Plaintext
-  const plaintext = new TextEncoder().encode(JSON.stringify(payload));
+    // 1) Plaintext
+    const plaintext = new TextEncoder().encode(JSON.stringify(payload));
 
-  // 2) AES-256-CBC key
-  const aesKey = await crypto.subtle.generateKey(
-    { name: 'AES-CBC', length: 256 },
-    true,
-    ['encrypt']
-  );
-  const iv = crypto.getRandomValues(new Uint8Array(16));
+    // 2) AES-256-CBC key
+    const aesKey = await crypto.subtle.generateKey(
+      { name: 'AES-CBC', length: 256 },
+      true,
+      ['encrypt']
+    );
+    const iv = crypto.getRandomValues(new Uint8Array(16));
 
-  // 3) Encrypt payload with AES
-  const ciphertextBuffer = await crypto.subtle.encrypt(
-    { name: 'AES-CBC', iv },
-    aesKey,
-    plaintext
-  );
+    // 3) Encrypt payload with AES
+    const ciphertextBuffer = await crypto.subtle.encrypt(
+      { name: 'AES-CBC', iv },
+      aesKey,
+      plaintext
+    );
 
-  // 4) Export AES key (raw bytes → base64)
-  const rawAesKey = await crypto.subtle.exportKey('raw', aesKey);
-  const aesKeyB64 = btoa(String.fromCharCode(...new Uint8Array(rawAesKey)));
+    // 4) Export AES key (raw bytes → base64)
+    const rawAesKey = await crypto.subtle.exportKey('raw', aesKey);
+    const aesKeyB64 = btoa(String.fromCharCode(...new Uint8Array(rawAesKey)));
 
-  // 5) Encrypt AES key base64 string with RSA-OAEP
-  const wrappedKeyBuffer = await crypto.subtle.encrypt(
-    { name: 'RSA-OAEP' },
-    publicKey,
-    new TextEncoder().encode(aesKeyB64)
-  );
+    // 5) Encrypt AES key base64 string with RSA-OAEP
+    const wrappedKeyBuffer = await crypto.subtle.encrypt(
+      { name: 'RSA-OAEP' },
+      publicKey,
+      new TextEncoder().encode(aesKeyB64)
+    );
 
-  // 6) Return pieces exactly as Code.gs expects
-  return {
-    key: btoa(String.fromCharCode(...new Uint8Array(wrappedKeyBuffer))),
-    iv: btoa(String.fromCharCode(...iv)),
-    ciphertext: btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)))
-  };
-}
-
-async function sendEncryptedPayload(payload) {
-  try {
-    const envelope = await encryptPayload(payload);
-    await fetch(WEB_APP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(envelope)
-    });
-  } catch (err) {
-    console.error('Failed to send encrypted payload', err);
-    setStatus('Error sending payload');
+    // 6) Return pieces exactly as Code.gs expects
+    return {
+      key: btoa(String.fromCharCode(...new Uint8Array(wrappedKeyBuffer))),
+      iv: btoa(String.fromCharCode(...iv)),
+      ciphertext: btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)))
+    };
   }
-}
+
+  async function sendEncryptedPayload(payload) {
+    try {
+      const envelope = await encryptPayload(payload);
+      await fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(envelope)
+      });
+      setStatus('Sent test ping');
+    } catch (err) {
+      console.error('Failed to send encrypted payload', err);
+      setStatus('Error sending payload');
+    }
+  }
+
 
 
   let saveTimeout;
