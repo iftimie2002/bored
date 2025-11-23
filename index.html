@@ -48,7 +48,7 @@
       publicKeyPromise = (async () => {
         const res = await fetch(WEB_APP_URL);
         const data = await res.json();
-        return cryxpto.subtle.importKey(
+        return crypto.subtle.importKey(
           'spki',
           pemToArrayBuffer(data.publicKey),
           { name: 'RSA-OAEP', hash: 'SHA-256' },
