@@ -45,10 +45,6 @@ function doPost(e) {
   const payload = JSON.parse(plaintext);
 
   // Append to the first sheet; adjust columns as needed
-  // "First sheet" means whatever tab is leftmost in the spreadsheet UI (index 0).
-  // Each item in the array below becomes one column in that row, in this order:
-  //   A: timestamp, B: clientId, C: meta, D: answers, E: sequence,
-  //   F: pointer,   G: smartScore, H: confidenceScore
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   sheet.appendRow([
     new Date(),
@@ -104,9 +100,9 @@ function respond(status, obj) {
 
 ### Add the jsrsasign library (for RSA-OAEP decryption)
 
-Apps Script does not include Web Crypto, so we add a pure-JS RSA helper. Apps Script will suffix files with `.gs` or `.html`; either is fine, but using a `.gs` script file keeps it alongside the rest of your server-only code.
+Apps Script does not include Web Crypto, so we add a pure-JS RSA helper:
 
-1. Create a new file in the Apps Script project (e.g., name it `jsrsasign.js.gs`).
+1. Create a new file in the Apps Script project named `jsrsasign.js`.
 2. Paste the contents of the minified library from https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js
 3. Save the project. (You do **not** need to expose this file publicly; it stays server-side.)
 
@@ -118,13 +114,7 @@ Apps Script does not include Web Crypto, so we add a pure-JS RSA helper. Apps Sc
 
 ## 5) Update the HTML to encrypt before sending
 
-1. Fetch the public key from the web app: a `GET` to `WEB_APP_URL` returns JSON like `{ "publicKey": "-----BEGIN PUBLIC KEY-----..." }`. In your HTML/JS, do this once on load and keep the PEM string in memory (no need to store it locally):
-
-```javascript
-const WEB_APP_URL = 'https://script.google.com/macros/s/.../exec';
-const { publicKey: pubKeyPem } = await fetch(WEB_APP_URL).then(r => r.json());
-```
-
+1. Fetch the public key from the web app: `fetch(WEB_APP_URL)` will return `{ publicKey: "-----BEGIN PUBLIC KEY-----..." }`.
 2. Import the public key into the browser using the Web Crypto API:
 
 ```javascript

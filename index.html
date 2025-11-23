@@ -27,18 +27,7 @@
     document.documentElement.classList.toggle('dark', e.matches)
   );
 
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxaKqcBkbnxAH_ZOlIFdxcSoJmBXSUWygtgM3aFO0Bb_xuk4GTuzH5wPzcJOi-gV_xlAw/exec';
-  const FALLBACK_PUBLIC_KEY = `
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAosrKjxh9+l3IFR557b4Z
-Pm240gpFj0vYwKkqfPLMtEqgcYEKnYAw2AuWoszm/5aBc3AGsnF5im1NgGntTRGL
-ZY5+1D5SwlNAiijTyoNoiMVNqh0/VSc9Y1JZqzbXsdvXu6Uc5utIe5DQ/UzpLsEF
-topZsEjphI0PFtI2S0ByxH4LKA6x6gcz3dmzFOkKxsUwdCoWbjy23E0RltcYBA8U
-6Q3k1AHLwNIPpHbmlm2Dy7WCIhPpzzGVouXx7FzFKHecZciVZXnqzFrO6hjOKY6v
-j6/8Fhbsetk1vRz+ejy48JRB2V+VJ3vaG2k4Joj08/XWRZdTaOfiHMOfs+tYK4sC
-jwIDAQAB
------END PUBLIC KEY-----
-`;
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec';
   let publicKeyPromise = null;
 
   function pemToArrayBuffer(pem) {
@@ -53,27 +42,15 @@ jwIDAQAB
   async function getPublicKey() {
     if (!publicKeyPromise) {
       publicKeyPromise = (async () => {
-        try {
-          const res = await fetch(WEB_APP_URL);
-          const data = await res.json();
-          const pem = data?.publicKey || FALLBACK_PUBLIC_KEY;
-          return crypto.subtle.importKey(
-            'spki',
-            pemToArrayBuffer(pem),
-            { name: 'RSA-OAEP', hash: 'SHA-256' },
-            false,
-            ['encrypt']
-          );
-        } catch (err) {
-          console.warn('Falling back to bundled public key', err);
-          return crypto.subtle.importKey(
-            'spki',
-            pemToArrayBuffer(FALLBACK_PUBLIC_KEY),
-            { name: 'RSA-OAEP', hash: 'SHA-256' },
-            false,
-            ['encrypt']
-          );
-        }
+        const res = await fetch(WEB_APP_URL);
+        const data = await res.json();
+        return crypto.subtle.importKey(
+          'spki',
+          pemToArrayBuffer(data.publicKey),
+          { name: 'RSA-OAEP', hash: 'SHA-256' },
+          false,
+          ['encrypt']
+        );
       })();
     }
     return publicKeyPromise;
