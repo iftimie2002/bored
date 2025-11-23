@@ -14,8 +14,6 @@
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
   </style>
 
-  <!-- google.script.run -->
-  <script src="https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec"></script>
 </head>
 <body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
   <div id="app" class="h-full flex flex-col"></div>
@@ -29,12 +27,198 @@
     document.documentElement.classList.toggle('dark', e.matches)
   );
 
-  const FORMS_SUBMIT_URL = 'https://docs.google.com/forms/u/0/d/18oiKT8hgdlp07pFuTAkpKsU0UTehrIv9fEVbJ5LTTP8/formResponse';
-  const ENTRY_CLIENTID = 'entry.951439171';
-  const ENTRY_TIMESTAMP = 'entry.1884708533';
-  const ENTRY_DATA = 'entry.1365875270';
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxwbL1uIv3nyjMz9s0h8lDQoltaeLar6v3_DiY977s75IBhPDG-g8QDzKfty7222pR-_Q/exec';
+  // Optional: paste your current RSA public key PEM here as a fallback if the fetch fails.
+  const FALLBACK_PUBLIC_KEY = '';
+  let publicKeyPromise = null;
+  // Status badge shown in the corner; expose setStatus on window so event handlers always find it.
+  const statusBox = document.createElement('div');
+  statusBox.id = 'status-box';
+  statusBox.style.position = 'fixed';
+  statusBox.style.bottom = '1rem';
+  statusBox.style.right = '1rem';
+  statusBox.style.padding = '0.75rem 1rem';
+  statusBox.style.borderRadius = '0.75rem';
+  statusBox.style.background = 'rgba(15, 23, 42, 0.85)';
+  statusBox.style.color = 'white';
+  statusBox.style.fontSize = '0.9rem';
+  statusBox.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
+  statusBox.style.zIndex = '50';
+  statusBox.textContent = 'Ready';
+  document.body.appendChild(statusBox);
+
+  function setStatus(text, isError = false) {
+    statusBox.textContent = text;
+    statusBox.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+  }
+
+  // Guard against scope issues in some browsers by placing references on window for debugging.
+  window.__statusBox = statusBox;
+  window.setStatus = setStatus;
+
+  function cleanPem(pem) {
+    if (!pem || typeof pem !== 'string') throw new Error('Missing PEM');
+    const trimmed = pem.trim();
+    if (!trimmed.includes('BEGIN PUBLIC KEY')) throw new Error('PEM is not a public key');
+    return trimmed
+      .replace(/\r/g, '\n')
+      .replace(/\n+/g, '\n')
+      .replace(/\s*-----BEGIN PUBLIC KEY-----\s*/g, '-----BEGIN PUBLIC KEY-----\n')
+      .replace(/\s*-----END PUBLIC KEY-----\s*/g, '\n-----END PUBLIC KEY-----')
+      .trim();
+  }
+
+  function pemToArrayBuffer(pem) {
+    const b64 = cleanPem(pem)
+      .replace(/\s*-----BEGIN [^-]+-----\s*/g, '')
+      .replace(/\s*-----END [^-]+-----\s*/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+    const raw = atob(b64);
+    const buffer = new ArrayBuffer(raw.length);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
+    return buffer;
+  }
+
+  async function importPemPublicKey(pem) {
+    return crypto.subtle.importKey(
+      'spki',
+      pemToArrayBuffer(pem),
+      { name: 'RSA-OAEP', hash: 'SHA-256' },
+      false,
+      ['encrypt']
+    );
+  }
+
+  async function getPublicKey() {
+    if (!publicKeyPromise) {
+      publicKeyPromise = (async () => {
+        try {
+          const res = await fetch(WEB_APP_URL, { mode: 'cors', cache: 'no-store' });
+          if (!res.ok) throw new Error(`Public key fetch failed: ${res.status}`);
+          const data = await res.json();
+          const pem = typeof data?.publicKey === 'string' ? data.publicKey : '';
+          if (!pem) throw new Error('Missing public key from server');
+          return importPemPublicKey(pem);
+        } catch (err) {
+          console.warn('Public key fetch failed', err);
+          const fallback = (FALLBACK_PUBLIC_KEY || '').trim();
+          if (!fallback) {
+            setStatus('Public key missing—set PUBLIC_KEY_PEM in Apps Script or add FALLBACK_PUBLIC_KEY', true);
+            throw err;
+          }
+          return importPemPublicKey(fallback);
+        }
+      })();
+    }
+    return publicKeyPromise;
+  }
+
+  const encoder = new TextEncoder();
+
+  function toB64(buffer) {
+    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  }
+
+  async function encryptPayload(payload) {
+    let publicKey;
+    try {
+      publicKey = await getPublicKey();
+    } catch (err) {
+      console.error('Public key missing/invalid – paste your PEM into FALLBACK_PUBLIC_KEY', err);
+      setStatus('Add your public key to FALLBACK_PUBLIC_KEY', true);
+      throw err;
+    }
+
+    // Generate a random AES-256 key and IV for the payload, then wrap the key with RSA.
+    const aesKeyBytes = crypto.getRandomValues(new Uint8Array(32));
+    const ivBytes = crypto.getRandomValues(new Uint8Array(16));
+
+    const aesKey = await crypto.subtle.importKey('raw', aesKeyBytes, { name: 'AES-CBC' }, true, ['encrypt']);
+    const encoded = encoder.encode(JSON.stringify(payload));
+    const ciphertextBuf = await crypto.subtle.encrypt({ name: 'AES-CBC', iv: ivBytes }, aesKey, encoded);
+
+    // Wrap the raw AES key bytes with RSA-OAEP to avoid text encoding issues.
+    const rsaEncryptedKey = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, aesKeyBytes);
+
+    return {
+      ciphertext: toB64(ciphertextBuf),
+      iv: toB64(ivBytes.buffer),
+      key: toB64(rsaEncryptedKey),
+      testPing: payload?.testPing || undefined
+    };
+  }
+
+  async function sendEncryptedPayload(payload) {
+    try {
+      const wrapped = await encryptPayload(payload);
+      const bodyJson = JSON.stringify(wrapped);
+
+      // Primary path: CORS text/plain POST (simple request, no preflight) so doPost fires reliably.
+      try {
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          mode: 'cors',
+          cache: 'no-store',
+          headers: { 'Content-Type': 'text/plain' },
+          body: bodyJson
+        });
+        if (!res.ok) throw new Error(`POST failed: ${res.status}`);
+      } catch (err) {
+        console.warn('CORS text/plain POST failed, trying no-cors text/plain', err);
+        try {
+          await fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            cache: 'no-store',
+            headers: { 'Content-Type': 'text/plain' },
+            body: bodyJson
+          });
+        } catch (fallbackErr) {
+          console.warn('no-cors POST failed, falling back to sendBeacon', fallbackErr);
+          const ok = navigator.sendBeacon(
+            WEB_APP_URL,
+            new Blob([bodyJson], { type: 'text/plain' })
+          );
+          if (!ok) throw new Error('sendBeacon failed to dispatch');
+        }
+      }
+
+      setStatus(`Sent ${payload?.testPing ? 'test ping' : 'autosave'} @ ${new Date().toLocaleTimeString()}`);
+    } catch (err) {
+      console.error('Failed to send encrypted payload', err);
+      setStatus('Send failed (see console)', true);
+    }
+  }
 
   let saveTimeout;
+
+  function getClientInfo() {
+    const colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    return {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      languages: navigator.languages,
+      platform: navigator.platform,
+      deviceMemory: navigator.deviceMemory ?? null,
+      hardwareConcurrency: navigator.hardwareConcurrency ?? null,
+      timezone: tz,
+      colorScheme,
+      screen: {
+        width: window.screen?.width ?? null,
+        height: window.screen?.height ?? null,
+        pixelDepth: window.screen?.pixelDepth ?? null
+      },
+      connection: navigator.connection ? {
+        effectiveType: navigator.connection.effectiveType,
+        downlink: navigator.connection.downlink,
+        rtt: navigator.connection.rtt
+      } : null
+    };
+  }
 
   function autoSave(isFinal = false) {
     clearTimeout(saveTimeout);
@@ -42,7 +226,8 @@
       const payload = {
         meta: {
           stay: document.getElementById('stay')?.value || null,
-          mins: document.getElementById('mins')?.value || null
+          mins: document.getElementById('mins')?.value || null,
+          client: getClientInfo()
         },
         answers: answers,
         sequence: sequence.map(q => q.type === 'star' ? {type:'star', id:q.id} : {type:'fact', q:q.q}),
@@ -53,13 +238,30 @@
         payload.confidenceScore = conf;
         payload.starIds = sequence.filter(q => q.type === 'star').map(q => q.id);
       }
-      const formData = new FormData();
-      formData.append(ENTRY_CLIENTID, clientId);
-      formData.append(ENTRY_TIMESTAMP, new Date().toISOString());
-      formData.append(ENTRY_DATA, JSON.stringify(payload));
+      const encryptedPayload = {
+        clientId,
+        timestamp: new Date().toISOString(),
+        ...payload
+      };
 
-      fetch(FORMS_SUBMIT_URL, { method:'POST', mode:'no-cors', body:formData });
+      sendEncryptedPayload(encryptedPayload);
     }, 800);
+  }
+
+  async function sendTestRow() {
+    const payload = {
+      clientId,
+      timestamp: new Date().toISOString(),
+      meta: { test: true, note: 'manual ping from UI', client: getClientInfo() },
+      answers: { sample: { answer: 'ping', confidence: 100 } },
+      sequence: [{ type: 'info', q: 'connectivity check' }],
+      pointer: 0,
+      smartScore: 0,
+      confidenceScore: 0,
+      testPing: true
+    };
+    setStatus('Sending test ping…');
+    await sendEncryptedPayload(payload);
   }
 
   let clientId = localStorage.getItem('surveyClientId');
@@ -165,7 +367,11 @@
               <div class="text-center text-5xl font-bold mt-4"><span id="minsVal">10</span></div>
             </div>
 
-            <button id="start" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-3xl shadow-xl">Start</button>
+            <div class="space-y-3">
+              <button id="start" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-3xl shadow-xl">Start</button>
+              <button id="testSubmit" class="w-full py-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-2xl text-lg font-semibold hover:bg-emerald-200">Send test to Sheet</button>
+              <p class="text-sm text-slate-600 dark:text-slate-400 text-center">Use the test button once to verify a row appears in the <strong>RawData</strong> tab.</p>
+            </div>
           </div>
         </div>
       </div>`;
@@ -176,6 +382,7 @@
     };
 
     document.getElementById('stay').onchange = () => autoSave();
+    document.getElementById('testSubmit').onclick = () => sendTestRow();
     document.getElementById('start').onclick = startSurvey;
   }
 
@@ -246,8 +453,8 @@
   }
 
   function renderQuestion() {
-    const q = sequence[pointer];
-    const progress = Math.round((pointer / sequence.length) * 100);
+      const q = sequence[pointer];
+      const progress = Math.round(((pointer + 1) / sequence.length) * 100);
 
     app.innerHTML = `
       <div class="container flex flex-col h-full">
@@ -424,16 +631,6 @@
         <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white text-xl font-bold rounded-2xl shadow-xl mt-6">Retake Survey</button>
       </div>`;
 
-    google.script.run
-      .withSuccessHandler(() => {})
-      .withFailureHandler(err => console.error('Submit failed:', err))
-      .submitResponse({
-        clientId,
-        answers,
-        smartScore: smart,
-        confidenceScore: conf,
-        starIds: sequence.filter(q => q.type === 'star').map(q => q.id)
-      });
   }
 
   renderMeta();
