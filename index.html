@@ -13,10 +13,14 @@
     .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
   </style>
-
 </head>
+
 <body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
+
   <div id="app" class="h-full flex flex-col"></div>
+
+  <!-- ADDED STATUS BAR -->
+  <div id="status" style="text-align:center; margin:8px; font-weight:bold;"></div>
 
 <script>
 (function(){
@@ -144,8 +148,10 @@
       confidenceScore: 0,
       testPing: true
     };
+
     setStatus('Sending test ping…');
     await sendEncryptedPayload(payload);
+    setStatus('Test ping sent!');
   }
 
   let clientId = localStorage.getItem('surveyClientId');
@@ -514,11 +520,19 @@
 
         <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white text-xl font-bold rounded-2xl shadow-xl mt-6">Retake Survey</button>
       </div>`;
-
   }
 
   renderMeta();
 })();
 </script>
+
+<!-- ADDED setStatus FUNCTION -->
+<script>
+function setStatus(text) {
+  const el = document.getElementById('status');
+  if (el) el.textContent = text;
+}
+</script>
+
 </body>
 </html>
