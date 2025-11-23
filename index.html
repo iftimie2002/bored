@@ -27,38 +27,8 @@
     document.documentElement.classList.toggle('dark', e.matches)
   );
 
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxaKqcBkbnxAH_ZOlIFdxcSoJmBXSUWygtgM3aFO0Bb_xuk4GTuzH5wPzcJOi-gV_xlAw/exec';
-  const FALLBACK_PUBLIC_KEY = `
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAosrKjxh9+l3IFR557b4Z
-Pm240gpFj0vYwKkqfPLMtEqgcYEKnYAw2AuWoszm/5aBc3AGsnF5im1NgGntTRGL
-ZY5+1D5SwlNAiijTyoNoiMVNqh0/VSc9Y1JZqzbXsdvXu6Uc5utIe5DQ/UzpLsEF
-topZsEjphI0PFtI2S0ByxH4LKA6x6gcz3dmzFOkKxsUwdCoWbjy23E0RltcYBA8U
-6Q3k1AHLwNIPpHbmlm2Dy7WCIhPpzzGVouXx7FzFKHecZciVZXnqzFrO6hjOKY6v
-j6/8Fhbsetk1vRz+ejy48JRB2V+VJ3vaG2k4Joj08/XWRZdTaOfiHMOfs+tYK4sC
-jwIDAQAB
------END PUBLIC KEY-----
-`;
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec';
   let publicKeyPromise = null;
-  const statusBox = document.createElement('div');
-  statusBox.id = 'status-box';
-  statusBox.style.position = 'fixed';
-  statusBox.style.bottom = '1rem';
-  statusBox.style.right = '1rem';
-  statusBox.style.padding = '0.75rem 1rem';
-  statusBox.style.borderRadius = '0.75rem';
-  statusBox.style.background = 'rgba(15, 23, 42, 0.85)';
-  statusBox.style.color = 'white';
-  statusBox.style.fontSize = '0.9rem';
-  statusBox.style.boxShadow = '0 10px 30px rgba(0,0,0,0.25)';
-  statusBox.style.zIndex = '50';
-  statusBox.textContent = 'Ready';
-  document.body.appendChild(statusBox);
-
-  function setStatus(text, isError = false) {
-    statusBox.textContent = text;
-    statusBox.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
-  }
 
   function pemToArrayBuffer(pem) {
     const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
@@ -72,28 +42,15 @@ jwIDAQAB
   async function getPublicKey() {
     if (!publicKeyPromise) {
       publicKeyPromise = (async () => {
-        try {
-          const res = await fetch(WEB_APP_URL, { mode: 'cors', cache: 'no-store' });
-          if (!res.ok) throw new Error(`Public key fetch failed: ${res.status}`);
-          const data = await res.json();
-          const pem = data?.publicKey || FALLBACK_PUBLIC_KEY;
-          return crypto.subtle.importKey(
-            'spki',
-            pemToArrayBuffer(pem),
-            { name: 'RSA-OAEP', hash: 'SHA-256' },
-            false,
-            ['encrypt']
-          );
-        } catch (err) {
-          console.warn('Using bundled public key (fetch failed)', err);
-          return crypto.subtle.importKey(
-            'spki',
-            pemToArrayBuffer(FALLBACK_PUBLIC_KEY),
-            { name: 'RSA-OAEP', hash: 'SHA-256' },
-            false,
-            ['encrypt']
-          );
-        }
+        const res = await fetch(WEB_APP_URL);
+        const data = await res.json();
+        return crypto.subtle.importKey(
+          'spki',
+          pemToArrayBuffer(data.publicKey),
+          { name: 'RSA-OAEP', hash: 'SHA-256' },
+          false,
+          ['encrypt']
+        );
       })();
     }
     return publicKeyPromise;
@@ -109,31 +66,13 @@ jwIDAQAB
   async function sendEncryptedPayload(payload) {
     try {
       const ciphertext = await encryptPayload(payload);
-
-      // Primary path: CORS POST with JSON so Apps Script receives a normal doPost.
-      try {
-        const res = await fetch(WEB_APP_URL, {
-          method: 'POST',
-          mode: 'cors',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ciphertext })
-        });
-        if (!res.ok) throw new Error(`POST failed: ${res.status}`);
-      } catch (err) {
-        // Fallback: sendBeacon avoids CORS preflights; Apps Script still receives the body.
-        console.warn('CORS POST failed, falling back to sendBeacon', err);
-        const ok = navigator.sendBeacon(
-          WEB_APP_URL,
-          new Blob([JSON.stringify({ ciphertext })], { type: 'text/plain' })
-        );
-        if (!ok) throw new Error('sendBeacon failed to dispatch');
-      }
-
-      setStatus(`Sent ${payload?.testPing ? 'test ping' : 'autosave'} @ ${new Date().toLocaleTimeString()}`);
+      await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ciphertext })
+      });
     } catch (err) {
       console.error('Failed to send encrypted payload', err);
-      setStatus('Send failed (see console)', true);
     }
   }
 
