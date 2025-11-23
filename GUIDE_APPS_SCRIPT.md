@@ -30,12 +30,13 @@ Create a new file `Code.gs` in the Script Editor and paste:
 
 function doGet(e) {
   // Publish the public key so the browser can encrypt.
-  return respond(200, { publicKey: getPublicKey() });
+  const publicKey = getPublicKey();
+  return ContentService
+    .createTextOutput(JSON.stringify({ publicKey }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
-  // Browser sends text/plain with mode: 'no-cors' so the request succeeds even
-  // if CORS headers are misconfigured. Apps Script still receives the body.
   const body = JSON.parse(e.postData.contents || '{}');
   const cipherTextB64 = body.ciphertext;
   if (!cipherTextB64) return respond(400, { error: 'Missing ciphertext' });
@@ -44,12 +45,6 @@ function doPost(e) {
   const payload = JSON.parse(plaintext);
 
   // Append to the first sheet; adjust columns as needed
-  // By default this uses the leftmost tab. If you want a specific tab such as
-  // "RawData", replace the line below with:
-  //   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('RawData');
-  // Each item in the array below becomes one column in that row, in this order:
-  //   A: timestamp, B: clientId, C: meta, D: answers, E: sequence,
-  //   F: pointer,   G: smartScore, H: confidenceScore
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   sheet.appendRow([
     new Date(),
@@ -75,22 +70,16 @@ function decryptCiphertext(cipherTextB64) {
   // jsrsasign expects hex; convert base64 → bytes → hex
   const bytes = Utilities.base64Decode(cipherTextB64);
   const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
-
-  // Use OAEP with SHA-256 to match the browser's Web Crypto configuration.
-  const decrypted = rsa.decryptOAEP(hex, 'sha256');
+  const decrypted = rsa.decrypt(hex);
   if (!decrypted) throw new Error('Decryption failed');
   return decrypted;
 }
 
 function getPublicKey() {
-  // Option 1: store the PEM in Script Properties (recommended so you don't rely on Drive files)
-  const prop = PropertiesService.getScriptProperties().getProperty('PUBLIC_KEY_PEM');
-  if (prop) return prop;
-
-  // Option 2: hardcode the PEM here if you prefer (replace the string below)
-  // return `-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----`;
-
-  throw new Error('Missing PUBLIC_KEY_PEM script property or hardcoded public key');
+  // Store the PEM as a file named public.pem in your Apps Script project, or hardcode it here
+  const file = DriveApp.getFilesByName('public.pem');
+  if (!file.hasNext()) throw new Error('public.pem file not found in Drive');
+  return file.next().getBlob().getDataAsString();
 }
 
 function respond(status, obj) {
@@ -111,9 +100,9 @@ function respond(status, obj) {
 
 ### Add the jsrsasign library (for RSA-OAEP decryption)
 
-Apps Script does not include Web Crypto, so we add a pure-JS RSA helper. Apps Script will suffix files with `.gs` or `.html`; either is fine, but using a `.gs` script file keeps it alongside the rest of your server-only code.
+Apps Script does not include Web Crypto, so we add a pure-JS RSA helper:
 
-1. Create a new file in the Apps Script project (e.g., name it `jsrsasign.js.gs`).
+1. Create a new file in the Apps Script project named `jsrsasign.js`.
 2. Paste the contents of the minified library from https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js
 3. Save the project. (You do **not** need to expose this file publicly; it stays server-side.)
 
@@ -125,13 +114,7 @@ Apps Script does not include Web Crypto, so we add a pure-JS RSA helper. Apps Sc
 
 ## 5) Update the HTML to encrypt before sending
 
-1. Fetch the public key from the web app: a `GET` to `WEB_APP_URL` returns JSON like `{ "publicKey": "-----BEGIN PUBLIC KEY-----..." }`. In your HTML/JS, do this once on load and keep the PEM string in memory (no need to store it locally):
-
-```javascript
-const WEB_APP_URL = 'https://script.google.com/macros/s/.../exec';
-const { publicKey: pubKeyPem } = await fetch(WEB_APP_URL).then(r => r.json());
-```
-
+1. Fetch the public key from the web app: `fetch(WEB_APP_URL)` will return `{ publicKey: "-----BEGIN PUBLIC KEY-----..." }`.
 2. Import the public key into the browser using the Web Crypto API:
 
 ```javascript
@@ -152,13 +135,12 @@ const cipherBuffer = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey
 const cipherTextB64 = btoa(String.fromCharCode(...new Uint8Array(cipherBuffer)));
 ```
 
-4. POST the ciphertext to the web app (send `text/plain` with `mode: 'no-cors'` so it succeeds even if headers are missing):
+4. POST the ciphertext to the web app:
 
 ```javascript
 await fetch(WEB_APP_URL, {
   method: 'POST',
-  mode: 'no-cors',
-  headers: { 'Content-Type': 'text/plain' },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ ciphertext: cipherTextB64 })
 });
 ```
@@ -168,18 +150,6 @@ await fetch(WEB_APP_URL, {
 1. Open the deployed web app URL in a tab and confirm it returns your public key JSON.
 2. Submit a test payload from the browser and check that the Sheet shows decrypted data in new rows.
 3. If decryption fails, confirm the key pair matches (regenerate both) and that `PRIVATE_KEY_PEM` is set.
-
-### Quick connectivity test from the browser UI
-
-* The HTML includes a **"Send test to Sheet"** button on the first screen. Clicking it sends a minimal encrypted payload marked `testPing:true`.
-* If the Apps Script is working, a new row should appear in your target tab (e.g., **RawData**) with those fields. The floating status badge in the bottom-right of the page turns green when the ping is dispatched and red if an error is thrown in the browser.
-
-### If rows are not appearing
-
-* In Apps Script, open **Executions** to see whether the `doPost` handler is running and whether decryption errors occur.
-* Verify the web app deployment you are calling matches the latest code and that **Who has access** allows anonymous access.
-* Ensure the Sheet tab name in `getSheetByName('RawData')` (or your chosen name) exists and matches exactly.
-* Reconfirm `PRIVATE_KEY_PEM` (and optionally `PUBLIC_KEY_PEM`) are set in Script Properties and match the public key bundled in the HTML.
 
 ## Key handling reminders
 
