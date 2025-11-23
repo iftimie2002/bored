@@ -14,8 +14,6 @@
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
   </style>
 
-  <!-- google.script.run -->
-  <script src="https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec"></script>
 </head>
 <body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
   <div id="app" class="h-full flex flex-col"></div>
@@ -29,12 +27,82 @@
     document.documentElement.classList.toggle('dark', e.matches)
   );
 
-  const FORMS_SUBMIT_URL = 'https://docs.google.com/forms/u/0/d/18oiKT8hgdlp07pFuTAkpKsU0UTehrIv9fEVbJ5LTTP8/formResponse';
-  const ENTRY_CLIENTID = 'entry.951439171';
-  const ENTRY_TIMESTAMP = 'entry.1884708533';
-  const ENTRY_DATA = 'entry.1365875270';
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec';
+  let publicKeyPromise = null;
+
+  function pemToArrayBuffer(pem) {
+    const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+    const raw = atob(b64);
+    const buffer = new ArrayBuffer(raw.length);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
+    return buffer;
+  }
+
+  async function getPublicKey() {
+    if (!publicKeyPromise) {
+      publicKeyPromise = (async () => {
+        const res = await fetch(WEB_APP_URL);
+        const data = await res.json();
+        return crypto.subtle.importKey(
+          'spki',
+          pemToArrayBuffer(data.publicKey),
+          { name: 'RSA-OAEP', hash: 'SHA-256' },
+          false,
+          ['encrypt']
+        );
+      })();
+    }
+    return publicKeyPromise;
+  }
+
+  async function encryptPayload(payload) {
+    const publicKey = await getPublicKey();
+    const encoded = new TextEncoder().encode(JSON.stringify(payload));
+    const cipherBuffer = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, encoded);
+    return btoa(String.fromCharCode(...new Uint8Array(cipherBuffer)));
+  }
+
+  async function sendEncryptedPayload(payload) {
+    try {
+      const ciphertext = await encryptPayload(payload);
+      await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ciphertext })
+      });
+    } catch (err) {
+      console.error('Failed to send encrypted payload', err);
+    }
+  }
 
   let saveTimeout;
+
+  function getClientInfo() {
+    const colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    return {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      languages: navigator.languages,
+      platform: navigator.platform,
+      deviceMemory: navigator.deviceMemory ?? null,
+      hardwareConcurrency: navigator.hardwareConcurrency ?? null,
+      timezone: tz,
+      colorScheme,
+      screen: {
+        width: window.screen?.width ?? null,
+        height: window.screen?.height ?? null,
+        pixelDepth: window.screen?.pixelDepth ?? null
+      },
+      connection: navigator.connection ? {
+        effectiveType: navigator.connection.effectiveType,
+        downlink: navigator.connection.downlink,
+        rtt: navigator.connection.rtt
+      } : null
+    };
+  }
 
   function autoSave(isFinal = false) {
     clearTimeout(saveTimeout);
@@ -42,7 +110,8 @@
       const payload = {
         meta: {
           stay: document.getElementById('stay')?.value || null,
-          mins: document.getElementById('mins')?.value || null
+          mins: document.getElementById('mins')?.value || null,
+          client: getClientInfo()
         },
         answers: answers,
         sequence: sequence.map(q => q.type === 'star' ? {type:'star', id:q.id} : {type:'fact', q:q.q}),
@@ -53,12 +122,13 @@
         payload.confidenceScore = conf;
         payload.starIds = sequence.filter(q => q.type === 'star').map(q => q.id);
       }
-      const formData = new FormData();
-      formData.append(ENTRY_CLIENTID, clientId);
-      formData.append(ENTRY_TIMESTAMP, new Date().toISOString());
-      formData.append(ENTRY_DATA, JSON.stringify(payload));
+      const encryptedPayload = {
+        clientId,
+        timestamp: new Date().toISOString(),
+        ...payload
+      };
 
-      fetch(FORMS_SUBMIT_URL, { method:'POST', mode:'no-cors', body:formData });
+      sendEncryptedPayload(encryptedPayload);
     }, 800);
   }
 
@@ -424,16 +494,6 @@
         <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white text-xl font-bold rounded-2xl shadow-xl mt-6">Retake Survey</button>
       </div>`;
 
-    google.script.run
-      .withSuccessHandler(() => {})
-      .withFailureHandler(err => console.error('Submit failed:', err))
-      .submitResponse({
-        clientId,
-        answers,
-        smartScore: smart,
-        confidenceScore: conf,
-        starIds: sequence.filter(q => q.type === 'star').map(q => q.id)
-      });
   }
 
   renderMeta();
