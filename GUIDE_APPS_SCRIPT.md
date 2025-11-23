@@ -30,6 +30,12 @@ Create a new file `Code.gs` in the Script Editor and paste:
 
 function doGet(e) {
   // Publish the public key so the browser can encrypt.
+  return respond(200, { publicKey: getPublicKey() });
+}
+
+function doPost(e) {
+  // Browser sends text/plain with mode: 'no-cors' so the request succeeds even
+  // if CORS headers are misconfigured. Apps Script still receives the body.
   const publicKey = getPublicKey();
   return ContentService
     .createTextOutput(JSON.stringify({ publicKey }))
@@ -45,6 +51,10 @@ function doPost(e) {
   const payload = JSON.parse(plaintext);
 
   // Append to the first sheet; adjust columns as needed
+  // "First sheet" means whatever tab is leftmost in the spreadsheet UI (index 0).
+  // Each item in the array below becomes one column in that row, in this order:
+  //   A: timestamp, B: clientId, C: meta, D: answers, E: sequence,
+  //   F: pointer,   G: smartScore, H: confidenceScore
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   sheet.appendRow([
     new Date(),
@@ -70,12 +80,23 @@ function decryptCiphertext(cipherTextB64) {
   // jsrsasign expects hex; convert base64 → bytes → hex
   const bytes = Utilities.base64Decode(cipherTextB64);
   const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+
+  // Use OAEP with SHA-256 to match the browser's Web Crypto configuration.
+  const decrypted = rsa.decryptOAEP(hex, 'sha256');
   const decrypted = rsa.decrypt(hex);
   if (!decrypted) throw new Error('Decryption failed');
   return decrypted;
 }
 
 function getPublicKey() {
+  // Option 1: store the PEM in Script Properties (recommended so you don't rely on Drive files)
+  const prop = PropertiesService.getScriptProperties().getProperty('PUBLIC_KEY_PEM');
+  if (prop) return prop;
+
+  // Option 2: hardcode the PEM here if you prefer (replace the string below)
+  // return `-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----`;
+
+  throw new Error('Missing PUBLIC_KEY_PEM script property or hardcoded public key');
   // Store the PEM as a file named public.pem in your Apps Script project, or hardcode it here
   const file = DriveApp.getFilesByName('public.pem');
   if (!file.hasNext()) throw new Error('public.pem file not found in Drive');
@@ -100,6 +121,9 @@ function respond(status, obj) {
 
 ### Add the jsrsasign library (for RSA-OAEP decryption)
 
+Apps Script does not include Web Crypto, so we add a pure-JS RSA helper. Apps Script will suffix files with `.gs` or `.html`; either is fine, but using a `.gs` script file keeps it alongside the rest of your server-only code.
+
+1. Create a new file in the Apps Script project (e.g., name it `jsrsasign.js.gs`).
 Apps Script does not include Web Crypto, so we add a pure-JS RSA helper:
 
 1. Create a new file in the Apps Script project named `jsrsasign.js`.
@@ -113,6 +137,13 @@ Apps Script does not include Web Crypto, so we add a pure-JS RSA helper:
 3. Click **Deploy** and copy the **Web app URL**; this will be your `WEB_APP_URL` for submissions.
 
 ## 5) Update the HTML to encrypt before sending
+
+1. Fetch the public key from the web app: a `GET` to `WEB_APP_URL` returns JSON like `{ "publicKey": "-----BEGIN PUBLIC KEY-----..." }`. In your HTML/JS, do this once on load and keep the PEM string in memory (no need to store it locally):
+
+```javascript
+const WEB_APP_URL = 'https://script.google.com/macros/s/.../exec';
+const { publicKey: pubKeyPem } = await fetch(WEB_APP_URL).then(r => r.json());
+```
 
 1. Fetch the public key from the web app: `fetch(WEB_APP_URL)` will return `{ publicKey: "-----BEGIN PUBLIC KEY-----..." }`.
 2. Import the public key into the browser using the Web Crypto API:
@@ -135,11 +166,14 @@ const cipherBuffer = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey
 const cipherTextB64 = btoa(String.fromCharCode(...new Uint8Array(cipherBuffer)));
 ```
 
+4. POST the ciphertext to the web app (send `text/plain` with `mode: 'no-cors'` so it succeeds even if headers are missing):
 4. POST the ciphertext to the web app:
 
 ```javascript
 await fetch(WEB_APP_URL, {
   method: 'POST',
+  mode: 'no-cors',
+  headers: { 'Content-Type': 'text/plain' },
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ ciphertext: cipherTextB64 })
 });
