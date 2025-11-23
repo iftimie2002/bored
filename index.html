@@ -54,7 +54,8 @@ jwIDAQAB
     if (!publicKeyPromise) {
       publicKeyPromise = (async () => {
         try {
-          const res = await fetch(WEB_APP_URL);
+          const res = await fetch(WEB_APP_URL, { mode: 'cors', cache: 'no-store' });
+          if (!res.ok) throw new Error(`Public key fetch failed: ${res.status}`);
           const data = await res.json();
           const pem = data?.publicKey || FALLBACK_PUBLIC_KEY;
           return crypto.subtle.importKey(
@@ -65,7 +66,7 @@ jwIDAQAB
             ['encrypt']
           );
         } catch (err) {
-          console.warn('Falling back to bundled public key', err);
+          console.warn('Using bundled public key (fetch failed)', err);
           return crypto.subtle.importKey(
             'spki',
             pemToArrayBuffer(FALLBACK_PUBLIC_KEY),
@@ -91,6 +92,9 @@ jwIDAQAB
       const ciphertext = await encryptPayload(payload);
       await fetch(WEB_APP_URL, {
         method: 'POST',
+        mode: 'cors',
+        cache: 'no-store',
+        keepalive: true,
         // text/plain keeps the request a "simple" CORS request so Apps Script
         // doesn't need to answer a preflight OPTIONS check.
         headers: { 'Content-Type': 'text/plain' },

@@ -30,13 +30,11 @@ Create a new file `Code.gs` in the Script Editor and paste:
 
 function doGet(e) {
   // Publish the public key so the browser can encrypt.
-  const publicKey = getPublicKey();
-  return ContentService
-    .createTextOutput(JSON.stringify({ publicKey }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return respond(200, { publicKey: getPublicKey() });
 }
 
 function doPost(e) {
+  // Content-Type is text/plain from the browser to avoid preflight.
   const body = JSON.parse(e.postData.contents || '{}');
   const cipherTextB64 = body.ciphertext;
   if (!cipherTextB64) return respond(400, { error: 'Missing ciphertext' });
@@ -82,10 +80,14 @@ function decryptCiphertext(cipherTextB64) {
 }
 
 function getPublicKey() {
-  // Store the PEM as a file named public.pem in your Apps Script project, or hardcode it here
-  const file = DriveApp.getFilesByName('public.pem');
-  if (!file.hasNext()) throw new Error('public.pem file not found in Drive');
-  return file.next().getBlob().getDataAsString();
+  // Option 1: store the PEM in Script Properties (recommended so you don't rely on Drive files)
+  const prop = PropertiesService.getScriptProperties().getProperty('PUBLIC_KEY_PEM');
+  if (prop) return prop;
+
+  // Option 2: hardcode the PEM here if you prefer (replace the string below)
+  // return `-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----`;
+
+  throw new Error('Missing PUBLIC_KEY_PEM script property or hardcoded public key');
 }
 
 function respond(status, obj) {
@@ -147,12 +149,12 @@ const cipherBuffer = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey
 const cipherTextB64 = btoa(String.fromCharCode(...new Uint8Array(cipherBuffer)));
 ```
 
-4. POST the ciphertext to the web app:
+4. POST the ciphertext to the web app (use `text/plain` to avoid a CORS preflight):
 
 ```javascript
 await fetch(WEB_APP_URL, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'text/plain' },
   body: JSON.stringify({ ciphertext: cipherTextB64 })
 });
 ```
