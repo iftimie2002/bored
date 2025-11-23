@@ -39,6 +39,7 @@ j6/8Fhbsetk1vRz+ejy48JRB2V+VJ3vaG2k4Joj08/XWRZdTaOfiHMOfs+tYK4sC
 jwIDAQAB
 -----END PUBLIC KEY-----
 `;
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyXBgkZMOmqesKq7HfmXYygk7QA5rofHUWohwv9jz6OW0XgeSnk0iAIRHWSWex2HXEv/exec';
   let publicKeyPromise = null;
 
   function pemToArrayBuffer(pem) {
@@ -75,6 +76,15 @@ jwIDAQAB
             ['encrypt']
           );
         }
+        const res = await fetch(WEB_APP_URL);
+        const data = await res.json();
+        return crypto.subtle.importKey(
+          'spki',
+          pemToArrayBuffer(data.publicKey),
+          { name: 'RSA-OAEP', hash: 'SHA-256' },
+          false,
+          ['encrypt']
+        );
       })();
     }
     return publicKeyPromise;
@@ -98,6 +108,7 @@ jwIDAQAB
         cache: 'no-store',
         keepalive: true,
         headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ciphertext })
       });
     } catch (err) {

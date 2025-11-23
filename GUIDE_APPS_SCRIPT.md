@@ -36,6 +36,13 @@ function doGet(e) {
 function doPost(e) {
   // Browser sends text/plain with mode: 'no-cors' so the request succeeds even
   // if CORS headers are misconfigured. Apps Script still receives the body.
+  const publicKey = getPublicKey();
+  return ContentService
+    .createTextOutput(JSON.stringify({ publicKey }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
   const body = JSON.parse(e.postData.contents || '{}');
   const cipherTextB64 = body.ciphertext;
   if (!cipherTextB64) return respond(400, { error: 'Missing ciphertext' });
@@ -76,6 +83,7 @@ function decryptCiphertext(cipherTextB64) {
 
   // Use OAEP with SHA-256 to match the browser's Web Crypto configuration.
   const decrypted = rsa.decryptOAEP(hex, 'sha256');
+  const decrypted = rsa.decrypt(hex);
   if (!decrypted) throw new Error('Decryption failed');
   return decrypted;
 }
@@ -89,6 +97,10 @@ function getPublicKey() {
   // return `-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----`;
 
   throw new Error('Missing PUBLIC_KEY_PEM script property or hardcoded public key');
+  // Store the PEM as a file named public.pem in your Apps Script project, or hardcode it here
+  const file = DriveApp.getFilesByName('public.pem');
+  if (!file.hasNext()) throw new Error('public.pem file not found in Drive');
+  return file.next().getBlob().getDataAsString();
 }
 
 function respond(status, obj) {
@@ -112,6 +124,9 @@ function respond(status, obj) {
 Apps Script does not include Web Crypto, so we add a pure-JS RSA helper. Apps Script will suffix files with `.gs` or `.html`; either is fine, but using a `.gs` script file keeps it alongside the rest of your server-only code.
 
 1. Create a new file in the Apps Script project (e.g., name it `jsrsasign.js.gs`).
+Apps Script does not include Web Crypto, so we add a pure-JS RSA helper:
+
+1. Create a new file in the Apps Script project named `jsrsasign.js`.
 2. Paste the contents of the minified library from https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js
 3. Save the project. (You do **not** need to expose this file publicly; it stays server-side.)
 
@@ -130,6 +145,7 @@ const WEB_APP_URL = 'https://script.google.com/macros/s/.../exec';
 const { publicKey: pubKeyPem } = await fetch(WEB_APP_URL).then(r => r.json());
 ```
 
+1. Fetch the public key from the web app: `fetch(WEB_APP_URL)` will return `{ publicKey: "-----BEGIN PUBLIC KEY-----..." }`.
 2. Import the public key into the browser using the Web Crypto API:
 
 ```javascript
@@ -151,12 +167,14 @@ const cipherTextB64 = btoa(String.fromCharCode(...new Uint8Array(cipherBuffer)))
 ```
 
 4. POST the ciphertext to the web app (send `text/plain` with `mode: 'no-cors'` so it succeeds even if headers are missing):
+4. POST the ciphertext to the web app:
 
 ```javascript
 await fetch(WEB_APP_URL, {
   method: 'POST',
   mode: 'no-cors',
   headers: { 'Content-Type': 'text/plain' },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ ciphertext: cipherTextB64 })
 });
 ```
