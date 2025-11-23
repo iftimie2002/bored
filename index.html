@@ -61,24 +61,59 @@
   }
 
   async function encryptPayload(payload) {
-    const publicKey = await getPublicKey();
-    const encoded = new TextEncoder().encode(JSON.stringify(payload));
-    const cipherBuffer = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, encoded);
-    return btoa(String.fromCharCode(...new Uint8Array(cipherBuffer)));
-  }
+  const publicKey = await getPublicKey();
 
-  async function sendEncryptedPayload(payload) {
-    try {
-      const ciphertext = await encryptPayload(payload);
-      await fetch(WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ciphertext })
-      });
-    } catch (err) {
-      console.error('Failed to send encrypted payload', err);
-    }
+  // 1) Plaintext
+  const plaintext = new TextEncoder().encode(JSON.stringify(payload));
+
+  // 2) AES-256-CBC key
+  const aesKey = await crypto.subtle.generateKey(
+    { name: 'AES-CBC', length: 256 },
+    true,
+    ['encrypt']
+  );
+  const iv = crypto.getRandomValues(new Uint8Array(16));
+
+  // 3) Encrypt payload with AES
+  const ciphertextBuffer = await crypto.subtle.encrypt(
+    { name: 'AES-CBC', iv },
+    aesKey,
+    plaintext
+  );
+
+  // 4) Export AES key (raw bytes → base64)
+  const rawAesKey = await crypto.subtle.exportKey('raw', aesKey);
+  const aesKeyB64 = btoa(String.fromCharCode(...new Uint8Array(rawAesKey)));
+
+  // 5) Encrypt AES key base64 string with RSA-OAEP
+  const wrappedKeyBuffer = await crypto.subtle.encrypt(
+    { name: 'RSA-OAEP' },
+    publicKey,
+    new TextEncoder().encode(aesKeyB64)
+  );
+
+  // 6) Return pieces exactly as Code.gs expects
+  return {
+    key: btoa(String.fromCharCode(...new Uint8Array(wrappedKeyBuffer))),
+    iv: btoa(String.fromCharCode(...iv)),
+    ciphertext: btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)))
+  };
+}
+
+async function sendEncryptedPayload(payload) {
+  try {
+    const envelope = await encryptPayload(payload);
+    await fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(envelope)
+    });
+  } catch (err) {
+    console.error('Failed to send encrypted payload', err);
+    setStatus('Error sending payload');
   }
+}
+
 
   let saveTimeout;
 
