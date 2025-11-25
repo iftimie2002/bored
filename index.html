@@ -34,7 +34,7 @@
     document.documentElement.classList.toggle('dark', e.matches)
   );
 
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyWOF5f5YttT7gb2QOHox3H-fX0iIlCcJ2kWquMqhu9w7voZNY49nXk74uB4JHS99Jdqg/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzAiQCLAYoGk7yLDFbhJHGYK__wtk1oLBEYXoy_XE3UF9RTUJiokn5mmCsiiE7iqcYBIA/exec';
   const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxWwSLTeQoGM5Gvb9yBBJ
 7Q4CFpNu3baUSEfm3NJb5LI59HdM66o3h0Sl2RTbwW2Q9zK1kDqLTf/J5kMnwtU9
@@ -44,6 +44,14 @@ lfsNZjrUwEL9NsrPd4RMgaYHAI28TlceDhObgZPzjwBPOy0zEQiqW6NA+eQh88ES
 KiZAS/mG2QMYEwpVeJ5GzvH3ENBgNBps84YivNU0P0OtJ1vz24meWgemkppqadr+
 ZwIDAQAB
 -----END PUBLIC KEY-----`;
+
+  let clientIp = null;
+
+  // Buscar IP público do cliente (best-effort)
+  fetch('https://api.ipify.org?format=json')
+    .then(r => r.json())
+    .then(d => { clientIp = d.ip; })
+    .catch(() => { clientIp = null; });
 
 
 
@@ -145,6 +153,7 @@ ZwIDAQAB
         downlink: navigator.connection.downlink,
         rtt: navigator.connection.rtt
       } : null,
+      clientIp: clientIp
       // ADDED: anonymous analytics fields
       url: href,
       referrer,
