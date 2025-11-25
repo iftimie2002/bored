@@ -95,9 +95,7 @@ function decryptCiphertext(body) {
   const aesKeyB64 = rsaDecryptToString(rsa, sanitizeB64(body.key));
 
   // validar que parece base64
-  if (!/^[A-Za-z0-9+/=]+$/.test(aesKeyB64)) {
-    throw new Error('Decrypted AES key is not base64: ' + aesKeyB64.slice(0, 32));
-  }
+  const aesKeyClean = validateB64String(aesKeyB64, 'AES key');
 
   // 2) Base64 → bytes da chave AES
   const aesKeyWords = parseB64WordArray(aesKeyB64, 'AES key');
@@ -128,15 +126,26 @@ function decryptCiphertext(body) {
     padding: CryptoJS.pad.Pkcs7
   });
 
+  if (!decrypted || typeof decrypted.sigBytes !== 'number') {
+    throw new Error('AES decrypt returned invalid WordArray');
+  }
+
+  if (decrypted.sigBytes === 0) {
+    throw new Error('AES decrypt produced 0 bytes; likely wrong key/iv');
+  }
+
   let plaintext;
   try {
     plaintext = CryptoJS.enc.Utf8.stringify(decrypted);
   } catch (e) {
-    throw new Error('Malformed UTF-8 after AES decrypt: ' + e);
+    const hexPreview = wordArrayHexPreview(decrypted, 64);
+    const latin1Preview = CryptoJS.enc.Latin1.stringify(decrypted).slice(0, 64);
+    throw new Error('Malformed UTF-8 after AES decrypt: ' + e + '\nbytes: ' + decrypted.sigBytes + '\nhex preview: ' + hexPreview + '\nlatin1 preview: ' + latin1Preview);
   }
 
   if (!plaintext) {
-    throw new Error('AES decryption produced empty plaintext');
+    const hexPreview = wordArrayHexPreview(decrypted, 64);
+    throw new Error('AES decryption produced empty plaintext (wrong key/iv/padding?) hex preview: ' + hexPreview);
   }
 
   return plaintext;
@@ -153,6 +162,11 @@ function rsaDecryptToString(rsa, cipherTextB64) {
 
   if (!decrypted) {
     throw new Error('RSA OAEP decryption failed');
+  }
+
+  const trimmed = decrypted.trim();
+  if (trimmed.length !== decrypted.length) {
+    throw new Error('RSA decrypted string has surrounding whitespace; expected raw base64');
   }
 
   return decrypted;  // deve ser uma string base64 (AES key)
