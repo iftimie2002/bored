@@ -108,22 +108,22 @@ function decryptCiphertext(body) {
   }
 
   // 3) AES-CBC decrypt
-  const ivWords = parseB64WordArray(body.iv, 'AES IV');
-  if (ivWords.sigBytes !== 16) {
-    throw new Error('AES IV length ' + ivWords.sigBytes + ' (expected 16)');
+  const ivBytes = Utilities.base64Decode(sanitizeB64(body.iv));
+  if (ivBytes.length !== 16) {
+    throw new Error('AES IV length ' + ivBytes.length + ' (expected 16)');
   }
 
-  const cipherWords = parseB64WordArray(body.ciphertext, 'ciphertext');
-  if (!cipherWords.sigBytes || cipherWords.sigBytes % 16 !== 0) {
-    throw new Error('Ciphertext length ' + cipherWords.sigBytes + ' (must be >0 and multiple of 16)');
+  const cipherBytes = Utilities.base64Decode(sanitizeB64(body.ciphertext));
+  if (!cipherBytes.length || cipherBytes.length % 16 !== 0) {
+    throw new Error('Ciphertext length ' + cipherBytes.length + ' (must be >0 and multiple of 16)');
   }
 
   const cipherParams = CryptoJS.lib.CipherParams.create({
-    ciphertext: cipherWords
+    ciphertext: CryptoJS.lib.WordArray.create(cipherBytes)
   });
 
   const decrypted = CryptoJS.AES.decrypt(cipherParams, aesKeyWords, {
-    iv: ivWords,
+    iv: CryptoJS.lib.WordArray.create(ivBytes),
     mode: CryptoJS.mode.CBC,
     padding: CryptoJS.pad.Pkcs7
   });
@@ -157,6 +157,12 @@ function rsaDecryptToString(rsa, cipherTextB64) {
 
   return decrypted;  // deve ser uma string base64 (AES key)
 }
+
+function sanitizeB64(str) {
+  if (typeof str !== 'string') throw new Error('Expected base64 string');
+  return str.replace(/\s+/g, '');
+}
+
 
 function getPublicKey() {
   const stored = PropertiesService.getScriptProperties().getProperty('PUBLIC_KEY_PEM');
