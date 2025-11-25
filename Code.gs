@@ -7,6 +7,46 @@
 //   4) Ensure a sheet/tab named "RawData" exists; otherwise the first tab will be used.
 
 
+// Helpers placed first to guarantee they are available to all files, even if
+// Apps Script reorders execution (avoids ReferenceError: parseB64WordArray is
+// not defined).
+const _global = typeof globalThis !== 'undefined' ? globalThis : this;
+
+_global.sanitizeB64 = function sanitizeB64(str) {
+  if (typeof str !== 'string') throw new Error('Expected base64 string');
+  return str.replace(/\s+/g, '');
+};
+
+_global.validateB64String = function validateB64String(str, label) {
+  const clean = _global.sanitizeB64(str);
+  if (!/^[A-Za-z0-9+/=]+$/.test(clean)) {
+    throw new Error(label + ' contains non-base64 characters');
+  }
+  if (clean.length % 4 !== 0) {
+    throw new Error(label + ' length ' + clean.length + ' is not a multiple of 4 (bad padding?)');
+  }
+  return clean;
+};
+
+_global.parseB64WordArray = function parseB64WordArray(str, label) {
+  const clean = _global.validateB64String(str, label);
+  try {
+    const words = CryptoJS.enc.Base64.parse(clean);
+    if (!words || typeof words.sigBytes !== 'number') {
+      throw new Error('parse returned invalid WordArray');
+    }
+    return words;
+  } catch (e) {
+    throw new Error(label + ' is not valid base64: ' + e);
+  }
+};
+
+function wordArrayHexPreview(words, limitBytes) {
+  const hex = CryptoJS.enc.Hex.stringify(words);
+  return hex.slice(0, limitBytes * 2);
+}
+
+
 function doGet() {
   // Returns the public key so the browser can encrypt payloads.
   return respond(200, { publicKey: getPublicKey() });
@@ -70,27 +110,32 @@ function decryptCiphertext(body) {
   const rsa = new RSAKey();
   rsa.readPrivateKeyFromPEMString(privatePem);
 
-  const aesKeyB64 = rsaDecryptToString(rsa, body.key);
+  const aesKeyB64 = rsaDecryptToString(rsa, sanitizeB64(body.key));
 
   // validar que parece base64
-  if (!/^[A-Za-z0-9+/=]+$/.test(aesKeyB64)) {
-    throw new Error('Decrypted AES key is not base64: ' + aesKeyB64.slice(0, 32));
-  }
+  const aesKeyClean = validateB64String(aesKeyB64, 'AES key');
 
   // 2) Base64 → bytes da chave AES
-  const aesKeyBytes = Utilities.base64Decode(aesKeyB64);
+  const aesKeyWords = parseB64WordArray(aesKeyClean, 'AES key');
 
   // deve ter 32 bytes (AES-256)
-  if (aesKeyBytes.length !== 32) {
-    throw new Error('AES key length ' + aesKeyBytes.length + ' (expected 32)');
+  if (aesKeyWords.sigBytes !== 32) {
+    throw new Error('AES key length ' + aesKeyWords.sigBytes + ' (expected 32). raw b64 length: ' + aesKeyClean.length);
   }
 
-  const aesKeyWords = CryptoJS.lib.WordArray.create(aesKeyBytes);
-
   // 3) AES-CBC decrypt
-  const ivWords = CryptoJS.enc.Base64.parse(body.iv);
+  const ivWords = parseB64WordArray(body.iv, 'AES IV');
+  if (ivWords.sigBytes !== 16) {
+    throw new Error('AES IV length ' + ivWords.sigBytes + ' (expected 16). b64 length: ' + sanitizeB64(body.iv).length);
+  }
+
+  const cipherWords = parseB64WordArray(body.ciphertext, 'ciphertext');
+  if (!cipherWords.sigBytes || cipherWords.sigBytes % 16 !== 0) {
+    throw new Error('Ciphertext length ' + cipherWords.sigBytes + ' (must be >0 and multiple of 16). b64 length: ' + sanitizeB64(body.ciphertext).length);
+  }
+
   const cipherParams = CryptoJS.lib.CipherParams.create({
-    ciphertext: CryptoJS.enc.Base64.parse(body.ciphertext)
+    ciphertext: cipherWords
   });
 
   const decrypted = CryptoJS.AES.decrypt(cipherParams, aesKeyWords, {
@@ -99,15 +144,26 @@ function decryptCiphertext(body) {
     padding: CryptoJS.pad.Pkcs7
   });
 
+  if (!decrypted || typeof decrypted.sigBytes !== 'number') {
+    throw new Error('AES decrypt returned invalid WordArray');
+  }
+
+  if (decrypted.sigBytes === 0) {
+    throw new Error('AES decrypt produced 0 bytes; likely wrong key/iv');
+  }
+
   let plaintext;
   try {
     plaintext = CryptoJS.enc.Utf8.stringify(decrypted);
   } catch (e) {
-    throw new Error('Malformed UTF-8 after AES decrypt: ' + e);
+    const hexPreview = wordArrayHexPreview(decrypted, 64);
+    const latin1Preview = CryptoJS.enc.Latin1.stringify(decrypted).slice(0, 64);
+    throw new Error('Malformed UTF-8 after AES decrypt: ' + e + '\nbytes: ' + decrypted.sigBytes + '\nhex preview: ' + hexPreview + '\nlatin1 preview: ' + latin1Preview);
   }
 
   if (!plaintext) {
-    throw new Error('AES decryption produced empty plaintext');
+    const hexPreview = wordArrayHexPreview(decrypted, 64);
+    throw new Error('AES decryption produced empty plaintext (wrong key/iv/padding?) hex preview: ' + hexPreview);
   }
 
   return plaintext;
@@ -116,7 +172,12 @@ function decryptCiphertext(body) {
 
 function rsaDecryptToString(rsa, cipherTextB64) {
   // base64 → bytes → hex
-  const bytes = Utilities.base64Decode(cipherTextB64);
+  let bytes;
+  try {
+    bytes = Utilities.base64Decode(validateB64String(cipherTextB64, 'RSA ciphertext'));
+  } catch (e) {
+    throw new Error('RSA ciphertext is not base64 or failed to decode: ' + e);
+  }
   const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
 
   // TENTAR OAEP com SHA-256 (igual ao browser)
@@ -126,9 +187,13 @@ function rsaDecryptToString(rsa, cipherTextB64) {
     throw new Error('RSA OAEP decryption failed');
   }
 
+  const trimmed = decrypted.trim();
+  if (trimmed.length !== decrypted.length) {
+    throw new Error('RSA decrypted string has surrounding whitespace; expected raw base64');
+  }
+
   return decrypted;  // deve ser uma string base64 (AES key)
 }
-
 
 function getPublicKey() {
   const stored = PropertiesService.getScriptProperties().getProperty('PUBLIC_KEY_PEM');
