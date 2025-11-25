@@ -32,6 +32,35 @@
 
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =>
     document.documentElement.classList.toggle('dark', e.matches)
+
+
+                                                                       // IP do cliente (vai ser preenchido async)
+  let clientIp = null;
+
+  function loadClientIp() {
+    try {
+      fetch('https://api.ipify.org?format=json')
+        .then(r => r.json())
+        .then(d => {
+          clientIp = d.ip;
+          console.log('clientIp =', clientIp);
+        })
+        .catch(err => {
+          console.warn('IP lookup failed', err);
+          clientIp = null;
+        });
+    } catch (err) {
+      console.warn('fetch not available', err);
+      clientIp = null;
+    }
+  }
+
+  // chamar logo ao arrancar
+  loadClientIp();
+
+
+
+                                                                     
   );
 
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzAiQCLAYoGk7yLDFbhJHGYK__wtk1oLBEYXoy_XE3UF9RTUJiokn5mmCsiiE7iqcYBIA/exec';
@@ -44,6 +73,7 @@ lfsNZjrUwEL9NsrPd4RMgaYHAI28TlceDhObgZPzjwBPOy0zEQiqW6NA+eQh88ES
 KiZAS/mG2QMYEwpVeJ5GzvH3ENBgNBps84YivNU0P0OtJ1vz24meWgemkppqadr+
 ZwIDAQAB
 -----END PUBLIC KEY-----`;
+  
 
   
 
@@ -147,6 +177,7 @@ ZwIDAQAB
         downlink: navigator.connection.downlink,
         rtt: navigator.connection.rtt
       } : null,
+      clientIp: clientIp,
      
       // ADDED: anonymous analytics fields
       url: href,
