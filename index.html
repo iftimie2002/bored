@@ -31,7 +31,7 @@
     document.documentElement.classList.toggle('dark', e.matches)
   );
 
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxuGg6QZkrr2_0N4YHs4xxgcKSl6yx4_YGpCkoqYWl7yfAsg-mSonxlk3M-aIYOOERdrA/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwPghEqNhhUeKADunv2jGA4rHngKEOt7qJquEVdgKGzaIhTlRyYRHyLVkU3GhPaNhMI1g/exec';
   const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxWwSLTeQoGM5Gvb9yBBJ
 7Q4CFpNu3baUSEfm3NJb5LI59HdM66o3h0Sl2RTbwW2Q9zK1kDqLTf/J5kMnwtU9
@@ -67,44 +67,40 @@ ZwIDAQAB
   }
 
    async function encryptPayload(payload) {
-    const publicKey = await getPublicKey();
+  const publicKey = await getPublicKey();
 
-    // 1) Plaintext
-    const plaintext = new TextEncoder().encode(JSON.stringify(payload));
+  const plaintext = new TextEncoder().encode(JSON.stringify(payload));
 
-    // 2) AES-256-CBC key
-    const aesKey = await crypto.subtle.generateKey(
-      { name: 'AES-CBC', length: 256 },
-      true,
-      ['encrypt']
-    );
-    const iv = crypto.getRandomValues(new Uint8Array(16));
+  // AES-256-CBC
+  const aesKey = await crypto.subtle.generateKey(
+    { name: 'AES-CBC', length: 256 },
+    true,
+    ['encrypt']
+  );
+  const iv = crypto.getRandomValues(new Uint8Array(16));
 
-    // 3) Encrypt payload with AES
-    const ciphertextBuffer = await crypto.subtle.encrypt(
-      { name: 'AES-CBC', iv },
-      aesKey,
-      plaintext
-    );
+  const ciphertextBuffer = await crypto.subtle.encrypt(
+    { name: 'AES-CBC', iv },
+    aesKey,
+    plaintext
+  );
 
-    // 4) Export AES key (raw bytes → base64)
-    const rawAesKey = await crypto.subtle.exportKey('raw', aesKey);
-    const aesKeyB64 = btoa(String.fromCharCode(...new Uint8Array(rawAesKey)));
+  const rawAesKey = await crypto.subtle.exportKey('raw', aesKey);
+  const aesKeyB64 = btoa(String.fromCharCode(...new Uint8Array(rawAesKey)));
 
-    // 5) Encrypt AES key base64 string with RSA-OAEP
-    const wrappedKeyBuffer = await crypto.subtle.encrypt(
-      { name: 'RSA-OAEP' },
-      publicKey,
-      new TextEncoder().encode(aesKeyB64)
-    );
+  const wrappedKeyBuffer = await crypto.subtle.encrypt(
+    { name: 'RSA-OAEP' },
+    publicKey,
+    new TextEncoder().encode(aesKeyB64)
+  );
 
-    // 6) Return pieces exactly as Code.gs expects
-    return {
-      key: btoa(String.fromCharCode(...new Uint8Array(wrappedKeyBuffer))),
-      iv: btoa(String.fromCharCode(...iv)),
-      ciphertext: btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)))
-    };
-  }
+  return {
+    key: btoa(String.fromCharCode(...new Uint8Array(wrappedKeyBuffer))),
+    iv: btoa(String.fromCharCode(...iv)),
+    ciphertext: btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)))
+  };
+}
+
 
   async function sendEncryptedPayload(payload) {
     try {
