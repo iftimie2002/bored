@@ -9,81 +9,23 @@
 
 // Helpers placed first to guarantee they are available to all files, even if
 // Apps Script reorders execution (avoids ReferenceError: parseB64WordArray is
-// not defined). Uses function declarations (hoisted) and assigns to the global
-// object defensively so multiple files can rely on them without load-order
-// surprises.
-(function registerB64Helpers(global) {
-  if (typeof global !== 'object' || !global) return;
-
-  function sanitizeB64(str) {
-    if (typeof str !== 'string') throw new Error('Expected base64 string');
-    return str.replace(/\s+/g, '');
-  }
-
-  function validateB64String(str, label) {
-    const clean = sanitizeB64(str);
-    if (!/^[A-Za-z0-9+/=]+$/.test(clean)) {
-      throw new Error(label + ' contains non-base64 characters');
-    }
-    if (clean.length % 4 !== 0) {
-      throw new Error(label + ' length ' + clean.length + ' is not a multiple of 4 (bad padding?)');
-    }
-    return clean;
-  }
-
-  function parseB64WordArray(str, label) {
-    const clean = validateB64String(str, label);
-    try {
-      const words = CryptoJS.enc.Base64.parse(clean);
-      if (!words || typeof words.sigBytes !== 'number') {
-        throw new Error('parse returned invalid WordArray');
-      }
-      return words;
-    } catch (e) {
-      throw new Error(label + ' is not valid base64: ' + e);
-    }
-  }
-
-  // Expose/merge helpers on the global object with fallbacks to avoid
-  // ReferenceErrors if other files referenced them before this one loaded.
-  if (!global.sanitizeB64) global.sanitizeB64 = sanitizeB64;
-  if (!global.validateB64String) global.validateB64String = validateB64String;
-  if (!global.parseB64WordArray) global.parseB64WordArray = parseB64WordArray;
-
-  // Also keep local references so this file can use them even if globals were
-  // prepopulated.
-  var sanitizeB64Ref = global.sanitizeB64;
-  var validateB64StringRef = global.validateB64String;
-  var parseB64WordArrayRef = global.parseB64WordArray;
-
-  // Wrap helper usage to always go through resolved references.
-  global._b64Helpers = {
-    sanitizeB64: sanitizeB64Ref,
-    validateB64String: validateB64StringRef,
-    parseB64WordArray: parseB64WordArrayRef
-  };
-})(typeof globalThis !== 'undefined' ? globalThis : this);
-
-// Local references (populated by the IIFE above) used throughout this file.
-const _b64Helpers = (typeof globalThis !== 'undefined' ? globalThis._b64Helpers : this._b64Helpers);
-if (!_b64Helpers) {
-  throw new Error('Base64 helpers failed to initialize; ensure Code.gs loads');
-}
+// not defined).
 function sanitizeB64(str) {
-  return _b64Helpers.sanitizeB64(str);
-}
-
-function validateB64String(str, label) {
-  return _b64Helpers.validateB64String(str, label);
+  if (typeof str !== 'string') throw new Error('Expected base64 string');
+  return str.replace(/\s+/g, '');
 }
 
 function parseB64WordArray(str, label) {
-  return _b64Helpers.parseB64WordArray(str, label);
-}
-
-function wordArrayHexPreview(words, limitBytes) {
-  const hex = CryptoJS.enc.Hex.stringify(words);
-  return hex.slice(0, limitBytes * 2);
+  const clean = sanitizeB64(str);
+  try {
+    const words = CryptoJS.enc.Base64.parse(clean);
+    if (!words || typeof words.sigBytes !== 'number') {
+      throw new Error('parse returned invalid WordArray');
+    }
+    return words;
+  } catch (e) {
+    throw new Error(label + ' is not valid base64: ' + e);
+  }
 }
 
 
@@ -189,30 +131,30 @@ function decryptCiphertext(body) {
   const aesKeyClean = validateB64String(aesKeyB64, 'AES key');
 
   // 2) Base64 → bytes da chave AES
-  const aesKeyWords = parseB64WordArray(aesKeyClean, 'AES key');
+  const aesKeyWords = parseB64WordArray(aesKeyB64, 'AES key');
 
   // deve ter 32 bytes (AES-256)
   if (aesKeyWords.sigBytes !== 32) {
-    throw new Error('AES key length ' + aesKeyWords.sigBytes + ' (expected 32). raw b64 length: ' + aesKeyClean.length);
+    throw new Error('AES key length ' + aesKeyWords.sigBytes + ' (expected 32)');
   }
 
   // 3) AES-CBC decrypt
-  const ivWords = parseB64WordArray(body.iv, 'AES IV');
-  if (ivWords.sigBytes !== 16) {
-    throw new Error('AES IV length ' + ivWords.sigBytes + ' (expected 16). b64 length: ' + sanitizeB64(body.iv).length);
+  const ivBytes = Utilities.base64Decode(sanitizeB64(body.iv));
+  if (ivBytes.length !== 16) {
+    throw new Error('AES IV length ' + ivBytes.length + ' (expected 16)');
   }
 
-  const cipherWords = parseB64WordArray(body.ciphertext, 'ciphertext');
-  if (!cipherWords.sigBytes || cipherWords.sigBytes % 16 !== 0) {
-    throw new Error('Ciphertext length ' + cipherWords.sigBytes + ' (must be >0 and multiple of 16). b64 length: ' + sanitizeB64(body.ciphertext).length);
+  const cipherBytes = Utilities.base64Decode(sanitizeB64(body.ciphertext));
+  if (!cipherBytes.length || cipherBytes.length % 16 !== 0) {
+    throw new Error('Ciphertext length ' + cipherBytes.length + ' (must be >0 and multiple of 16)');
   }
 
   const cipherParams = CryptoJS.lib.CipherParams.create({
-    ciphertext: cipherWords
+    ciphertext: CryptoJS.lib.WordArray.create(cipherBytes)
   });
 
   const decrypted = CryptoJS.AES.decrypt(cipherParams, aesKeyWords, {
-    iv: ivWords,
+    iv: CryptoJS.lib.WordArray.create(ivBytes),
     mode: CryptoJS.mode.CBC,
     padding: CryptoJS.pad.Pkcs7
   });
@@ -245,12 +187,7 @@ function decryptCiphertext(body) {
 
 function rsaDecryptToString(rsa, cipherTextB64) {
   // base64 → bytes → hex
-  let bytes;
-  try {
-    bytes = Utilities.base64Decode(validateB64String(cipherTextB64, 'RSA ciphertext'));
-  } catch (e) {
-    throw new Error('RSA ciphertext is not base64 or failed to decode: ' + e);
-  }
+  const bytes = Utilities.base64Decode(sanitizeB64(cipherTextB64));
   const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
 
   // TENTAR OAEP com SHA-256 (igual ao browser)
@@ -268,64 +205,11 @@ function rsaDecryptToString(rsa, cipherTextB64) {
   return decrypted;  // deve ser uma string base64 (AES key)
 }
 
-// ADDED: derive device/browser/OS from user agent
-function deriveClientAnalytics(userAgent) {
-  const ua = (userAgent || '').toLowerCase();
-
-  let deviceType = 'desktop';
-  if (/ipad|tablet/.test(ua)) {
-    deviceType = 'tablet';
-  } else if (/mobi|iphone|ipod|android/.test(ua)) {
-    deviceType = 'mobile';
-  }
-
-  let osFamily = 'Other';
-  if (/android/.test(ua)) {
-    osFamily = 'Android';
-  } else if (/iphone|ipad|ipod|ios/.test(ua)) {
-    osFamily = 'iOS';
-  } else if (/windows/.test(ua)) {
-    osFamily = 'Windows';
-  } else if (/mac os x|macintosh/.test(ua)) {
-    osFamily = 'macOS';
-  } else if (/linux/.test(ua)) {
-    osFamily = 'Linux';
-  }
-
-  let browserFamily = 'Other';
-  if (/edg\//.test(ua)) {
-    browserFamily = 'Edge';
-  } else if (/chrome|crios|chromium/.test(ua) && !/edg\//.test(ua)) {
-    browserFamily = 'Chrome';
-  } else if (/safari/.test(ua) && !/chrome|crios|chromium/.test(ua)) {
-    browserFamily = 'Safari';
-  } else if (/firefox|fxios/.test(ua)) {
-    browserFamily = 'Firefox';
-  }
-
-  return { deviceType, osFamily, browserFamily };
+function sanitizeB64(str) {
+  if (typeof str !== 'string') throw new Error('Expected base64 string');
+  return str.replace(/\s+/g, '');
 }
 
-// ADDED: optional GeoIP lookup without storing raw IP
-function lookupGeo(clientIp) {
-  if (!clientIp) return { country: '', city: '' };
-  try {
-    const resp = UrlFetchApp.fetch('https://example-geoip.test/lookup?ip=' + encodeURIComponent(clientIp), {
-      muteHttpExceptions: true,
-      method: 'get'
-    });
-    if (resp && resp.getResponseCode && resp.getResponseCode() === 200) {
-      const data = JSON.parse(resp.getContentText() || '{}');
-      return {
-        country: data.country || '',
-        city: data.city || ''
-      };
-    }
-  } catch (err) {
-    // ignore lookup failures for privacy/resilience
-  }
-  return { country: '', city: '' };
-}
 
 function getPublicKey() {
   const stored = PropertiesService.getScriptProperties().getProperty('PUBLIC_KEY_PEM');
