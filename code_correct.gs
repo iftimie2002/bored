@@ -6,94 +6,48 @@
 //   3) Set the PRIVATE_KEY_PEM (and optionally PUBLIC_KEY_PEM) in Script Properties.
 //   4) Ensure a sheet/tab named "RawData" exists; otherwise the first tab will be used.
 
-
-// Helpers placed first to guarantee they are available to all files, even if
-// Apps Script reorders execution (avoids ReferenceError: parseB64WordArray is
-// not defined). Uses function declarations (hoisted) and assigns to the global
-// object defensively so multiple files can rely on them without load-order
-// surprises.
-(function registerB64Helpers(global) {
-  if (typeof global !== 'object' || !global) return;
-
-  function sanitizeB64(str) {
-    if (typeof str !== 'string') throw new Error('Expected base64 string');
-    return str.replace(/\s+/g, '');
-  }
-
-  function validateB64String(str, label) {
-    const clean = sanitizeB64(str);
-    if (!/^[A-Za-z0-9+/=]+$/.test(clean)) {
-      throw new Error(label + ' contains non-base64 characters');
-    }
-    if (clean.length % 4 !== 0) {
-      throw new Error(label + ' length ' + clean.length + ' is not a multiple of 4 (bad padding?)');
-    }
-    return clean;
-  }
-
-  function parseB64WordArray(str, label) {
-    const clean = validateB64String(str, label);
-    try {
-      const words = CryptoJS.enc.Base64.parse(clean);
-      if (!words || typeof words.sigBytes !== 'number') {
-        throw new Error('parse returned invalid WordArray');
-      }
-      return words;
-    } catch (e) {
-      throw new Error(label + ' is not valid base64: ' + e);
-    }
-  }
-
-  // Expose/merge helpers on the global object with fallbacks to avoid
-  // ReferenceErrors if other files referenced them before this one loaded.
-  if (!global.sanitizeB64) global.sanitizeB64 = sanitizeB64;
-  if (!global.validateB64String) global.validateB64String = validateB64String;
-  if (!global.parseB64WordArray) global.parseB64WordArray = parseB64WordArray;
-
-  // Also keep local references so this file can use them even if globals were
-  // prepopulated.
-  var sanitizeB64Ref = global.sanitizeB64;
-  var validateB64StringRef = global.validateB64String;
-  var parseB64WordArrayRef = global.parseB64WordArray;
-
-  // Wrap helper usage to always go through resolved references.
-  global._b64Helpers = {
-    sanitizeB64: sanitizeB64Ref,
-    validateB64String: validateB64StringRef,
-    parseB64WordArray: parseB64WordArrayRef
-  };
-})(typeof globalThis !== 'undefined' ? globalThis : this);
-
-// Local references (populated by the IIFE above) used throughout this file.
-const _b64Helpers = (typeof globalThis !== 'undefined' ? globalThis._b64Helpers : this._b64Helpers);
-if (!_b64Helpers) {
-  throw new Error('Base64 helpers failed to initialize; ensure Code.gs loads');
-}
+// ---- Base64 helpers ----
 function sanitizeB64(str) {
-  return _b64Helpers.sanitizeB64(str);
+  if (typeof str !== 'string') throw new Error('Expected base64 string');
+  return str.replace(/\s+/g, '');
 }
 
 function validateB64String(str, label) {
-  return _b64Helpers.validateB64String(str, label);
+  const clean = sanitizeB64(str);
+  if (!/^[A-Za-z0-9+/=]+$/.test(clean)) {
+    throw new Error(label + ' contains non-base64 characters');
+  }
+  if (clean.length % 4 !== 0) {
+    throw new Error(label + ' length ' + clean.length + ' is not a multiple of 4 (padding issue)');
+  }
+  return clean;
 }
 
 function parseB64WordArray(str, label) {
-  return _b64Helpers.parseB64WordArray(str, label);
+  const clean = validateB64String(str, label);
+  try {
+    const words = CryptoJS.enc.Base64.parse(clean);
+    if (!words || typeof words.sigBytes !== 'number') {
+      throw new Error('parse returned invalid WordArray');
+    }
+    return words;
+  } catch (e) {
+    throw new Error(label + ' is not valid base64: ' + e);
+  }
 }
 
 function wordArrayHexPreview(words, limitBytes) {
-  const hex = CryptoJS.enc.Hex.stringify(words);
-  return hex.slice(0, limitBytes * 2);
+  return CryptoJS.enc.Hex.stringify(words).slice(0, limitBytes * 2);
 }
 
-
+// ---- HTTP handlers ----
 function doGet() {
   // Returns the public key so the browser can encrypt payloads.
   return respond(200, { publicKey: getPublicKey() });
 }
 
 function doPost(e) {
-  return withErrorHandling(() => {
+  return withErrorHandling(function () {
     const rawBody = e && e.postData && e.postData.contents;
     if (!rawBody) return respond(400, { error: 'Missing body' });
 
@@ -121,8 +75,11 @@ function doPost(e) {
   });
 }
 
+function doOptions() {
+  return respond(200, { status: 'ok' });
+}
 
-
+// ---- Spreadsheet logging ----
 function appendRow(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('RawData') || ss.getSheets()[0];
@@ -172,7 +129,7 @@ function appendRow(payload) {
   Logger.log('Sheet name: %s, lastRow: %s', sheet.getName(), sheet.getLastRow());
 }
 
-
+// ---- Crypto helpers ----
 function decryptCiphertext(body) {
   if (typeof CryptoJS === 'undefined') throw new Error('Missing CryptoJS library');
 
@@ -242,7 +199,6 @@ function decryptCiphertext(body) {
   return plaintext;
 }
 
-
 function rsaDecryptToString(rsa, cipherTextB64) {
   // base64 → bytes → hex
   let bytes;
@@ -251,7 +207,7 @@ function rsaDecryptToString(rsa, cipherTextB64) {
   } catch (e) {
     throw new Error('RSA ciphertext is not base64 or failed to decode: ' + e);
   }
-  const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+  const hex = bytes.map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
 
   // TENTAR OAEP com SHA-256 (igual ao browser)
   var decrypted = rsa.decryptOAEP(hex, 'sha256');
@@ -333,15 +289,10 @@ function getPublicKey() {
   return stored;
 }
 
-
 function respond(status, obj) {
   const output = ContentService.createTextOutput(JSON.stringify(obj));
   output.setMimeType(ContentService.MimeType.JSON);
   return output;
-}
-
-function doOptions() {
-  return respond(200, { status: 'ok' });
 }
 
 function withErrorHandling(fn) {
@@ -373,7 +324,7 @@ function withErrorHandling(fn) {
   }
 }
 
-
+// ---- Utilities ----
 function debugAppend() {
   const payload = {
     clientId: 'debug',
@@ -388,4 +339,3 @@ function debugAppend() {
   };
   appendRow(payload);
 }
-
