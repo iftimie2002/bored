@@ -45,13 +45,7 @@ KiZAS/mG2QMYEwpVeJ5GzvH3ENBgNBps84YivNU0P0OtJ1vz24meWgemkppqadr+
 ZwIDAQAB
 -----END PUBLIC KEY-----`;
 
-  let clientIp = null;
-
-  // Buscar IP público do cliente (best-effort)
-  fetch('https://api.ipify.org?format=json')
-    .then(r => r.json())
-    .then(d => { clientIp = d.ip; })
-    .catch(() => { clientIp = null; });
+  
 
 
 
