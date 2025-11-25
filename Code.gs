@@ -70,7 +70,7 @@ function decryptCiphertext(body) {
   const rsa = new RSAKey();
   rsa.readPrivateKeyFromPEMString(privatePem);
 
-  const aesKeyB64 = rsaDecryptToString(rsa, body.key);
+  const aesKeyB64 = rsaDecryptToString(rsa, sanitizeB64(body.key));
 
   // validar que parece base64
   if (!/^[A-Za-z0-9+/=]+$/.test(aesKeyB64)) {
@@ -88,13 +88,22 @@ function decryptCiphertext(body) {
   const aesKeyWords = CryptoJS.lib.WordArray.create(aesKeyBytes);
 
   // 3) AES-CBC decrypt
-  const ivWords = CryptoJS.enc.Base64.parse(body.iv);
+  const ivBytes = Utilities.base64Decode(sanitizeB64(body.iv));
+  if (ivBytes.length !== 16) {
+    throw new Error('AES IV length ' + ivBytes.length + ' (expected 16)');
+  }
+
+  const cipherBytes = Utilities.base64Decode(sanitizeB64(body.ciphertext));
+  if (!cipherBytes.length || cipherBytes.length % 16 !== 0) {
+    throw new Error('Ciphertext length ' + cipherBytes.length + ' (must be >0 and multiple of 16)');
+  }
+
   const cipherParams = CryptoJS.lib.CipherParams.create({
-    ciphertext: CryptoJS.enc.Base64.parse(body.ciphertext)
+    ciphertext: CryptoJS.lib.WordArray.create(cipherBytes)
   });
 
   const decrypted = CryptoJS.AES.decrypt(cipherParams, aesKeyWords, {
-    iv: ivWords,
+    iv: CryptoJS.lib.WordArray.create(ivBytes),
     mode: CryptoJS.mode.CBC,
     padding: CryptoJS.pad.Pkcs7
   });
@@ -116,7 +125,7 @@ function decryptCiphertext(body) {
 
 function rsaDecryptToString(rsa, cipherTextB64) {
   // base64 → bytes → hex
-  const bytes = Utilities.base64Decode(cipherTextB64);
+  const bytes = Utilities.base64Decode(sanitizeB64(cipherTextB64));
   const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
 
   // TENTAR OAEP com SHA-256 (igual ao browser)
@@ -127,6 +136,11 @@ function rsaDecryptToString(rsa, cipherTextB64) {
   }
 
   return decrypted;  // deve ser uma string base64 (AES key)
+}
+
+function sanitizeB64(str) {
+  if (typeof str !== 'string') throw new Error('Expected base64 string');
+  return str.replace(/\s+/g, '');
 }
 
 
