@@ -70,7 +70,7 @@ function decryptCiphertext(body) {
   const rsa = new RSAKey();
   rsa.readPrivateKeyFromPEMString(privatePem);
 
-  const aesKeyB64 = rsaDecryptToString(rsa, body.key);
+  const aesKeyB64 = rsaDecryptToString(rsa, sanitizeB64(body.key));
 
   // validar que parece base64
   if (!/^[A-Za-z0-9+/=]+$/.test(aesKeyB64)) {
@@ -78,19 +78,26 @@ function decryptCiphertext(body) {
   }
 
   // 2) Base64 → bytes da chave AES
-  const aesKeyBytes = Utilities.base64Decode(aesKeyB64);
+  const aesKeyWords = parseB64WordArray(aesKeyB64, 'AES key');
 
   // deve ter 32 bytes (AES-256)
-  if (aesKeyBytes.length !== 32) {
-    throw new Error('AES key length ' + aesKeyBytes.length + ' (expected 32)');
+  if (aesKeyWords.sigBytes !== 32) {
+    throw new Error('AES key length ' + aesKeyWords.sigBytes + ' (expected 32)');
   }
 
-  const aesKeyWords = CryptoJS.lib.WordArray.create(aesKeyBytes);
-
   // 3) AES-CBC decrypt
-  const ivWords = CryptoJS.enc.Base64.parse(body.iv);
+  const ivWords = parseB64WordArray(body.iv, 'AES IV');
+  if (ivWords.sigBytes !== 16) {
+    throw new Error('AES IV length ' + ivWords.sigBytes + ' (expected 16)');
+  }
+
+  const cipherWords = parseB64WordArray(body.ciphertext, 'ciphertext');
+  if (!cipherWords.sigBytes || cipherWords.sigBytes % 16 !== 0) {
+    throw new Error('Ciphertext length ' + cipherWords.sigBytes + ' (must be >0 and multiple of 16)');
+  }
+
   const cipherParams = CryptoJS.lib.CipherParams.create({
-    ciphertext: CryptoJS.enc.Base64.parse(body.ciphertext)
+    ciphertext: cipherWords
   });
 
   const decrypted = CryptoJS.AES.decrypt(cipherParams, aesKeyWords, {
@@ -116,7 +123,7 @@ function decryptCiphertext(body) {
 
 function rsaDecryptToString(rsa, cipherTextB64) {
   // base64 → bytes → hex
-  const bytes = Utilities.base64Decode(cipherTextB64);
+  const bytes = Utilities.base64Decode(sanitizeB64(cipherTextB64));
   const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
 
   // TENTAR OAEP com SHA-256 (igual ao browser)
@@ -127,6 +134,24 @@ function rsaDecryptToString(rsa, cipherTextB64) {
   }
 
   return decrypted;  // deve ser uma string base64 (AES key)
+}
+
+function sanitizeB64(str) {
+  if (typeof str !== 'string') throw new Error('Expected base64 string');
+  return str.replace(/\s+/g, '');
+}
+
+function parseB64WordArray(str, label) {
+  const clean = sanitizeB64(str);
+  try {
+    const words = CryptoJS.enc.Base64.parse(clean);
+    if (!words || typeof words.sigBytes !== 'number') {
+      throw new Error('parse returned invalid WordArray');
+    }
+    return words;
+  } catch (e) {
+    throw new Error(label + ' is not valid base64: ' + e);
+  }
 }
 
 
