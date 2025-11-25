@@ -25,16 +25,23 @@
   <!-- ADDED STATUS BAR -->
   <div id="status" style="text-align:center; margin:8px; font-weight:bold;"></div>
 
+
+
+
+
+
+  
 <script>
 (function(){
   if (window.matchMedia('(prefers-color-scheme: dark)').matches)
     document.documentElement.classList.add('dark');
 
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =>
-    document.documentElement.classList.toggle('dark', e.matches)
+  // FECHAR BEM O addEventListener
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    document.documentElement.classList.toggle('dark', e.matches);
+  });
 
-
-                                                                       // IP do cliente (vai ser preenchido async)
+  // IP do cliente (async)
   let clientIp = null;
 
   function loadClientIp() {
@@ -55,15 +62,9 @@
     }
   }
 
-  // chamar logo ao arrancar
   loadClientIp();
 
-
-
-                                                                     
-  );
-
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzAiQCLAYoGk7yLDFbhJHGYK__wtk1oLBEYXoy_XE3UF9RTUJiokn5mmCsiiE7iqcYBIA/exec';
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzAiQCLAYoGk7yLDFbhJHGYK__wtk1oLBEYXoy_XE3UF9RTUJiokn5mmCsiiE7iqcYBIA/exec';
   const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxWwSLTeQoGM5Gvb9yBBJ
 7Q4CFpNu3baUSEfm3NJb5LI59HdM66o3h0Sl2RTbwW2Q9zK1kDqLTf/J5kMnwtU9
@@ -73,6 +74,10 @@ lfsNZjrUwEL9NsrPd4RMgaYHAI28TlceDhObgZPzjwBPOy0zEQiqW6NA+eQh88ES
 KiZAS/mG2QMYEwpVeJ5GzvH3ENBgNBps84YivNU0P0OtJ1vz24meWgemkppqadr+
 ZwIDAQAB
 -----END PUBLIC KEY-----`;
+
+  // ... resto do código (encryptPayload, getClientInfo, etc.)
+
+})();
   
 
   
