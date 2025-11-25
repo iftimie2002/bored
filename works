@@ -260,5 +260,574 @@ function debugAppend() {
 
 //index.html
 
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Are you Smart, or just Confident?</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+  <style>
+    html, body, #app { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
+    .timer-ring { transition: stroke-dashoffset 0.35s ease; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
+
+</head>
+
+<body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
+
+  <div id="app" class="h-full flex flex-col"></div>
+
+  <!-- ADDED STATUS BAR -->
+  <div id="status" style="text-align:center; margin:8px; font-weight:bold;"></div>
+
+<script>
+(function(){
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+    document.documentElement.classList.add('dark');
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =>
+    document.documentElement.classList.toggle('dark', e.matches)
+  );
+
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyGW_6ebiH9_uynxkYg9itURgNYFdlQrrQN7_e3e36_8HGjBEaRi3905AZkasEIpdWU8Q/exec';
+  const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxWwSLTeQoGM5Gvb9yBBJ
+7Q4CFpNu3baUSEfm3NJb5LI59HdM66o3h0Sl2RTbwW2Q9zK1kDqLTf/J5kMnwtU9
+GKcEuKD1UYWvzZO9C/ekPoKhzMWccdFujIrTeLPJGjncSr0QZ9ZfAoSAYMamdtlR
+lfsNZjrUwEL9NsrPd4RMgaYHAI28TlceDhObgZPzjwBPOy0zEQiqW6NA+eQh88ES
+/CKvTjFt8E+jZzmFdqPFKHZ56scmThT7VK1IisRCnQFSRKqyKXBBg9C5Qmro7+3p
+KiZAS/mG2QMYEwpVeJ5GzvH3ENBgNBps84YivNU0P0OtJ1vz24meWgemkppqadr+
+ZwIDAQAB
+-----END PUBLIC KEY-----`;
+
+
+
+  function pemToArrayBuffer(pem) {
+    const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+    const raw = atob(b64);
+    const buffer = new ArrayBuffer(raw.length);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
+    return buffer;
+  }
+
+   
+
+   async function encryptPayload(payload) {
+  // 1) RSA public key (jsrsasign)
+  const rsaPub = KEYUTIL.getKey(PUBLIC_KEY_PEM); // RSAKey
+
+  // 2) Plaintext JSON
+  const plaintextJson = JSON.stringify(payload);
+
+  // 3) AES-256-CBC key + IV (CryptoJS)
+  const aesKey = CryptoJS.lib.WordArray.random(32);  // 32 bytes = 256 bits
+  const iv = CryptoJS.lib.WordArray.random(16);      // 16 bytes = 128-bit IV
+
+  const encrypted = CryptoJS.AES.encrypt(plaintextJson, aesKey, {
+    iv: iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7
+  });
+
+  const ciphertextB64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
+  const ivB64 = CryptoJS.enc.Base64.stringify(iv);
+  const aesKeyB64 = CryptoJS.enc.Base64.stringify(aesKey);
+
+  // 4) RSA-OAEP encrypt AES key base64 with SHA-256 (jsrsasign)
+  const hexCipher = rsaPub.encryptOAEP(aesKeyB64, 'sha256'); // hex string
+  const wrappedKeyB64 = hextob64(hexCipher); // base64 do ciphertext RSA
+
+  // 5) Formato esperado pelo Code.gs (decryptCiphertext)
+  return {
+    key: wrappedKeyB64,
+    iv: ivB64,
+    ciphertext: ciphertextB64
+  };
+}
+
+
+
+  async function sendEncryptedPayload(payload) {
+    try {
+      const envelope = await encryptPayload(payload);
+      await fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(envelope)
+      });
+      setStatus('Sent test ping');
+    } catch (err) {
+      console.error('Failed to send encrypted payload', err);
+      setStatus('Error sending payload');
+    }
+  }
+
+
+
+  let saveTimeout;
+
+  function getClientInfo() {
+    const colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    return {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      languages: navigator.languages,
+      platform: navigator.platform,
+      deviceMemory: navigator.deviceMemory ?? null,
+      hardwareConcurrency: navigator.hardwareConcurrency ?? null,
+      timezone: tz,
+      colorScheme,
+      screen: {
+        width: window.screen?.width ?? null,
+        height: window.screen?.height ?? null,
+        pixelDepth: window.screen?.pixelDepth ?? null
+      },
+      connection: navigator.connection ? {
+        effectiveType: navigator.connection.effectiveType,
+        downlink: navigator.connection.downlink,
+        rtt: navigator.connection.rtt
+      } : null
+    };
+  }
+
+  function autoSave(isFinal = false) {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      const payload = {
+        meta: {
+          stay: document.getElementById('stay')?.value || null,
+          mins: document.getElementById('mins')?.value || null,
+          client: getClientInfo()
+        },
+        answers: answers,
+        sequence: sequence.map(q => q.type === 'star' ? {type:'star', id:q.id} : {type:'fact', q:q.q}),
+        pointer: pointer
+      };
+      if (isFinal) {
+        payload.smartScore = smart;
+        payload.confidenceScore = conf;
+        payload.starIds = sequence.filter(q => q.type === 'star').map(q => q.id);
+      }
+      const encryptedPayload = {
+        clientId,
+        timestamp: new Date().toISOString(),
+        ...payload
+      };
+
+      sendEncryptedPayload(encryptedPayload);
+    }, 800);
+  }
+
+  async function sendTestRow() {
+    const payload = {
+      clientId,
+      timestamp: new Date().toISOString(),
+      meta: { test: true, note: 'manual ping from UI', client: getClientInfo() },
+      answers: { sample: { answer: 'ping', confidence: 100 } },
+      sequence: [{ type: 'info', q: 'connectivity check' }],
+      pointer: 0,
+      smartScore: 0,
+      confidenceScore: 0,
+      testPing: true
+    };
+
+    setStatus('Sending test ping…');
+    await sendEncryptedPayload(payload);
+    setStatus('Test ping sent!');
+  }
+
+  let clientId = localStorage.getItem('surveyClientId');
+  if (!clientId) {
+    clientId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+    localStorage.setItem('surveyClientId', clientId);
+  }
+
+  const trueFalseQuestions = [
+    {type:"tf", q:'A cloud weighs around a million tons.', correct:true},
+    {type:"tf", q:'Giraffes are 30x more likely to be struck by lightning than humans.', correct:true},
+    {type:"tf", q:'Identical twins have identical fingerprints.', correct:false},
+    {type:"tf", q:"The Earth's rotation is speeding up.", correct:false},
+    {type:"tf", q:'Your brain eats itself every day.', correct:true},
+    {type:"tf", q:'Mars is shaped more like a rugby ball.', correct:true},
+    {type:"tf", q:"The universe's average colour is Cosmic Latte.", correct:true},
+    {type:"tf", q:'Water is not wet.', correct:true},
+    {type:"tf", q:'A chicken lived 18 months without its head.', correct:true},
+    {type:"tf", q:'More bacterial cells than human cells.', correct:true},
+    {type:"tf", q:"Octopuses have arms, not tentacles.", correct:true},
+    {type:"tf", q:'Most school maps are wrong.', correct:true},
+    {type:"tf", q:'Snails can have 10,000+ teeth.', correct:true},
+    {type:"tf", q:'Lightning is hotter than the Sun surface.', correct:true},
+    {type:"tf", q:'Bananas are radioactive.', correct:true},
+    {type:"tf", q:'You travel millions of km daily.', correct:true},
+    {type:"tf", q:'You can fold A4 more than eight times.', correct:false},
+    {type:"tf", q:'Penguin recorded diving 500m+', correct:true},
+    {type:"tf", q:'There is a diamond planet.', correct:true},
+    {type:"tf", q:'The Moon grows each year.', correct:false}
+  ];
+
+  const mcQuestions = [
+    {type:"mc", q:"Prime factors of 24?", options:["Two and three","Two and four","Three and eight","Two and twelve"], correct:0},
+    {type:"mc", q:"Sides of a trapezoid?", options:["Three","Four","Five","Six"], correct:1},
+    {type:"mc", q:"A² + B² = C² theorem?", options:["Euclid","Pythagoras","Fermat","Pascal"], correct:1},
+    {type:"mc", q:"Degrees in a circle?", options:["180","270","360","365"], correct:2},
+    {type:"mc", q:"Yards in a mile?", options:["1000","1760","2000","5280"], correct:1},
+    {type:"mc", q:"Majority of breathable air comes from?", options:["Trees","Grass","Oceans","Rainforest algae"], correct:2},
+    {type:"mc", q:"Faster: Sound or light?", options:["Sound","Light","Same","Depends"], correct:1},
+    {type:"mc", q:"Add this to water to float easier:", options:["Sugar","Salt","Iron","Baking soda"], correct:1},
+    {type:"mc", q:"Earth spin mph equator?", options:["500","1000","1500","2000"], correct:1},
+    {type:"mc", q:"Elements on periodic table?", options:["92","108","118","124"], correct:2},
+    {type:"mc", q:"Universal donor?", options:["AB+","A-","O-","B+"], correct:2},
+    {type:"mc", q:"Moons of Neptune?", options:["8","14","27","63"], correct:1},
+    {type:"mc", q:"Disease eradicated in 1980?", options:["Polio","Measles","Smallpox","Malaria"], correct:2},
+    {type:"mc", q:"First American woman in space?", options:["Tereshkova","Jemison","Sally Ride","Resnik"], correct:2},
+    {type:"mc", q:"Pounds in US ton?", options:["1000","2000","2204","2240"], correct:1},
+    {type:"mc", q:"Largest bone?", options:["Tibia","Femur","Humerus","Spine"], correct:1},
+    {type:"mc", q:"Planets in solar system?", options:["7","8","9","10"], correct:1},
+    {type:"mc", q:"Colours in a rainbow?", options:["6","7","8","Indefinite"], correct:1},
+    {type:"mc", q:"Astronomer in Bohemian Rhapsody?", options:["Copernicus","Kepler","Galileo","Newton"], correct:2},
+    {type:"mc", q:"Fear of flowers?", options:["Floraphobia","Anthophobia","Botanophobia","Petalphobia"], correct:1}
+  ];
+
+  const starQuestions = [
+    {id:"s1", text:"What surprised you the most in the Algarve?", tag:"experienced"},
+    {id:"s2", text:"What felt unnecessarily difficult?", tag:"experienced"},
+    {id:"s3", text:"What would you import from home to make things easier?", tag:"all"},
+    {id:"s4", text:"What service should exist here?", tag:"experienced"},
+    {id:"s5", text:"What was harder than expected?", tag:"experienced"},
+    {id:"s6", text:"What did you look for but couldn’t find easily?", tag:"experienced"},
+    {id:"s7", text:"What daily task would you pay someone to do?", tag:"all"},
+    {id:"s8", text:"What would've saved you time?", tag:"experienced"},
+    {id:"s9", text:"What felt outdated or needed improvement?", tag:"experienced"},
+    {id:"s10", text:"What from home did you miss the most?", tag:"all"},
+    {id:"s11", text:"What expected activity didn’t exist?", tag:"experienced"},
+    {id:"s12", text:"What moment made you think it could be improved?", tag:"experienced"},
+    {id:"s13", text:"What took too much effort to figure out?", tag:"experienced"},
+    {id:"s14", text:"What local service disappointed you?", tag:"experienced"},
+    {id:"s15", text:"What would've made your stay more comfortable?", tag:"experienced"},
+    {id:"s16", text:"What felt overpriced?", tag:"experienced"},
+    {id:"s17", text:"What would you bring from home to make your stay easier?", tag:"all"}
+  ];
+
+  let answers = {}, sequence = [], pointer = 0, timer = null, timeLeft = 30;
+  const app = document.getElementById('app');
+
+  function esc(t){ return t.replace(/[&<>"']/g, r=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[r])); }
+  function shuffle(a){ return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); }
+
+  function renderMeta() {
+    app.innerHTML = `
+      <div class="container flex flex-col justify-center items-center h-full px-6">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md">
+          <h1 class="text-4xl font-black text-center mb-10">Are you Smart,<br>or just Confident?</h1>
+          <div class="space-y-8">
+            <div>
+              <label class="block text-xl font-semibold mb-3">Staying in Algarve?</label>
+              <select id="stay" class="w-full p-5 rounded-2xl border-[3px] border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-lg">
+                <option value="leaving">Leaving soon</option>
+                <option value="few">Few more days</option>
+                <option value="just">Just arrived</option>
+                <option value="not">Not here</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xl font-semibold mb-3">Uber ride (min)?</label>
+              <input id="mins" type="range" min="1" max="60" value="10" class="w-full">
+              <div class="text-center text-5xl font-bold mt-4"><span id="minsVal">10</span></div>
+            </div>
+
+            <div class="space-y-3">
+              <button id="start" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-3xl shadow-xl">Start</button>
+              <button id="testSubmit" class="w-full py-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-2xl text-lg font-semibold hover:bg-emerald-200">Send test to Sheet</button>
+              <p class="text-sm text-slate-600 dark:text-slate-400 text-center">Use the test button once to verify a row appears in the <strong>RawData</strong> tab.</p>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById('mins').oninput = e => {
+      document.getElementById('minsVal').textContent = e.target.value;
+      autoSave();
+    };
+
+    document.getElementById('stay').onchange = () => autoSave();
+    document.getElementById('testSubmit').onclick = () => sendTestRow();
+    document.getElementById('start').onclick = startSurvey;
+  }
+
+  function startSurvey() {
+    const mins = +document.getElementById('mins').value;
+    const stay = document.getElementById('stay').value;
+
+    const maxF = mins < 5 ? 5 : mins < 15 ? 10 : 16;
+    const maxS = mins < 5 ? 2 : mins < 15 ? 5 : 8;
+
+    const stars = shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just'))).slice(0, maxS);
+
+    const facts = shuffle([
+      ...trueFalseQuestions.map(f => ({...f,isTF:true})),
+      ...mcQuestions.map(f => ({...f,isTF:false}))
+    ]).slice(0, maxF);
+
+    sequence = [];
+    let streak = 0, si = 0;
+
+    facts.forEach(f => {
+      sequence.push({type:'fact', q:f.q, options:f.options||null, correct:f.correct, isTF:f.isTF});
+      streak++;
+      if ((streak >= 2 && Math.random()<0.7) || streak >= 3) {
+        if (si < stars.length) {
+          sequence.push({type:'star', id:stars[si].id, text:stars[si].text});
+          si++;
+          streak = 0;
+        }
+      }
+    });
+
+    while (si < stars.length) {
+      sequence.push({type:'star', id:stars[si].id, text:stars[si].text});
+      si++;
+    }
+
+    pointer = 0;
+    answers = {};
+    renderQuestion();
+    autoSave();
+  }
+
+  function startTimer() {
+    timeLeft = 30;
+    updateTimer();
+    clearInterval(timer);
+    timer = setInterval(() => {
+      timeLeft--;
+      updateTimer();
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        answers[sequence[pointer].q] = {answer:null, confidence:0, timedOut:true};
+        autoSave();
+        next();
+      }
+    }, 1000);
+  }
+
+  function updateTimer() {
+    const ring = document.getElementById('ring');
+    const num = document.getElementById('time');
+    if (!ring) return;
+    const c = 1356;
+    ring.style.strokeDashoffset = c - (timeLeft/30)*c;
+    num.textContent = timeLeft;
+    ring.style.stroke = timeLeft > 10 ? '#10b981' : timeLeft > 5 ? '#f59e0b' : '#ef4444';
+  }
+
+  function renderQuestion() {
+      const q = sequence[pointer];
+      const progress = Math.round(((pointer + 1) / sequence.length) * 100);
+
+    app.innerHTML = `
+      <div class="container flex flex-col h-full">
+        <div class="flex justify-between items-center py-4 px-6">
+          <button id="back" class="text-3xl">←</button>
+          <div class="text-lg font-bold">${pointer+1}/${sequence.length}</div>
+          <div class="w-32 h-2 bg-gray-300 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div class="h-full bg-indigo-600 transition-all duration-300" style="width:${progress}%"></div>
+          </div>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center px-6">
+          ${q.type === 'fact' ? `
+            <div class="text-center mb-8">
+              <svg width="90" height="90" viewBox="0 0 480 480" class="mx-auto">
+                <circle cx="240" cy="240" r="216" stroke="#e2e8f0" stroke-width="36" fill="none" class="dark:stroke-[#334155]"/>
+                <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" style="stroke-dashoffset:1356" class="timer-ring"/>
+                <text id="time" x="240" y="280" font-size="120" text-anchor="middle" font-weight="bold" fill="currentColor">30</text>
+              </svg>
+              <h2 class="text-2xl font-black leading-tight mt-6">${esc(q.q)}</h2>
+            </div>
+
+            <div class="space-y-3 mt-auto">
+              ${q.isTF ? `
+                <button class="true w-full py-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-2xl font-bold rounded-3xl shadow-xl">TRUE</button>
+                <button class="false w-full py-6 bg-gradient-to-r from-red-500 to-rose-600 text-white text-2xl font-bold rounded-3xl shadow-xl">FALSE</button>
+              ` : q.options.map((o,i) => `
+                <button data-i="${i}" class="option w-full py-5 text-xl font-medium bg-white dark:bg-slate-800 border-[3px] border-gray-300 dark:border-slate-700 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-400 transition">${esc(o)}</button>
+              `).join('')}
+            </div>
+          ` : `
+            <div class="flex-1 flex flex-col justify-center">
+              <h2 class="text-2xl font-black leading-tight mb-6">${esc(q.text)}</h2>
+              <textarea id="txt" class="flex-1 min-h-0 p-5 text-lg rounded-2xl border-[3px] border-gray-300 dark:border-slate-700 dark:bg-slate-800 focus:border-indigo-500 outline-none resize-none" placeholder="Your answer...">${answers[q.id]?.answer||''}</textarea>
+              <button id="nextStar" class="mt-6 w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl shadow-xl">Next</button>
+            </div>
+          `}
+        </div>
+      </div>`;
+
+    const ring = document.getElementById('ring');
+    if (ring) ring.style.strokeDashoffset = 1356;
+
+    if (q.type === 'fact') startTimer();
+
+    if (q.type === 'fact' && q.isTF) {
+      document.querySelector('.true').onclick = () => choose(true);
+      document.querySelector('.false').onclick = () => choose(false);
+    }
+
+    if (q.type === 'fact' && !q.isTF) {
+      document.querySelectorAll('.option').forEach(b => {
+        b.onclick = () => {
+          document.querySelectorAll('.option').forEach(x => x.classList.remove('border-indigo-500','bg-indigo-50','dark:bg-indigo-900'));
+          b.classList.add('border-indigo-500','bg-indigo-50','dark:bg-indigo-900');
+          choose(+b.dataset.i);
+        };
+      });
+    }
+
+    if (q.type === 'star') {
+      const textarea = document.getElementById('txt');
+      textarea.addEventListener('input', () => {
+        answers[q.id] = {answer: textarea.value.trim()};
+        autoSave();
+      });
+
+      document.getElementById('nextStar').onclick = () => {
+        answers[q.id] = {answer: textarea.value.trim()};
+        autoSave();
+        next();
+      };
+    }
+
+    document.getElementById('back').onclick = () => {
+      if (pointer > 0) {
+        clearInterval(timer);
+        pointer--;
+        renderQuestion();
+      }
+    };
+  }
+
+  function choose(val) {
+    clearInterval(timer);
+    answers[sequence[pointer].q] = {answer: val};
+    renderConfidence();
+    autoSave();
+  }
+
+  function renderConfidence() {
+    const currentQ = sequence[pointer].q;
+    app.innerHTML = `
+      <div class="container flex flex-col justify-center items-center h-full px-6">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md text-center">
+          <h2 class="text-3xl font-black mb-10">How confident are you?</h2>
+          <input id="slider" type="range" min="0" max="100" value="${answers[currentQ]?.confidence || 70}" class="w-full h-10 rounded-full">
+          <div class="text-7xl font-black my-8" id="val">${answers[currentQ]?.confidence || 70}%</div>
+          <button id="go" class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-2xl shadow-xl">Continue</button>
+        </div>
+      </div>`;
+
+    const s = document.getElementById('slider');
+    const v = document.getElementById('val');
+
+    s.oninput = () => {
+      v.textContent = s.value + '%';
+      answers[currentQ].confidence = +s.value;
+      autoSave();
+    };
+
+    document.getElementById('go').onclick = () => {
+      answers[currentQ].confidence = +s.value;
+      autoSave();
+      next();
+    };
+  }
+
+  function next() {
+    pointer++;
+    autoSave();
+    if (pointer >= sequence.length) finish();
+    else renderQuestion();
+  }
+
+  let smart = 0, conf = 0;
+
+  function finish() {
+    clearInterval(timer);
+
+    const facts = sequence.filter(x => x.type === 'fact');
+
+    let correct = 0;
+    let confSum = 0;
+    let recap = '';
+
+    facts.forEach(f => {
+      const a = answers[f.q] || {answer:null, confidence:0};
+      if (a.answer === f.correct) correct++;
+      confSum += a.confidence || 0;
+
+      const user = a.answer === null ? 'Timed out' : f.isTF ? (a.answer ? 'True' : 'False') : f.options[a.answer];
+      const corr = f.isTF ? (f.correct ? 'True' : 'False') : f.options[f.correct];
+
+      recap += `
+        <div class="p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl mb-3">
+          <strong class="block mb-1">${esc(f.q)}</strong>
+          <div>You: ${user} | Correct: ${corr}</div>
+        </div>`;
+    });
+
+    smart = facts.length ? Math.round(correct / facts.length * 100) : 0;
+    conf = facts.length ? Math.round(confSum / facts.length) : 0;
+
+    autoSave(true);
+
+    app.innerHTML = `
+      <div class="container flex flex-col h-full px-6 pt-8 overflow-y-auto">
+        <h1 class="text-5xl font-black text-center mb-8">Results</h1>
+
+        <div class="grid grid-cols-2 gap-5 mb-8">
+          <div class="bg-indigo-100 dark:bg-indigo-900 p-6 rounded-3xl text-center">
+            <div class="text-xl font-bold">Smart</div>
+            <div class="text-6xl font-black">${smart}</div>
+          </div>
+          <div class="bg-pink-100 dark:bg-pink-900 p-6 rounded-3xl text-center">
+            <div class="text-xl font-bold">Confidence</div>
+            <div class="text-6xl font-black">${conf}</div>
+          </div>
+        </div>
+
+        <div class="space-y-3 flex-1 overflow-y-auto">${recap}</div>
+
+        <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white text-xl font-bold rounded-2xl shadow-xl mt-6">Retake Survey</button>
+      </div>`;
+  }
+
+  renderMeta();
+})();
+</script>
+
+<!-- ADDED setStatus FUNCTION -->
+<script>
+function setStatus(text) {
+  const el = document.getElementById('status');
+  if (el) el.textContent = text;
+}
+</script>
+
+</body>
+</html>
 
 
