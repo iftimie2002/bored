@@ -13,6 +13,9 @@
     .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
+
 </head>
 
 <body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
@@ -41,7 +44,7 @@ lfsNZjrUwEL9NsrPd4RMgaYHAI28TlceDhObgZPzjwBPOy0zEQiqW6NA+eQh88ES
 KiZAS/mG2QMYEwpVeJ5GzvH3ENBgNBps84YivNU0P0OtJ1vz24meWgemkppqadr+
 ZwIDAQAB
 -----END PUBLIC KEY-----`;
-  let publicKeyPromise = null;
+
 
 
   function pemToArrayBuffer(pem) {
@@ -53,53 +56,41 @@ ZwIDAQAB
     return buffer;
   }
 
-    async function getPublicKey() {
-    if (!publicKeyPromise) {
-      publicKeyPromise = crypto.subtle.importKey(
-        'spki',
-        pemToArrayBuffer(PUBLIC_KEY_PEM),
-        { name: 'RSA-OAEP', hash: 'SHA-256' },
-        false,
-        ['encrypt']
-      );
-    }
-    return publicKeyPromise;
-  }
+   
 
    async function encryptPayload(payload) {
-  const publicKey = await getPublicKey();
+  // 1) RSA public key (jsrsasign)
+  const rsaPub = KEYUTIL.getKey(PUBLIC_KEY_PEM); // RSAKey
 
-  const plaintext = new TextEncoder().encode(JSON.stringify(payload));
+  // 2) Plaintext JSON
+  const plaintextJson = JSON.stringify(payload);
 
-  // AES-256-CBC
-  const aesKey = await crypto.subtle.generateKey(
-    { name: 'AES-CBC', length: 256 },
-    true,
-    ['encrypt']
-  );
-  const iv = crypto.getRandomValues(new Uint8Array(16));
+  // 3) AES-256-CBC key + IV (CryptoJS)
+  const aesKey = CryptoJS.lib.WordArray.random(32);  // 32 bytes = 256 bits
+  const iv = CryptoJS.lib.WordArray.random(16);      // 16 bytes = 128-bit IV
 
-  const ciphertextBuffer = await crypto.subtle.encrypt(
-    { name: 'AES-CBC', iv },
-    aesKey,
-    plaintext
-  );
+  const encrypted = CryptoJS.AES.encrypt(plaintextJson, aesKey, {
+    iv: iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7
+  });
 
-  const rawAesKey = await crypto.subtle.exportKey('raw', aesKey);
-  const aesKeyB64 = btoa(String.fromCharCode(...new Uint8Array(rawAesKey)));
+  const ciphertextB64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
+  const ivB64 = CryptoJS.enc.Base64.stringify(iv);
+  const aesKeyB64 = CryptoJS.enc.Base64.stringify(aesKey);
 
-  const wrappedKeyBuffer = await crypto.subtle.encrypt(
-    { name: 'RSA-OAEP' },
-    publicKey,
-    new TextEncoder().encode(aesKeyB64)
-  );
+  // 4) RSA-OAEP encrypt AES key base64 with SHA-256 (jsrsasign)
+  const hexCipher = rsaPub.encryptOAEP(aesKeyB64, 'sha256'); // hex string
+  const wrappedKeyB64 = hextob64(hexCipher); // base64 do ciphertext RSA
 
+  // 5) Formato esperado pelo Code.gs (decryptCiphertext)
   return {
-    key: btoa(String.fromCharCode(...new Uint8Array(wrappedKeyBuffer))),
-    iv: btoa(String.fromCharCode(...iv)),
-    ciphertext: btoa(String.fromCharCode(...new Uint8Array(ciphertextBuffer)))
+    key: wrappedKeyB64,
+    iv: ivB64,
+    ciphertext: ciphertextB64
   };
 }
+
 
 
   async function sendEncryptedPayload(payload) {
