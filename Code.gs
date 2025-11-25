@@ -7,6 +7,28 @@
 //   4) Ensure a sheet/tab named "RawData" exists; otherwise the first tab will be used.
 
 
+// Helpers placed first to guarantee they are available to all files, even if
+// Apps Script reorders execution (avoids ReferenceError: parseB64WordArray is
+// not defined).
+function sanitizeB64(str) {
+  if (typeof str !== 'string') throw new Error('Expected base64 string');
+  return str.replace(/\s+/g, '');
+}
+
+function parseB64WordArray(str, label) {
+  const clean = sanitizeB64(str);
+  try {
+    const words = CryptoJS.enc.Base64.parse(clean);
+    if (!words || typeof words.sigBytes !== 'number') {
+      throw new Error('parse returned invalid WordArray');
+    }
+    return words;
+  } catch (e) {
+    throw new Error(label + ' is not valid base64: ' + e);
+  }
+}
+
+
 function doGet() {
   // Returns the public key so the browser can encrypt payloads.
   return respond(200, { publicKey: getPublicKey() });
