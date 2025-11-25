@@ -78,14 +78,12 @@ function decryptCiphertext(body) {
   }
 
   // 2) Base64 → bytes da chave AES
-  const aesKeyBytes = Utilities.base64Decode(aesKeyB64);
+  const aesKeyWords = parseB64WordArray(aesKeyB64, 'AES key');
 
   // deve ter 32 bytes (AES-256)
-  if (aesKeyBytes.length !== 32) {
-    throw new Error('AES key length ' + aesKeyBytes.length + ' (expected 32)');
+  if (aesKeyWords.sigBytes !== 32) {
+    throw new Error('AES key length ' + aesKeyWords.sigBytes + ' (expected 32)');
   }
-
-  const aesKeyWords = CryptoJS.lib.WordArray.create(aesKeyBytes);
 
   // 3) AES-CBC decrypt
   const ivBytes = Utilities.base64Decode(sanitizeB64(body.iv));
