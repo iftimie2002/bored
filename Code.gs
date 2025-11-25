@@ -10,26 +10,13 @@
 // Helpers placed first to guarantee they are available to all files, even if
 // Apps Script reorders execution (avoids ReferenceError: parseB64WordArray is
 // not defined).
-const _global = typeof globalThis !== 'undefined' ? globalThis : this;
-
-_global.sanitizeB64 = function sanitizeB64(str) {
+function sanitizeB64(str) {
   if (typeof str !== 'string') throw new Error('Expected base64 string');
   return str.replace(/\s+/g, '');
-};
+}
 
-_global.validateB64String = function validateB64String(str, label) {
-  const clean = _global.sanitizeB64(str);
-  if (!/^[A-Za-z0-9+/=]+$/.test(clean)) {
-    throw new Error(label + ' contains non-base64 characters');
-  }
-  if (clean.length % 4 !== 0) {
-    throw new Error(label + ' length ' + clean.length + ' is not a multiple of 4 (bad padding?)');
-  }
-  return clean;
-};
-
-_global.parseB64WordArray = function parseB64WordArray(str, label) {
-  const clean = _global.validateB64String(str, label);
+function parseB64WordArray(str, label) {
+  const clean = sanitizeB64(str);
   try {
     const words = CryptoJS.enc.Base64.parse(clean);
     if (!words || typeof words.sigBytes !== 'number') {
@@ -39,11 +26,6 @@ _global.parseB64WordArray = function parseB64WordArray(str, label) {
   } catch (e) {
     throw new Error(label + ' is not valid base64: ' + e);
   }
-};
-
-function wordArrayHexPreview(words, limitBytes) {
-  const hex = CryptoJS.enc.Hex.stringify(words);
-  return hex.slice(0, limitBytes * 2);
 }
 
 
@@ -116,30 +98,30 @@ function decryptCiphertext(body) {
   const aesKeyClean = validateB64String(aesKeyB64, 'AES key');
 
   // 2) Base64 → bytes da chave AES
-  const aesKeyWords = parseB64WordArray(aesKeyClean, 'AES key');
+  const aesKeyWords = parseB64WordArray(aesKeyB64, 'AES key');
 
   // deve ter 32 bytes (AES-256)
   if (aesKeyWords.sigBytes !== 32) {
-    throw new Error('AES key length ' + aesKeyWords.sigBytes + ' (expected 32). raw b64 length: ' + aesKeyClean.length);
+    throw new Error('AES key length ' + aesKeyWords.sigBytes + ' (expected 32)');
   }
 
   // 3) AES-CBC decrypt
-  const ivWords = parseB64WordArray(body.iv, 'AES IV');
-  if (ivWords.sigBytes !== 16) {
-    throw new Error('AES IV length ' + ivWords.sigBytes + ' (expected 16). b64 length: ' + sanitizeB64(body.iv).length);
+  const ivBytes = Utilities.base64Decode(sanitizeB64(body.iv));
+  if (ivBytes.length !== 16) {
+    throw new Error('AES IV length ' + ivBytes.length + ' (expected 16)');
   }
 
-  const cipherWords = parseB64WordArray(body.ciphertext, 'ciphertext');
-  if (!cipherWords.sigBytes || cipherWords.sigBytes % 16 !== 0) {
-    throw new Error('Ciphertext length ' + cipherWords.sigBytes + ' (must be >0 and multiple of 16). b64 length: ' + sanitizeB64(body.ciphertext).length);
+  const cipherBytes = Utilities.base64Decode(sanitizeB64(body.ciphertext));
+  if (!cipherBytes.length || cipherBytes.length % 16 !== 0) {
+    throw new Error('Ciphertext length ' + cipherBytes.length + ' (must be >0 and multiple of 16)');
   }
 
   const cipherParams = CryptoJS.lib.CipherParams.create({
-    ciphertext: cipherWords
+    ciphertext: CryptoJS.lib.WordArray.create(cipherBytes)
   });
 
   const decrypted = CryptoJS.AES.decrypt(cipherParams, aesKeyWords, {
-    iv: ivWords,
+    iv: CryptoJS.lib.WordArray.create(ivBytes),
     mode: CryptoJS.mode.CBC,
     padding: CryptoJS.pad.Pkcs7
   });
@@ -172,12 +154,7 @@ function decryptCiphertext(body) {
 
 function rsaDecryptToString(rsa, cipherTextB64) {
   // base64 → bytes → hex
-  let bytes;
-  try {
-    bytes = Utilities.base64Decode(validateB64String(cipherTextB64, 'RSA ciphertext'));
-  } catch (e) {
-    throw new Error('RSA ciphertext is not base64 or failed to decode: ' + e);
-  }
+  const bytes = Utilities.base64Decode(sanitizeB64(cipherTextB64));
   const hex = bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
 
   // TENTAR OAEP com SHA-256 (igual ao browser)
@@ -194,6 +171,12 @@ function rsaDecryptToString(rsa, cipherTextB64) {
 
   return decrypted;  // deve ser uma string base64 (AES key)
 }
+
+function sanitizeB64(str) {
+  if (typeof str !== 'string') throw new Error('Expected base64 string');
+  return str.replace(/\s+/g, '');
+}
+
 
 function getPublicKey() {
   const stored = PropertiesService.getScriptProperties().getProperty('PUBLIC_KEY_PEM');
