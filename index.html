@@ -1608,6 +1608,13 @@ ZwIDAQAB
 {id:"s17", text:"What from home would’ve made your Algarve stay smoother?", tag:"all"}
   ];
 
+  const localBusinessStarMultiQuestions = [
+    { q: 'How did you discover the best local café?', options: ['Walking past', 'Recommended', 'Maps search', 'Social media'] },
+    { q: 'What makes you try a new restaurant first?', options: ['Menu photos', 'Reviews', 'Price', 'Crowd vibe'] },
+    { q: 'Which Algarve souvenir would you actually buy?', options: ['Ceramics', 'Local honey', 'Cork goods', 'I wouldn’t buy one'] },
+    { q: 'What helps you trust a local service fastest?', options: ['Clear pricing', 'Friendly staff', 'Clean space', 'Online ratings'] }
+  ];
+
   let answers = {}, sequence = [], pointer = 0, timer = null, timeLeft = 30;
   const pdGameId = 'prisonersDilemma';
   const pdDefaultDuration = 60;
@@ -2685,6 +2692,7 @@ ZwIDAQAB
         const item = starmaqPool[mi++];
         sequence.push({ type: 'starmaq', q: item.q, options: item.options });
       }
+    }
 
     // ADDED: insert mini-games between questions
     if (sequence.length > 1) {
