@@ -19,6 +19,7 @@
       --accent-2: #22c55e;
       --surface-border: rgba(15, 23, 42, 0.15);
       --glow: 0 16px 42px rgba(15, 23, 42, 0.18);
+      --button-font-size: clamp(1.05rem, 2.5vw, 1.25rem);
       --pixel-font: 'VT323', system-ui, sans-serif;
       --body-font: 'VT323', system-ui, sans-serif;
     }
@@ -180,7 +181,7 @@
       text-align: center;
       font-weight: 700;
       font-family: var(--pixel-font);
-      font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+      font-size: var(--button-font-size);
       padding: clamp(1rem, 2.4vw, 1.35rem);
       border-radius: 14px;
       border: 2px solid #000;
@@ -210,6 +211,7 @@
 
     .retro-btn {
       font-family: var(--pixel-font);
+      font-size: var(--button-font-size);
       letter-spacing: 0.04em;
       border-radius: 14px;
       padding: clamp(0.85rem, 1.8vw, 1.1rem);
@@ -242,7 +244,7 @@
       background: #0f172a;
       color: #f8fafc;
       box-shadow: 0 4px 0 #000;
-      font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+      font-size: var(--button-font-size);
       cursor: pointer;
     }
 
@@ -558,7 +560,7 @@
       border: 0;
       outline: none;
       cursor: pointer;
-      font-size: 11px;
+      font-size: var(--button-font-size);
       font-family: "Press Start 2P", system-ui, sans-serif;
       text-transform: uppercase;
       padding: 14px 8px;
@@ -578,7 +580,7 @@
 
     .pd-btn-small {
       flex: 0 0 auto;
-      font-size: 8px;
+      font-size: var(--button-font-size);
       padding: 7px 6px;
       background: #fecaca;
     }
@@ -652,7 +654,7 @@
       padding: 9px 4px;
       background: #22c55e;
       color: #052e16;
-      font-size: 9px;
+      font-size: var(--button-font-size);
       font-family: "Press Start 2P", system-ui, sans-serif;
       text-transform: uppercase;
       box-shadow:
@@ -833,7 +835,7 @@
       border: 0;
       outline: none;
       cursor: pointer;
-      font-size: 9px;
+      font-size: var(--button-font-size);
       font-family: "Press Start 2P", system-ui, sans-serif;
       text-transform: uppercase;
       padding: 9px 4px;
@@ -853,7 +855,7 @@
 
     .sn-btn-small {
       flex: 0 0 auto;
-      font-size: 8px;
+      font-size: var(--button-font-size);
       padding: 7px 6px;
       background: #fecaca;
     }
@@ -910,7 +912,7 @@
       outline: none;
       cursor: pointer;
       font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 14px;
+      font-size: var(--button-font-size);
       padding: 14px 18px;
       background: #e5e7eb;
       color: #111827;
@@ -948,7 +950,7 @@
       padding: 9px 4px;
       background: #22c55e;
       color: #052e16;
-      font-size: 9px;
+      font-size: var(--button-font-size);
       font-family: "Press Start 2P", system-ui, sans-serif;
       text-transform: uppercase;
       box-shadow:
@@ -1115,7 +1117,7 @@
       border: 0;
       outline: none;
       cursor: pointer;
-      font-size: 9px;
+      font-size: var(--button-font-size);
       font-family: "Press Start 2P", system-ui, sans-serif;
       text-transform: uppercase;
       padding: 9px 4px;
@@ -1135,7 +1137,7 @@
 
     .bd-btn-small {
       flex: 0 0 auto;
-      font-size: 8px;
+      font-size: var(--button-font-size);
       padding: 7px 6px;
       background: #fecaca;
     }
@@ -1191,7 +1193,7 @@
       outline: none;
       cursor: pointer;
       font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 14px;
+      font-size: var(--button-font-size);
       padding: 14px 18px;
       background: #e5e7eb;
       color: #111827;
@@ -1229,7 +1231,7 @@
       padding: 9px 4px;
       background: #22c55e;
       color: #052e16;
-      font-size: 9px;
+      font-size: var(--button-font-size);
       font-family: "Press Start 2P", system-ui, sans-serif;
       text-transform: uppercase;
       box-shadow:
@@ -1251,16 +1253,16 @@
         font-size: 7px;
       }
       .bd-btn {
-        font-size: 8px;
+        font-size: var(--button-font-size);
         padding: 8px 4px;
       }
       .bd-arrow-btn {
-        font-size: 12px;
+        font-size: var(--button-font-size);
         min-width: 56px;
         padding: 11px 14px;
       }
       .bd-continue-btn {
-        font-size: 8px;
+        font-size: var(--button-font-size);
       }
     }
 
@@ -1269,15 +1271,15 @@
         font-size: 7px;
       }
       .sn-btn {
-        font-size: 8px;
+        font-size: var(--button-font-size);
       }
       .sn-arrow-btn {
-        font-size: 12px;
+        font-size: var(--button-font-size);
         min-width: 56px;
         padding: 11px 14px;
       }
       .sn-continue-btn {
-        font-size: 8px;
+        font-size: var(--button-font-size);
       }
     }
 
@@ -1289,10 +1291,10 @@
         font-size: 8px;
       }
       .pd-btn {
-        font-size: 10px;
+        font-size: var(--button-font-size);
       }
       .pd-continue-btn {
-        font-size: 8px;
+        font-size: var(--button-font-size);
       }
     }
   </style>
