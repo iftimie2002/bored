@@ -116,6 +116,15 @@ ZwIDAQAB
   function getClientInfo() {
     const colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // ADDED: capture URL, referrer, and UTM params for anonymous analytics
+    const href = window.location.href;
+    const referrer = document.referrer || '';
+    const urlParams = new URLSearchParams(window.location.search || '');
+    const utm = {
+      utm_source: urlParams.get('utm_source') || '',
+      utm_medium: urlParams.get('utm_medium') || '',
+      utm_campaign: urlParams.get('utm_campaign') || ''
+    };
 
     return {
       userAgent: navigator.userAgent,
@@ -135,7 +144,11 @@ ZwIDAQAB
         effectiveType: navigator.connection.effectiveType,
         downlink: navigator.connection.downlink,
         rtt: navigator.connection.rtt
-      } : null
+      } : null,
+      // ADDED: anonymous analytics fields
+      url: href,
+      referrer,
+      utm
     };
   }
 
@@ -290,8 +303,6 @@ ZwIDAQAB
 
             <div class="space-y-3">
               <button id="start" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-3xl shadow-xl">Start</button>
-              <button id="testSubmit" class="w-full py-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-2xl text-lg font-semibold hover:bg-emerald-200">Send test to Sheet</button>
-              <p class="text-sm text-slate-600 dark:text-slate-400 text-center">Use the test button once to verify a row appears in the <strong>RawData</strong> tab.</p>
             </div>
           </div>
         </div>
@@ -303,7 +314,6 @@ ZwIDAQAB
     };
 
     document.getElementById('stay').onchange = () => autoSave();
-    document.getElementById('testSubmit').onclick = () => sendTestRow();
     document.getElementById('start').onclick = startSurvey;
   }
 
