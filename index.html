@@ -1608,6 +1608,13 @@ ZwIDAQAB
 {id:"s17", text:"What from home would’ve made your Algarve stay smoother?", tag:"all"}
   ];
 
+  const localBusinessStarMultiQuestions = [
+    { q: 'How did you discover the best local café?', options: ['Walking past', 'Recommended', 'Maps search', 'Social media'] },
+    { q: 'What makes you try a new restaurant first?', options: ['Menu photos', 'Reviews', 'Price', 'Crowd vibe'] },
+    { q: 'Which Algarve souvenir would you actually buy?', options: ['Ceramics', 'Local honey', 'Cork goods', 'I wouldn’t buy one'] },
+    { q: 'What helps you trust a local service fastest?', options: ['Clear pricing', 'Friendly staff', 'Clean space', 'Online ratings'] }
+  ];
+
   let answers = {}, sequence = [], pointer = 0, timer = null, timeLeft = 30;
   const pdGameId = 'prisonersDilemma';
   const pdDefaultDuration = 60;
@@ -1629,7 +1636,16 @@ ZwIDAQAB
   let currentGameCleanup = null;
   const app = document.getElementById('app');
 
-  function esc(t){ return t.replace(/[&<>"']/g, r=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[r])); }
+  function esc(t) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return t.replace(/[&<>"']/g, r => map[r]);
+  }
   function shuffle(a){ return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); }
 
   // Prisoner's Dilemma helpers
@@ -2655,13 +2671,10 @@ ZwIDAQAB
       ...mcQuestions.map(f => ({...f,isTF:false}))
     ]).slice(0, maxF);
 
-    const gamePool = shuffle([pdGameId, snakeGameId, blockdudeGameId]);
-
     sequence = [];
-    let fi = 0, si = 0, mi = 0, gi = 0;
-    let prevGame = null;
+    let fi = 0, si = 0, mi = 0;
 
-    while (fi < factPool.length || si < stars.length || mi < starmaqPool.length || gi < gamePool.length) {
+    while (fi < factPool.length || si < stars.length || mi < starmaqPool.length) {
       if (fi < factPool.length) {
         const f = factPool[fi++];
         sequence.push({type:'fact', q:f.q, options:f.options||null, correct:f.correct, isTF:f.isTF});
@@ -2676,6 +2689,7 @@ ZwIDAQAB
         const item = starmaqPool[mi++];
         sequence.push({ type: 'starmaq', q: item.q, options: item.options });
       }
+    }
 
     // ADDED: insert mini-games between questions
     if (sequence.length > 1) {
