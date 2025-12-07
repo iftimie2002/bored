@@ -4,48 +4,1425 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>How Smart are You?</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' }
-  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
   <style>
-    html, body, #app { height: 100%; margin: 0; padding: 0; overflow: hidden; }
-    .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
+    :root {
+      --ui-scale: 1;
+      color-scheme: light;
+      --bg: #f8f1e3;
+      --bg-secondary: #f1e7d4;
+      --card: #fffaf0;
+      --text: #0f172a;
+      --muted: #4a5568;
+      --accent: #f59e0b;
+      --accent-2: #22c55e;
+      --surface-border: rgba(15, 23, 42, 0.15);
+      --glow: 0 16px 42px rgba(15, 23, 42, 0.18);
+      --button-font-size: clamp(1.05rem, 2.5vw, 1.25rem);
+      --pixel-font: 'VT323', system-ui, sans-serif;
+      --body-font: 'VT323', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #0c1324;
+        --bg-secondary: #0f1a30;
+        --card: #0f172a;
+        --text: #e2e8f0;
+        --muted: #a5b4cb;
+        --accent: #f8b23c;
+        --accent-2: #4ade80;
+        --surface-border: rgba(148, 163, 184, 0.2);
+        --glow: 0 18px 42px rgba(0, 0, 0, 0.65);
+      }
+    }
+
+    html { font-size: calc(clamp(19px, 2.6vw, 23px) * var(--ui-scale)); }
+    html, body, #app { height: 100%; margin: 0; padding: 0; overflow: hidden; overflow-x: hidden; }
+    body { width: 100%; max-width: 100vw; }
+    body {
+      background:
+        radial-gradient(circle at 10% 16%, rgba(245, 158, 11, 0.18), transparent 26%),
+        radial-gradient(circle at 78% 24%, rgba(34, 197, 94, 0.16), transparent 22%),
+        radial-gradient(circle at 48% 82%, rgba(14, 165, 233, 0.12), transparent 25%),
+        linear-gradient(135deg, var(--bg-secondary), var(--bg));
+      color: var(--text);
+      font-family: var(--body-font);
+      letter-spacing: 0.02em;
+      transition: background 0.4s ease, color 0.3s ease;
+    }
+
+    .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.75rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.75rem); }
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
-    /* ADDED: Prisoner's Dilemma mini-game styles */
-    .pd-game-wrapper { background: #ffffff; border-radius: 18px; padding: 22px 20px; max-width: 480px; width: 100%; box-shadow: 0 18px 40px rgba(15,23,42,0.25); display: flex; flex-direction: column; gap: 10px; margin: 0 auto; }
-    .pd-title { font-size: 1.4rem; font-weight: 800; text-align: center; margin: 0; }
-    .pd-subtitle { font-size: 0.9rem; text-align: center; color: #4b5563; margin: 0; }
-    .pd-row-top { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; }
-    .pd-timer { font-size: 1.1rem; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: #111827; color: #f9fafb; }
-    .pd-scores { display: flex; gap: 6px; }
-    .pd-score-box { flex: 1; padding: 6px 10px; border-radius: 999px; font-size: 0.85rem; background: #eef2ff; color: #111827; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-    .pd-score-box.pd-ai { background: #fee2e2; }
-    .pd-controls { margin-top: 10px; display: flex; gap: 10px; }
-    .pd-btn { flex: 1; padding: 10px 14px; border-radius: 999px; border: none; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: transform 0.05s ease, box-shadow 0.1s ease, opacity 0.1s; }
-    .pd-btn:active { transform: translateY(1px); box-shadow: none; }
-    .pd-btn-primary { background: #4f46e5; color: #ffffff; box-shadow: 0 8px 20px rgba(79,70,229,0.4); }
-    .pd-btn-secondary { background: #e5e7eb; color: #111827; }
-    .pd-btn-small { flex: 0 0 auto; padding: 6px 12px; font-size: 0.85rem; border-radius: 999px; border: none; background: #e5e7eb; cursor: pointer; font-weight: 600; }
-    .pd-btn[disabled] { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
-    .pd-msg { min-height: 1.3em; font-size: 0.9rem; font-weight: 600; }
-    .pd-msg-info { color: #6b7280; }
-    .pd-msg-good { color: #16a34a; }
-    .pd-msg-bad  { color: #dc2626; }
-    .pd-msg-warn { color: #d97706; }
-    .pd-rules { font-size: 0.8rem; color: #6b7280; margin: 0; line-height: 1.4; }
-    .pd-history { margin-top: 8px; padding: 8px; border-radius: 10px; background: #f3f4f6; max-height: 120px; overflow-y: auto; font-size: 0.8rem; }
-    .pd-history-entry { display: flex; justify-content: space-between; margin-bottom: 2px; }
-    .pd-history-entry span { white-space: nowrap; }
+
+    .app-surface { min-height: 100%; display: flex; align-items: stretch; }
+    .app-shell {
+      width: min(1040px, 100%);
+      margin: 0 auto;
+      background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,245,230,0.9));
+      border: 3px solid var(--surface-border);
+      box-shadow: var(--glow);
+      border-radius: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.75rem, 1.5vw, 1.5rem);
+      padding: clamp(1rem, 2.25vw, 1.75rem);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .app-shell::before {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 20px;
+      border: 2px dashed rgba(15, 23, 42, 0.08);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .app-shell {
+        background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(12,19,36,0.9));
+        border-color: var(--surface-border);
+      }
+      .app-shell::before { border-color: rgba(148, 163, 184, 0.25); }
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.25rem 0.5rem;
+    }
+
+    body[data-viewport-size="xs"] .app-header,
+    body[data-viewport-size="sm"] .app-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+
+    body[data-viewport-size="xs"] .header-meta,
+    body[data-viewport-size="sm"] .header-meta {
+      width: 100%;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .header-meta { display: flex; align-items: center; gap: 0.75rem; }
+    .badge {
+      font-family: var(--pixel-font);
+      font-size: clamp(0.55rem, 1.5vw, 0.7rem);
+      letter-spacing: 0.05em;
+      padding: 8px 10px;
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 10px;
+      border: 2px solid var(--surface-border);
+      box-shadow: 0 4px 0 #000;
+    }
+
+    .title-pill {
+      font-family: var(--pixel-font);
+      font-size: clamp(0.7rem, 2vw, 0.9rem);
+      padding: 8px 12px;
+      background: #111827;
+      color: #fef9c3;
+      border-radius: 12px;
+      border: 2px solid #000;
+      box-shadow: 0 4px 0 #000;
+    }
+
+    .app-progress {
+      width: min(180px, 26vw);
+      height: 14px;
+      background: rgba(15, 23, 42, 0.12);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 2px solid var(--surface-border);
+    }
+
+    .app-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.3s ease;
+    }
+
+    .app-body {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: clamp(1rem, 2vw, 2rem);
+      padding: clamp(0.5rem, 1vw, 1rem) clamp(0.25rem, 1vw, 1.25rem);
+    }
+
+    body[data-viewport-size="xs"] .app-body,
+    body[data-viewport-size="sm"] .app-body {
+      gap: clamp(0.8rem, 2vw, 1.4rem);
+    }
+
+    .question-title {
+      font-size: clamp(1.4rem, 2.6vw, 2.1rem);
+      line-height: 1.3;
+      font-weight: 800;
+      margin-top: clamp(0.35rem, 1vw, 1rem);
+      color: var(--text);
+      text-align: center;
+    }
+
+    .question-copy { color: var(--muted); font-size: clamp(0.95rem, 2vw, 1.05rem); text-align: center; }
+
+    .answer-card, .question-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,244,223,0.85));
+      border: 3px solid var(--surface-border);
+      border-radius: 20px;
+      padding: clamp(0.85rem, 1.6vw, 1.15rem);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .answer-card, .question-card {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(12, 19, 36, 0.85));
+        box-shadow: 0 14px 32px rgba(0,0,0,0.45);
+      }
+    }
+
+    .choice-grid { width: 100%; max-width: 820px; margin: 0 auto; display: grid; gap: clamp(0.65rem, 1.8vw, 1rem); }
+    .choice-grid.two-col { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+
+    body[data-viewport-size="xs"] .choice-grid,
+    body[data-viewport-size="sm"] .choice-grid { gap: clamp(0.5rem, 1.5vw, 0.7rem); }
+
+    body[data-viewport-size="xs"] .choice-grid.two-col,
+    body[data-viewport-size="sm"] .choice-grid.two-col { grid-template-columns: 1fr; }
+
+    body[data-viewport-size="md"] .choice-grid.two-col { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+
+    .starmaq-card {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.65rem, 1.5vw, 1rem);
+    }
+
+    .option-scroll {
+      max-height: min(42vh, 360px);
+      overflow-y: auto;
+      width: 100%;
+      margin: 0 auto;
+      padding-right: 6px;
+    }
+
+    .option-scroll::-webkit-scrollbar { width: 8px; }
+    .option-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+    .option-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 8px; }
+
+    @media (prefers-color-scheme: dark) {
+      .option-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+      .option-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); }
+    }
+
+    .choice-btn {
+      width: 100%;
+      text-align: center;
+      font-weight: 700;
+      font-family: var(--pixel-font);
+      font-size: var(--button-font-size);
+      padding: clamp(1rem, 2.4vw, 1.35rem);
+      border-radius: 14px;
+      border: 2px solid #000;
+      background: linear-gradient(90deg, #f97316, #fbbf24);
+      color: #0f172a;
+      word-break: break-word;
+      white-space: normal;
+      box-shadow:
+        0 5px 0 #000,
+        0 14px 22px rgba(0,0,0,0.25);
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    .choice-btn:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 7px 0 #000,
+        0 16px 24px rgba(0,0,0,0.28);
+    }
+
+    .choice-btn.active {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      color: #031b0d;
+      box-shadow:
+        0 7px 0 #000,
+        0 16px 24px rgba(0,0,0,0.28);
+    }
+
+    .retro-btn {
+      font-family: var(--pixel-font);
+      font-size: var(--button-font-size);
+      letter-spacing: 0.04em;
+      border-radius: 14px;
+      padding: clamp(0.85rem, 1.8vw, 1.1rem);
+      border: 2px solid #000;
+      background: linear-gradient(90deg, #f97316, #fbbf24);
+      color: #0f172a;
+      width: 100%;
+      box-shadow: 0 5px 0 #000, 0 14px 22px rgba(0,0,0,0.25);
+      transition: transform 0.08s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    .retro-btn.secondary {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      color: #031b0d;
+    }
+
+    .retro-btn.hollow {
+      background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.45));
+      color: var(--text);
+      border-color: var(--surface-border);
+    }
+
+    .retro-btn:active { transform: translateY(2px); box-shadow: 0 3px 0 #000, 0 6px 12px rgba(0,0,0,0.25); filter: brightness(0.96); }
+
+    .nav-btn {
+      width: clamp(44px, 6vw, 54px);
+      height: clamp(44px, 6vw, 54px);
+      border-radius: 14px;
+      border: 2px solid #000;
+      background: #0f172a;
+      color: #f8fafc;
+      box-shadow: 0 4px 0 #000;
+      font-size: var(--button-font-size);
+      cursor: pointer;
+    }
+
+    .game-card { display: flex; flex-direction: column; gap: 0.75rem; align-items: center; justify-content: center; padding: clamp(0.75rem, 1.5vw, 1rem); }
+    .game-slot { width: 100%; display: flex; align-items: center; justify-content: center; padding: clamp(0.5rem, 1vw, 1rem); }
+    .game-summary { font-size: clamp(0.75rem, 1.6vw, 0.9rem); color: var(--muted); text-align: center; }
+
+    body[data-viewport-size="xs"] .game-card,
+    body[data-viewport-size="sm"] .game-card { width: 100%; }
+
+    .app-input {
+      width: 100%;
+      border-radius: 18px;
+      border: 2px solid var(--surface-border);
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--text);
+      padding: clamp(0.9rem, 2vw, 1.2rem);
+      min-height: 160px;
+      resize: none;
+      box-shadow: inset 0 2px 8px rgba(15, 23, 42, 0.08);
+      font-family: var(--body-font);
+      font-size: 1rem;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .app-input { background: rgba(15, 23, 42, 0.85); box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); }
+    }
+
+    .question-card { display: flex; flex-direction: column; gap: clamp(0.75rem, 1.5vw, 1rem); align-items: center; text-align: center; }
+    .muted-note { color: var(--muted); font-size: clamp(0.85rem, 1.6vw, 0.95rem); }
+
+    .recap-card {
+      background: rgba(255,255,255,0.9);
+      border-radius: 16px;
+      border: 2px solid var(--surface-border);
+      padding: 0.9rem 1rem;
+      color: var(--text);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .recap-card { background: rgba(15,23,42,0.9); }
+    }
+
+    .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    .result-tile { background: linear-gradient(180deg, rgba(34,197,94,0.22), rgba(245,158,11,0.2)); border: 2px solid #111; padding: 1.1rem; border-radius: 16px; text-align: center; font-family: var(--pixel-font); box-shadow: 0 10px 18px rgba(0,0,0,0.25); }
+    .result-score { font-size: clamp(2.2rem, 5vw, 3.2rem); margin-top: 0.35rem; }
+
+    .action-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+    body[data-viewport-size="xs"] .action-row,
+    body[data-viewport-size="sm"] .action-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .recap-stack { display: flex; flex-direction: column; gap: 0.65rem; max-height: 50vh; overflow-y: auto; width: 100%; }
+
+    .retro-field { display: flex; flex-direction: column; gap: 0.4rem; }
+    .retro-label { font-weight: 800; font-size: clamp(1rem, 2.4vw, 1.2rem); color: var(--text); }
+    .retro-select, .retro-range {
+      width: 100%;
+      border-radius: 14px;
+      border: 2px solid var(--surface-border);
+      background: rgba(255,255,255,0.9);
+      padding: 0.9rem 1rem;
+      font-size: 1rem;
+      font-family: var(--body-font);
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .retro-select, .retro-range { background: rgba(15,23,42,0.85); color: var(--text); }
+    }
+
+    .retro-range { accent-color: var(--accent); padding: 0.5rem 0; }
+    .range-value { font-family: var(--pixel-font); font-size: clamp(1.6rem, 4vw, 2.2rem); text-align: center; }
+
+    /* Retro mini-game styles */
+    @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+    .pd-game-outer {
+      width: 100%;
+      max-width: clamp(600px, 92vw, 760px);
+      margin: 0 auto;
+      border-radius: 20px;
+      padding: clamp(10px, 2vw, 16px);
+      background: #111827;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+      image-rendering: pixelated;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: clamp(8px, 1.5vw, 12px);
+    }
+
+    body[data-viewport-size="xs"] .pd-game-outer,
+    body[data-viewport-size="xs"] .sn-game-outer,
+    body[data-viewport-size="xs"] .bd-game-outer { max-width: 100%; padding: clamp(8px, 2vw, 12px); }
+
+    .pd-game-shell {
+      border-radius: 14px;
+      padding: 6px;
+      background: #27272f;
+      border: 3px solid #4b5563;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pd-game-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        135deg,
+        rgba(255,255,255,0.04) 0,
+        rgba(255,255,255,0.04) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      pointer-events: none;
+    }
+
+    .pd-hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      color: #e5e7eb;
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .pd-hud-label {
+      background: #000;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 2px solid #6b7280;
+      box-shadow: 0 0 0 2px #000;
+    }
+
+    .pd-hud-timer {
+      background: #0f172a;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 2px solid #facc15;
+      color: #facc15;
+      font-size: 9px;
+      box-shadow: 0 0 0 2px #000;
+      min-width: 58px;
+      text-align: center;
+    }
+
+    .pd-hud-scorebox {
+      display: flex;
+      gap: 4px;
+      font-size: 7px;
+    }
+
+    .pd-hud-chip {
+      background: #000;
+      padding: 3px 5px;
+      border-radius: 6px;
+      border: 2px solid #4ade80;
+      box-shadow: 0 0 0 2px #000;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pd-hud-chip span {
+      white-space: nowrap;
+    }
+
+    .pd-hud-chip-ai {
+      border-color: #f97373;
+    }
+
+    .pd-score-value {
+      background: #111;
+      padding: 3px 4px;
+      border-radius: 4px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .pd-field {
+      position: relative;
+      margin-top: 4px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #374151;
+      box-shadow: 0 0 0 2px #111827;
+      background:
+        linear-gradient(#60a5fa 0%, #60a5fa 45%, #22c55e 45%, #16a34a 100%);
+      padding: 24px 10px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .pd-cloud {
+      position: absolute;
+      top: 6px;
+      width: 46px;
+      height: 18px;
+      background: #e5f2ff;
+      border-radius: 8px;
+      box-shadow:
+        10px 0 0 #e5f2ff,
+        -10px 0 0 #e5f2ff,
+        0 6px 0 #e5f2ff;
+      filter: drop-shadow(0 0 2px rgba(15,23,42,0.5));
+      animation: cloud-drift 12s linear infinite;
+    }
+
+    .pd-cloud.cloud2 {
+      top: 14px;
+      animation-duration: 18s;
+      opacity: 0.8;
+    }
+
+    .pd-cloud.cloud3 {
+      top: 2px;
+      animation-duration: 22s;
+      opacity: 0.65;
+    }
+
+    @keyframes cloud-drift {
+      0%   { transform: translateX(-60px); }
+      100% { transform: translateX(260px); }
+    }
+
+    .pd-field-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 6px;
+      z-index: 1;
+    }
+
+    .pd-character {
+      width: 40px;
+      height: 40px;
+      background: #facc15;
+      border-radius: 4px;
+      box-shadow:
+        0 0 0 3px #000,
+        0 4px 0 #000;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: char-bob 0.7s ease-in-out infinite alternate;
+    }
+
+    .pd-character-ai {
+      background: #fb7185;
+    }
+
+    @keyframes char-bob {
+      from { transform: translateY(1px); }
+      to   { transform: translateY(-3px); }
+    }
+
+    .pd-face {
+      width: 26px;
+      height: 18px;
+      background: #fde68a;
+      border-radius: 2px;
+      box-shadow: 0 0 0 2px #000;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 1px;
+      padding: 2px;
+    }
+
+    .pd-pixel {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+    }
+
+    .pd-pixel-eye {
+      background: #000;
+    }
+
+    .pd-pixel-mouth {
+      background: #000;
+    }
+
+    .pd-label-under {
+      margin-top: 4px;
+      text-align: center;
+      font-size: 7px;
+      color: #111827;
+      text-shadow: 0 1px 0 #f9fafb;
+    }
+
+    .pd-middle {
+      text-align: center;
+      font-size: 8px;
+      color: #0f172a;
+      padding: 4px 6px;
+      background: rgba(248, 250, 252, 0.9);
+      border-radius: 6px;
+      box-shadow: 0 0 0 2px #0f172a;
+      margin: 0 8px;
+    }
+
+    .pd-middle span {
+      display: block;
+      margin-top: 2px;
+      font-size: 7px;
+      color: #4b5563;
+    }
+
+    .pd-controls {
+      display: flex;
+      gap: 8px;
+      margin: 4px 4px 2px;
+      z-index: 1;
+    }
+
+    .pd-btn {
+      flex: 1;
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      font-size: var(--button-font-size);
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      padding: 14px 8px;
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 6px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+    }
+
+    .pd-btn-primary {
+      background: #4f46e5;
+      color: #f9fafb;
+    }
+
+    .pd-btn-small {
+      flex: 0 0 auto;
+      font-size: var(--button-font-size);
+      padding: 7px 6px;
+      background: #fecaca;
+    }
+
+    .pd-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+      filter: brightness(0.85);
+    }
+
+    .pd-btn[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.4);
+    }
+
+    .pd-message-box {
+      margin: 4px 4px 2px;
+      padding: 6px 6px 4px;
+      border-radius: 8px;
+      background: #020617;
+      box-shadow: 0 0 0 2px #000;
+      font-size: 8px;
+      color: #e5e7eb;
+      z-index: 1;
+    }
+
+    .pd-msg {
+      min-height: 1.6em;
+      margin-bottom: 3px;
+    }
+
+    .pd-msg-info { color: #e5e7eb; }
+    .pd-msg-good { color: #4ade80; }
+    .pd-msg-bad  { color: #f97373; }
+    .pd-msg-warn { color: #fbbf24; }
+
+    .pd-history {
+      max-height: 82px;
+      overflow-y: auto;
+      padding: 4px;
+      background: #020617;
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 1px #111827;
+      font-size: 7px;
+    }
+
+    .pd-history-entry {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1px;
+      color: #9ca3af;
+    }
+
+    .pd-history-entry span {
+      white-space: nowrap;
+    }
+
+    .pd-continue-wrap {
+      margin-top: 5px;
+      padding: 0 4px 2px;
+    }
+
+    .pd-continue-btn {
+      width: 100%;
+      border-radius: 8px;
+      border: 0;
+      outline: 0;
+      padding: 9px 4px;
+      background: #22c55e;
+      color: #052e16;
+      font-size: var(--button-font-size);
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      cursor: pointer;
+      transition: transform 0.06s ease, box-shadow 0.06s ease;
+    }
+
+    .pd-continue-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+    }
+
+    /* Snake mini-game */
+    .sn-game-outer {
+      width: 100%;
+      max-width: clamp(600px, 92vw, 760px);
+      margin: 0 auto;
+      border-radius: 20px;
+      padding: clamp(10px, 2vw, 16px);
+      background: #111827;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+      image-rendering: pixelated;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: clamp(8px, 1.5vw, 12px);
+    }
+
+    .sn-game-shell {
+      border-radius: 14px;
+      padding: 6px;
+      background: #27272f;
+      border: 3px solid #4b5563;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sn-game-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        135deg,
+        rgba(255,255,255,0.04) 0,
+        rgba(255,255,255,0.04) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      pointer-events: none;
+    }
+
+    .sn-hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      color: #e5e7eb;
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sn-hud-label {
+      background: #000;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 2px solid #6b7280;
+      box-shadow: 0 0 0 2px #000;
+    }
+
+    .sn-hud-middle {
+      font-size: 8px;
+      color: #e5e7eb;
+      opacity: 0.9;
+      text-align: center;
+    }
+
+    .sn-hud-scorebox {
+      display: flex;
+      gap: 4px;
+      font-size: 7px;
+    }
+
+    .sn-hud-chip {
+      background: #000;
+      padding: 3px 5px;
+      border-radius: 6px;
+      border: 2px solid #4ade80;
+      box-shadow: 0 0 0 2px #000;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sn-score-value {
+      background: #111;
+      padding: 3px 4px;
+      border-radius: 4px;
+      min-width: 22px;
+      text-align: center;
+    }
+
+    .sn-field {
+      position: relative;
+      margin-top: 4px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #374151;
+      box-shadow: 0 0 0 2px #111827;
+      background:
+        linear-gradient(#60a5fa 0%, #60a5fa 40%, #22c55e 40%, #15803d 100%);
+      padding: 18px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sn-cloud {
+      position: absolute;
+      top: 6px;
+      width: 46px;
+      height: 18px;
+      background: #e5f2ff;
+      border-radius: 8px;
+      box-shadow:
+        10px 0 0 #e5f2ff,
+        -10px 0 0 #e5f2ff,
+        0 6px 0 #e5f2ff;
+      filter: drop-shadow(0 0 2px rgba(15,23,42,0.5));
+      animation: cloud-drift 12s linear infinite;
+    }
+
+    .sn-cloud.c2 {
+      top: 16px;
+      animation-duration: 20s;
+      opacity: 0.8;
+    }
+
+    .sn-cloud.c3 {
+      top: 2px;
+      animation-duration: 24s;
+      opacity: 0.65;
+    }
+
+    .sn-field-row {
+      display: flex;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .sn-canvas-wrap {
+      padding: 6px;
+      background: #064e3b;
+      border-radius: 10px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 4px 0 #000;
+    }
+
+    .sn-canvas {
+      display: block;
+      background: #022c22;
+      box-shadow: inset 0 0 0 2px #111827;
+      image-rendering: pixelated;
+    }
+
+    .sn-controls {
+      display: flex;
+      gap: 8px;
+      margin: 6px 4px 4px;
+      z-index: 1;
+    }
+
+    .sn-btn {
+      flex: 1;
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      font-size: var(--button-font-size);
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      padding: 9px 4px;
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 6px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+    }
+
+    .sn-btn-primary {
+      background: #4f46e5;
+      color: #f9fafb;
+    }
+
+    .sn-btn-small {
+      flex: 0 0 auto;
+      font-size: var(--button-font-size);
+      padding: 7px 6px;
+      background: #fecaca;
+    }
+
+    .sn-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+      filter: brightness(0.85);
+    }
+
+    .sn-btn[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.4);
+    }
+
+    .sn-message-box {
+      margin: 4px 4px 2px;
+      padding: 6px 6px 4px;
+      border-radius: 8px;
+      background: #020617;
+      box-shadow: 0 0 0 2px #000;
+      font-size: 8px;
+      color: #e5e7eb;
+      z-index: 1;
+      min-height: 1.6em;
+    }
+
+    .sn-msg-good { color: #4ade80; }
+    .sn-msg-bad  { color: #f97373; }
+    .sn-msg-warn { color: #fbbf24; }
+
+    /* MOBILE ARROW KEYS */
+    .sn-mobile-arrows {
+      margin: 6px 4px 4px;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sn-arrow-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .sn-arrow-btn {
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: var(--button-font-size);
+      padding: 14px 18px;
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 10px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 4px 0 #000;
+      min-width: 64px;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+    }
+
+    .sn-arrow-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+      filter: brightness(0.85);
+    }
+
+    .sn-arrow-btn-empty {
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: none;
+    }
+
+    .sn-continue-wrap {
+      margin: 6px 4px 4px;
+    }
+
+    .sn-continue-btn {
+      width: 100%;
+      border-radius: 8px;
+      border: 0;
+      outline: 0;
+      padding: 9px 4px;
+      background: #22c55e;
+      color: #052e16;
+      font-size: var(--button-font-size);
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      cursor: pointer;
+      transition: transform 0.06s ease, box-shadow 0.06s ease;
+    }
+
+    .sn-continue-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+    }
+
+    /* BLOCK DUDE MINI GAME */
+  .bd-game-outer {
+    width: 100%;
+    max-width: clamp(600px, 92vw, 760px);
+    margin: 0 auto;
+    border-radius: 20px;
+    padding: clamp(10px, 2vw, 16px);
+    background: #111827;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    image-rendering: pixelated;
+    font-family: "Press Start 2P", system-ui, sans-serif;
+    font-size: clamp(8px, 1.5vw, 12px);
+  }
+
+    .bd-game-shell {
+      border-radius: 14px;
+      padding: 6px;
+      background: #27272f;
+      border: 3px solid #4b5563;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bd-game-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        135deg,
+        rgba(255,255,255,0.04) 0,
+        rgba(255,255,255,0.04) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      pointer-events: none;
+    }
+
+    .bd-hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      color: #e5e7eb;
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .bd-hud-label {
+      background: #000;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 2px solid #6b7280;
+      box-shadow: 0 0 0 2px #000;
+    }
+
+    .bd-hud-middle {
+      font-size: 8px;
+      color: #e5e7eb;
+      opacity: 0.9;
+      text-align: center;
+    }
+
+    .bd-hud-right {
+      font-size: 7px;
+      text-align: right;
+      color: #9ca3af;
+    }
+
+    .bd-field {
+      position: relative;
+      margin-top: 4px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #374151;
+      box-shadow: 0 0 0 2px #111827;
+      background:
+        linear-gradient(#60a5fa 0%, #60a5fa 40%, #22c55e 40%, #15803d 100%);
+      padding: 16px 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bd-cloud {
+      position: absolute;
+      top: 6px;
+      width: 46px;
+      height: 18px;
+      background: #e5f2ff;
+      border-radius: 8px;
+      box-shadow:
+        10px 0 0 #e5f2ff,
+        -10px 0 0 #e5f2ff,
+        0 6px 0 #e5f2ff;
+      filter: drop-shadow(0 0 2px rgba(15,23,42,0.5));
+      animation: bd-cloud-drift 16s linear infinite;
+    }
+
+    .bd-cloud.c2 {
+      top: 16px;
+      animation-duration: 22s;
+      opacity: 0.8;
+    }
+
+    .bd-cloud.c3 {
+      top: 2px;
+      animation-duration: 26s;
+      opacity: 0.65;
+    }
+
+    @keyframes bd-cloud-drift {
+      0%   { transform: translateX(-60px); }
+      100% { transform: translateX(260px); }
+    }
+
+    .bd-field-row {
+      display: flex;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .bd-canvas-wrap {
+      padding: 6px;
+      background: #064e3b;
+      border-radius: 10px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 4px 0 #000;
+    }
+
+    .bd-canvas {
+      display: block;
+      background: #022c22;
+      box-shadow: inset 0 0 0 2px #111827;
+      image-rendering: pixelated;
+    }
+
+    .bd-controls {
+      display: flex;
+      gap: 8px;
+      margin: 6px 4px 4px;
+      z-index: 1;
+    }
+
+    .bd-btn {
+      flex: 1;
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      font-size: var(--button-font-size);
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      padding: 9px 4px;
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 6px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+    }
+
+    .bd-btn-primary {
+      background: #4f46e5;
+      color: #f9fafb;
+    }
+
+    .bd-btn-small {
+      flex: 0 0 auto;
+      font-size: var(--button-font-size);
+      padding: 7px 6px;
+      background: #fecaca;
+    }
+
+    .bd-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+      filter: brightness(0.85);
+    }
+
+    .bd-btn[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.4);
+    }
+
+    .bd-message-box {
+      margin: 4px 4px 2px;
+      padding: 6px 6px 4px;
+      border-radius: 8px;
+      background: #020617;
+      box-shadow: 0 0 0 2px #000;
+      font-size: 8px;
+      color: #e5e7eb;
+      z-index: 1;
+      min-height: 1.6em;
+    }
+
+    .bd-msg-good { color: #4ade80; }
+    .bd-msg-bad  { color: #f97373; }
+    .bd-msg-warn { color: #fbbf24; }
+
+    .bd-mobile-arrows {
+      margin: 6px 4px 4px;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .bd-arrow-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .bd-arrow-btn {
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: var(--button-font-size);
+      padding: 14px 18px;
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 10px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 4px 0 #000;
+      min-width: 64px;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+    }
+
+    .bd-arrow-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+      filter: brightness(0.85);
+    }
+
+    .bd-arrow-btn-empty {
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: none;
+    }
+
+    .bd-continue-wrap {
+      margin: 6px 4px 4px;
+    }
+
+    .bd-continue-btn {
+      width: 100%;
+      border-radius: 8px;
+      border: 0;
+      outline: 0;
+      padding: 9px 4px;
+      background: #22c55e;
+      color: #052e16;
+      font-size: var(--button-font-size);
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      cursor: pointer;
+      transition: transform 0.06s ease, box-shadow 0.06s ease;
+    }
+
+    .bd-continue-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+    }
+
+    body[data-viewport-size="xs"] .pd-controls,
+    body[data-viewport-size="xs"] .sn-controls,
+    body[data-viewport-size="xs"] .bd-controls { flex-direction: column; align-items: stretch; }
+
+    body[data-viewport-size="xs"] .pd-btn,
+    body[data-viewport-size="xs"] .sn-btn,
+    body[data-viewport-size="xs"] .bd-btn,
+    body[data-viewport-size="xs"] .pd-continue-btn,
+    body[data-viewport-size="xs"] .sn-continue-btn,
+    body[data-viewport-size="xs"] .bd-continue-btn { width: 100%; }
+
+    body[data-viewport-size="xs"] .sn-arrow-btn,
+    body[data-viewport-size="xs"] .bd-arrow-btn { width: 100%; }
+
+    @media (max-width: 400px) {
+      .bd-hud {
+        font-size: 7px;
+      }
+      .bd-btn {
+        font-size: var(--button-font-size);
+        padding: 8px 4px;
+      }
+      .bd-arrow-btn {
+        font-size: var(--button-font-size);
+        min-width: 56px;
+        padding: 11px 14px;
+      }
+      .bd-continue-btn {
+        font-size: var(--button-font-size);
+      }
+    }
+
+    @media (max-width: 400px) {
+      .sn-hud {
+        font-size: 7px;
+      }
+      .sn-btn {
+        font-size: var(--button-font-size);
+      }
+      .sn-arrow-btn {
+        font-size: var(--button-font-size);
+        min-width: 56px;
+        padding: 11px 14px;
+      }
+      .sn-continue-btn {
+        font-size: var(--button-font-size);
+      }
+    }
+
+    @media (max-width: 400px) {
+      .pd-hud {
+        font-size: 7px;
+      }
+      .pd-hud-timer {
+        font-size: 8px;
+      }
+      .pd-btn {
+        font-size: var(--button-font-size);
+      }
+      .pd-continue-btn {
+        font-size: var(--button-font-size);
+      }
+    }
   </style>
+  <script>
+    (() => {
+      const media = window.matchMedia('(prefers-color-scheme: dark)');
+      const applyTheme = () => document.documentElement.classList.toggle('dark', media.matches);
+      applyTheme();
+      media.addEventListener('change', applyTheme);
+    })();
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
 
 </head>
 
-<body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300 bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-950 dark:to-purple-950">
+<body>
 
-  <div id="app" class="h-full flex flex-col"></div>
+  <script>
+    (() => {
+      const designW = 390;
+      const designH = 844;
+
+      function updateLayoutScale() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const rawScale = Math.min(w / designW, h / designH);
+        const scale = Math.max(0.7, Math.min(1.1, rawScale));
+
+        document.documentElement.style.setProperty('--ui-scale', scale.toFixed(3));
+
+        const size = w < 360 ? 'xs' : w < 420 ? 'sm' : 'md';
+        if (document.body) {
+          document.body.dataset.viewportSize = size;
+        }
+      }
+
+      window.addEventListener('resize', updateLayoutScale);
+      window.addEventListener('orientationchange', updateLayoutScale);
+      document.addEventListener('DOMContentLoaded', updateLayoutScale);
+      updateLayoutScale();
+    })();
+  </script>
+
+  <div id="app" class="h-full"></div>
 
   <!-- ADDED STATUS BAR -->
   <div id="status" style="text-align:center; margin:8px; font-weight:bold;"></div>
@@ -216,6 +1593,35 @@ ZwIDAQAB
     };
   }
 
+  function buildAnswerString() {
+    return (sequence || []).map(item => {
+      if (item.type === 'fact') {
+        const a = answers[item.q] || {};
+        let user = 'No answer';
+        if (a.timedOut) user = 'Timed out';
+        else if (item.isTF) {
+          if (a.answer === true) user = 'True';
+          else if (a.answer === false) user = 'False';
+        } else if (typeof a.answer === 'number' && item.options && item.options[a.answer] !== undefined) {
+          user = item.options[a.answer];
+        }
+        return `${item.q} -> ${user}`;
+      }
+
+      if (item.type === 'star') {
+        const a = answers[item.id]?.answer?.trim();
+        return `${item.text} -> ${a || 'No answer'}`;
+      }
+
+      if (item.type === 'starmaq') {
+        const selected = answers[item.q]?.selectedOptions || [];
+        return `${item.q} -> ${selected.length ? selected.join(', ') : 'No selection'}`;
+      }
+
+      return null;
+    }).filter(Boolean).join(' | ');
+  }
+
   function autoSave(isFinal = false) {
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(() => {
@@ -226,7 +1632,13 @@ ZwIDAQAB
           client: getClientInfo()
         },
         answers: answers,
-        sequence: sequence.map(q => q.type === 'star' ? {type:'star', id:q.id} : {type:'fact', q:q.q}),
+        answerString: buildAnswerString(),
+        sequence: sequence.map(q => {
+          if (q.type === 'star') return {type:'star', id:q.id};
+          if (q.type === 'starmaq') return {type:'starmaq', q:q.q};
+          if (q.type === 'game') return {type:'game', id:q.id};
+          return {type:'fact', q:q.q};
+        }),
         pointer: pointer
       };
       if (isFinal) {
@@ -270,26 +1682,26 @@ ZwIDAQAB
   }
 
   const trueFalseQuestions = [
-    {type:"tf", q:'A cloud weighs around a million tons.', correct:true},
-    {type:"tf", q:'Giraffes are 30x more likely to be struck by lightning than humans.', correct:true},
-    {type:"tf", q:'Identical twins have identical fingerprints.', correct:false},
-    {type:"tf", q:"The Earth's rotation is speeding up.", correct:false},
-    {type:"tf", q:'Your brain eats itself every day.', correct:true},
-    {type:"tf", q:'Mars is shaped more like a rugby ball.', correct:true},
-    {type:"tf", q:"The universe's average colour is Cosmic Latte.", correct:true},
-    {type:"tf", q:'Water is not wet.', correct:true},
-    {type:"tf", q:'A chicken lived 18 months without its head.', correct:true},
-    {type:"tf", q:'More bacterial cells than human cells.', correct:true},
-    {type:"tf", q:"Octopuses have arms, not tentacles.", correct:true},
-    {type:"tf", q:'Most school maps are wrong.', correct:true},
-    {type:"tf", q:'Snails can have 10,000+ teeth.', correct:true},
-    {type:"tf", q:'Lightning is hotter than the Sun surface.', correct:true},
-    {type:"tf", q:'Bananas are radioactive.', correct:true},
-    {type:"tf", q:'You travel millions of km daily.', correct:true},
-    {type:"tf", q:'You can fold A4 more than eight times.', correct:false},
-    {type:"tf", q:'Penguin recorded diving 500m+', correct:true},
-    {type:"tf", q:'There is a diamond planet.', correct:true},
-    {type:"tf", q:'The Moon grows each year.', correct:false}
+    {type:"tf", q:'A typical cloud can weigh about a million tons.', correct:true},
+    {type:"tf", q:'Giraffes face a lightning risk around 30 times higher than humans.', correct:true},
+    {type:"tf", q:'Identical twins share the same fingerprints.', correct:false},
+    {type:"tf", q:"The Earth's rotation is gradually speeding up.", correct:false},
+    {type:"tf", q:'The brain breaks down some of its own cells every day.', correct:true},
+    {type:"tf", q:'Mars has a slightly stretched shape, similar to a rugby ball.', correct:true},
+    {type:"tf", q:"The universe’s overall colour is known as Cosmic Latte.", correct:true},
+    {type:"tf", q:'Water itself isn’t considered wet.', correct:true},
+    {type:"tf", q:'One chicken survived for 18 months after losing its head.', correct:true},
+    {type:"tf", q:'Your body contains more bacterial cells than human cells.', correct:true},
+    {type:"tf", q:"Octopuses have arms rather than true tentacles.", correct:true},
+    {type:"tf", q:'Most world maps used in schools distort land sizes.', correct:true},
+    {type:"tf", q:'A snail can have more than ten thousand teeth.', correct:true},
+    {type:"tf", q:'A lightning bolt can be hotter than the Sun’s surface.', correct:true},
+    {type:"tf", q:'Bananas emit small amounts of natural radiation.', correct:true},
+    {type:"tf", q:'You cover millions of kilometres in space each day.', correct:true},
+    {type:"tf", q:'An A4 sheet can be folded more than eight times.', correct:false},
+    {type:"tf", q:'A penguin has been recorded diving beyond 500 metres.', correct:true},
+    {type:"tf", q:'A planet made mostly of diamond-like carbon exists.', correct:true},
+    {type:"tf", q:'The Moon increases in size each year.', correct:false}
   ];
 
   const mcQuestions = [
@@ -340,10 +1752,88 @@ ZwIDAQAB
 {id:"s17", text:"What from home would’ve made your Algarve stay smoother?", tag:"all"}
   ];
 
+  const localBusinessStarMultiQuestions = [
+    {
+      type:"starmaq",
+      q:"Which types of restaurants do you wish were more common in the Algarve?",
+      options:["Mexican","Greek","Indian","Japanese","Healthy bowls","BBQ American"]
+    },
+    {
+      type:"starmaq",
+      q:"What food items would you love to see more often in Algarve cafés?",
+      options:["Fresh smoothies","Protein-packed breakfasts","Vegan cakes","Real sourdough bread","Premium brunch toasts"]
+    },
+    {
+      type:"starmaq",
+      q:"What’s your preferred style of breakfast in the Algarve?",
+      options:["Brunch style","Coffee + pastel de nata","Continental","Portuguese pastry","Coffee + cigarette"]
+    },
+    {
+      type:"starmaq",
+      q:"What ingredients would you include in your perfect salad?",
+      options:["Chicken","Salmon","Egg","Avocado","Olives","Tomatoes","Cucumber","Quinoa","Cheese","Croutons"]
+    },
+    {
+      type:"starmaq",
+      q:"Build your ideal burger:",
+      options:["Beef patty","Chicken patty","Vegan patty","Cheddar","Bacon","Onion rings","Fried egg","Pickles","BBQ sauce","Garlic mayo"]
+    },
+    {
+      type:"starmaq",
+      q:"Favourite Portuguese classic dish?",
+      options:["Bacalhau à Brás","Cataplana","Frango Piri-Piri","Polvo à lagareiro","Feijoada"]
+    },
+    {
+      type:"starmaq",
+      q:"How much are you willing to spend on a very good meal in Portugal?",
+      options:["10€ - 20€","20€ - 35€","35€ - 60€","60€ - 100€"]
+    },
+    {
+      type:"starmaq",
+      q:"What new services would you love to see in the Algarve?",
+      options:["24h food delivery","Home cleaning on demand","Night-time pharmacies","Local meal prep service","Affordable gyms"]
+    },
+    {
+      type:"starmaq",
+      q:"What products do you wish local supermarkets stocked more often?",
+      options:["International spices","Better quality meat","Vegan options","Protein snacks","Premium bakery items"]
+    },
+    {
+      type:"starmaq",
+      q:"What makes you choose one café over another?",
+      options:["Fast service","Good Wi-Fi","Outdoor seating","Affordable prices","Healthy options"]
+    },
+    {
+      type:"starmaq",
+      q:"If a new restaurant opened near you, what cuisine would attract you most?",
+      options:["Thai","Korean BBQ","Mediterranean","Italian","Seafood-focused","Vegan/plant based"]
+    },
+    {
+      type:"starmaq",
+      q:"What type of nightlife do you feel is missing in the Algarve?",
+      options:["Live music bars","Rooftop lounges","Silent discos","Late-night cafés","Comedy clubs"]
+    },
+    {
+      type:"starmaq",
+      q:"Which gym features matter most to you?",
+      options:["Cheap monthly price","Good machines","Classes included","Sauna/steam room","Open 24/7"]
+    },
+    {
+      type:"starmaq",
+      q:"Which beach amenities would improve your experience the most?",
+      options:["Cheap sunbeds","Healthy food options","Showers","Better parking","Umbrella rental"]
+    },
+    {
+      type:"starmaq",
+      q:"What would make transportation around the Algarve easier?",
+      options:["Cheaper Uber prices","Better public transport","Bike lanes","More parking","Car-sharing services"]
+    }
+  ];
+
   let answers = {}, sequence = [], pointer = 0, timer = null, timeLeft = 30;
-  // ADDED: Prisoner's Dilemma game state
   const pdGameId = 'prisonersDilemma';
   const pdDefaultDuration = 60;
+  let pdUserInfo = null;
   let pdState = {
     userScore: 0,
     aiScore: 0,
@@ -354,27 +1844,18 @@ ZwIDAQAB
     history: [],
     ended: false
   };
+  const snakeGameId = 'snakeClassic';
+  let snakeUserInfo = null;
+  const blockdudeGameId = 'blockdude';
+  let blockdudeUserInfo = null;
+  let currentGameCleanup = null;
   const app = document.getElementById('app');
 
   function esc(t){ return t.replace(/[&<>"']/g, r=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[r])); }
   function shuffle(a){ return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); }
 
-  // ADDED: Prisoner's Dilemma helpers
-  function resetPdState(saved = null) {
-    stopPdTimer();
-    pdState = {
-      userScore: saved?.userScore || 0,
-      aiScore: saved?.aiScore || 0,
-      timeLeft: pdDefaultDuration,
-      timerId: null,
-      active: false,
-      lastUserMove: 'cooperate',
-      history: saved?.history ? [...saved.history] : [],
-      ended: saved?.ended || false
-    };
-  }
-
-  function stopPdTimer() {
+  // Prisoner's Dilemma helpers
+  function pdStopTimer() {
     if (pdState.timerId) {
       clearInterval(pdState.timerId);
       pdState.timerId = null;
@@ -387,17 +1868,6 @@ ZwIDAQAB
     return `${m}:${s}`;
   }
 
-  function savePdAnswer(id, finalized = false) {
-    answers[id] = {
-      userScore: pdState.userScore,
-      aiScore: pdState.aiScore,
-      history: pdState.history,
-      timePlayed: pdDefaultDuration - pdState.timeLeft,
-      ended: finalized
-    };
-    autoSave();
-  }
-
   function pdOutcome(userMove, aiMove) {
     if (userMove === 'attack' && aiMove === 'attack') return [1, 1];
     if (userMove === 'attack' && aiMove === 'cooperate') return [5, 0];
@@ -405,15 +1875,964 @@ ZwIDAQAB
     return [3, 3];
   }
 
+  function renderPrisonersDilemma(containerId = 'pd-root', onContinue = null) {
+    const root = document.getElementById(containerId);
+    if (!root) return;
+
+    root.innerHTML = `
+      <div class="pd-game-outer">
+        <div class="pd-game-shell">
+          <div class="pd-hud">
+            <div class="pd-hud-label">PRISONER&nbsp;FIELD</div>
+            <div class="pd-hud-timer" id="pdTimer">01:00</div>
+            <div class="pd-hud-scorebox">
+              <div class="pd-hud-chip">
+                <span>YOU</span>
+                <span class="pd-score-value" id="pdUserScore">0</span>
+              </div>
+              <div class="pd-hud-chip pd-hud-chip-ai">
+                <span>AI</span>
+                <span class="pd-score-value" id="pdAiScore">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pd-field">
+            <div class="pd-cloud" style="left:-40px;"></div>
+            <div class="pd-cloud cloud2" style="left:40px;"></div>
+            <div class="pd-cloud cloud3" style="left:140px;"></div>
+
+            <div class="pd-field-row">
+              <div>
+                <div class="pd-character">
+                  <div class="pd-face">
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel-eye"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel-eye"></div>
+                    <div class="pd-pixel"></div>
+
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel-mouth"></div>
+                    <div class="pd-pixel-mouth"></div>
+                    <div class="pd-pixel-mouth"></div>
+                    <div class="pd-pixel"></div>
+
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                  </div>
+                </div>
+                <div class="pd-label-under">YOU</div>
+              </div>
+
+              <div class="pd-middle">
+                CHOOSE FAST
+                <span>Attack = risky · Cooperate = friendly</span>
+              </div>
+
+              <div>
+                <div class="pd-character pd-character-ai">
+                  <div class="pd-face">
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel-eye"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel-eye"></div>
+                    <div class="pd-pixel"></div>
+
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+
+                    <div class="pd-pixel-mouth"></div>
+                    <div class="pd-pixel-mouth"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel-mouth"></div>
+                    <div class="pd-pixel-mouth"></div>
+
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                    <div class="pd-pixel"></div>
+                  </div>
+                </div>
+                <div class="pd-label-under">AI</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pd-message-box">
+            <div id="pdMessage" class="pd-msg pd-msg-info">
+              Press START, then tap ATTACK or COOPERATE to score points in 60 seconds.
+            </div>
+            <div class="pd-history" id="pdHistory"></div>
+          </div>
+        </div>
+
+        <div class="pd-controls">
+          <button id="pdAttack" class="pd-btn">ATTACK</button>
+          <button id="pdCooperate" class="pd-btn pd-btn-primary">COOPERATE</button>
+          <button id="pdStart" class="pd-btn pd-btn-small">START</button>
+        </div>
+
+        <div class="pd-continue-wrap">
+          <button id="pdContinue" class="pd-continue-btn">CONTINUE</button>
+        </div>
+      </div>
+    `;
+
+    const timerEl = document.getElementById('pdTimer');
+    const userScoreEl = document.getElementById('pdUserScore');
+    const aiScoreEl = document.getElementById('pdAiScore');
+    const attackBtn = document.getElementById('pdAttack');
+    const coopBtn = document.getElementById('pdCooperate');
+    const startBtn = document.getElementById('pdStart');
+    const msgEl = document.getElementById('pdMessage');
+    const historyEl = document.getElementById('pdHistory');
+    const continueBtn = document.getElementById('pdContinue');
+
+    function setPdMessage(text, type = 'info') {
+      msgEl.textContent = text;
+      msgEl.className = 'pd-msg';
+      msgEl.classList.add(
+        type === 'good' ? 'pd-msg-good' :
+        type === 'bad' ? 'pd-msg-bad' :
+        type === 'warn' ? 'pd-msg-warn' :
+        'pd-msg-info'
+      );
+    }
+
+    function renderPdHistory() {
+      historyEl.innerHTML = pdState.history
+        .map(h => `<div class="pd-history-entry"><span>${h.user}</span><span>${h.ai}</span></div>`)
+        .join('');
+    }
+
+    function updatePdUi() {
+      timerEl.textContent = pdFormatTime(pdState.timeLeft);
+      userScoreEl.textContent = pdState.userScore;
+      aiScoreEl.textContent = pdState.aiScore;
+      renderPdHistory();
+    }
+
+    function pdEndGame() {
+      pdStopTimer();
+      pdState.active = false;
+      pdState.ended = true;
+      attackBtn.disabled = true;
+      coopBtn.disabled = true;
+
+      const verdict =
+        pdState.userScore > pdState.aiScore ? 'good' :
+        pdState.userScore < pdState.aiScore ? 'bad' : 'info';
+
+      if (pdState.userScore === pdState.aiScore) {
+        setPdMessage(`Time up! Tie: ${pdState.userScore} - ${pdState.aiScore}.`, verdict);
+      } else if (pdState.userScore > pdState.aiScore) {
+        setPdMessage(`Time up! You win ${pdState.userScore} vs ${pdState.aiScore}.`, verdict);
+      } else {
+        setPdMessage(`Time up! AI wins ${pdState.aiScore} vs ${pdState.userScore}.`, verdict);
+      }
+    }
+
+    function pdPlayRound(userMove) {
+      if (!pdState.active || pdState.timeLeft <= 0) return;
+
+      const aiMove = pdState.lastUserMove;
+      const [userPts, aiPts] = pdOutcome(userMove, aiMove);
+
+      pdState.userScore += userPts;
+      pdState.aiScore += aiPts;
+      pdState.lastUserMove = userMove;
+
+      pdState.history.unshift({
+        user: `${userMove === 'attack' ? 'ATTACK' : 'COOPERATE'} (+${userPts})`,
+        ai: `${aiMove === 'attack' ? 'ATTACK' : 'COOPERATE'} (+${aiPts})`
+      });
+
+      setPdMessage(
+        `You: ${userMove === 'attack' ? 'ATTACK' : 'COOPERATE'} (${userPts}) · AI: ${aiMove === 'attack' ? 'ATTACK' : 'COOPERATE'} (${aiPts})`,
+        userPts >= aiPts ? 'good' : 'bad'
+      );
+
+      updatePdUi();
+    }
+
+    function startPdGame() {
+      pdStopTimer();
+      pdState = {
+        userScore: 0,
+        aiScore: 0,
+        timeLeft: pdDefaultDuration,
+        timerId: null,
+        active: true,
+        lastUserMove: 'cooperate',
+        history: [],
+        ended: false
+      };
+
+      attackBtn.disabled = false;
+      coopBtn.disabled = false;
+      continueBtn.disabled = false;
+
+      setPdMessage('Go! Make the best score in 60 seconds.', 'info');
+      updatePdUi();
+
+      pdState.timerId = setInterval(() => {
+        pdState.timeLeft--;
+        updatePdUi();
+        if (pdState.timeLeft <= 0) pdEndGame();
+      }, 1000);
+    }
+
+    attackBtn.onclick = () => pdPlayRound('attack');
+    coopBtn.onclick = () => pdPlayRound('cooperate');
+    startBtn.onclick = startPdGame;
+
+    continueBtn.onclick = () => {
+      pdStopTimer();
+      pdState.ended = true;
+      const result = {
+        userScore: pdState.userScore,
+        aiScore: pdState.aiScore,
+        timePlayed: pdDefaultDuration - pdState.timeLeft,
+        history: [...pdState.history]
+      };
+
+      if (typeof onContinue === 'function') {
+        onContinue(result);
+      }
+    };
+
+    attackBtn.disabled = true;
+    coopBtn.disabled = true;
+    continueBtn.disabled = false;
+    updatePdUi();
+  }
+
+  function renderSnakeGame(containerId = 'snake-root', onContinue = null) {
+    const root = document.getElementById(containerId);
+    if (!root) return () => {};
+
+    root.innerHTML = `
+      <div class="sn-game-outer">
+        <div class="sn-game-shell">
+          <div class="sn-hud">
+            <div class="sn-hud-label">SNAKE&nbsp;FIELD</div>
+            <div class="sn-hud-middle">Use arrows · Eat apples</div>
+            <div class="sn-hud-scorebox">
+              <div class="sn-hud-chip">
+                <span>SCORE</span>
+                <span class="sn-score-value" id="snScore">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sn-field">
+            <div class="sn-cloud" style="left:-40px;"></div>
+            <div class="sn-cloud c2" style="left:40px;"></div>
+            <div class="sn-cloud c3" style="left:140px;"></div>
+
+            <div class="sn-field-row">
+              <div class="sn-canvas-wrap">
+                <canvas id="snCanvas" class="sn-canvas" width="256" height="256"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="sn-controls">
+            <button id="snStart" class="sn-btn sn-btn-primary">START</button>
+            <button id="snReset" class="sn-btn sn-btn-small">RESET</button>
+          </div>
+
+          <div class="sn-mobile-arrows">
+            <div class="sn-arrow-row">
+              <button id="snArrowUp" class="sn-arrow-btn">▲</button>
+            </div>
+            <div class="sn-arrow-row">
+              <button id="snArrowLeft" class="sn-arrow-btn">◀</button>
+              <button class="sn-arrow-btn sn-arrow-btn-empty" disabled></button>
+              <button id="snArrowRight" class="sn-arrow-btn">▶</button>
+            </div>
+            <div class="sn-arrow-row">
+              <button id="snArrowDown" class="sn-arrow-btn">▼</button>
+            </div>
+          </div>
+
+          <div class="sn-message-box" id="snMessage">
+            Press START, then use the arrow keys or buttons. Don't eat yourself.
+          </div>
+
+          <div class="sn-continue-wrap">
+            <button id="snContinue" class="sn-continue-btn">CONTINUE</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const canvas = document.getElementById('snCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('snScore');
+    const msgEl = document.getElementById('snMessage');
+    const startBtn = document.getElementById('snStart');
+    const resetBtn = document.getElementById('snReset');
+    const continueBtn = document.getElementById('snContinue');
+
+    const arrowUpBtn = document.getElementById('snArrowUp');
+    const arrowDownBtn = document.getElementById('snArrowDown');
+    const arrowLeftBtn = document.getElementById('snArrowLeft');
+    const arrowRightBtn = document.getElementById('snArrowRight');
+
+    const grid = 16;
+    let count = 0;
+    let running = false;
+    let rafId = null;
+    let score = 0;
+    let startTime = null;
+
+    const snake = {
+      x: 5 * grid,
+      y: 5 * grid,
+      dx: grid,
+      dy: 0,
+      cells: [],
+      maxCells: 4
+    };
+
+    const apple = {
+      x: 10 * grid,
+      y: 10 * grid
+    };
+
+    function snSetMessage(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = 'sn-message-box';
+      if (type === 'good') msgEl.classList.add('sn-msg-good');
+      else if (type === 'bad') msgEl.classList.add('sn-msg-bad');
+      else if (type === 'warn') msgEl.classList.add('sn-msg-warn');
+    }
+
+    function snRandomApple() {
+      const max = canvas.width / grid;
+      apple.x = Math.floor(Math.random() * max) * grid;
+      apple.y = Math.floor(Math.random() * max) * grid;
+    }
+
+    function snResetGame() {
+      score = 0;
+      scoreEl.textContent = '0';
+      snake.x = 5 * grid;
+      snake.y = 5 * grid;
+      snake.cells = [];
+      snake.maxCells = 4;
+      snake.dx = grid;
+      snake.dy = 0;
+      snRandomApple();
+      count = 0;
+      startTime = null;
+      snSetMessage('Game reset. Press START to play again.', 'info');
+    }
+
+    function snChangeDirection(dir) {
+      if (!running) return;
+      if (dir === 'left' && snake.dx === 0) {
+        snake.dx = -grid; snake.dy = 0;
+      } else if (dir === 'up' && snake.dy === 0) {
+        snake.dy = -grid; snake.dx = 0;
+      } else if (dir === 'right' && snake.dx === 0) {
+        snake.dx = grid; snake.dy = 0;
+      } else if (dir === 'down' && snake.dy === 0) {
+        snake.dy = grid; snake.dx = 0;
+      }
+    }
+
+    function snLoop() {
+      rafId = requestAnimationFrame(snLoop);
+      if (!running) return;
+
+      if (++count < 4) return;
+
+      count = 0;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#022c22';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#064e3b';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += grid) {
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += grid) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(canvas.width, y + 0.5);
+        ctx.stroke();
+      }
+
+      snake.x += snake.dx;
+      snake.y += snake.dy;
+
+      if (snake.x < 0) snake.x = canvas.width - grid;
+      else if (snake.x >= canvas.width) snake.x = 0;
+
+      if (snake.y < 0) snake.y = canvas.height - grid;
+      else if (snake.y >= canvas.height) snake.y = 0;
+
+      snake.cells.unshift({ x: snake.x, y: snake.y });
+      if (snake.cells.length > snake.maxCells) snake.cells.pop();
+
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(apple.x + 1, apple.y + 1, grid - 2, grid - 2);
+
+      ctx.fillStyle = '#22c55e';
+      snake.cells.forEach(function(cell, index) {
+        ctx.fillRect(cell.x + 1, cell.y + 1, grid - 2, grid - 2);
+
+        if (cell.x === apple.x && cell.y === apple.y) {
+          snake.maxCells++;
+          score++;
+          scoreEl.textContent = score.toString();
+          snSetMessage('Yum! +1.', 'good');
+          snRandomApple();
+        }
+
+        for (let i = index + 1; i < snake.cells.length; i++) {
+          if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+            running = false;
+            snSetMessage('You ate yourself. Press START or RESET.', 'bad');
+            return;
+          }
+        }
+      });
+    }
+
+    function stopLoop() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    function snKeyHandler(e) {
+      if (e.key === 'ArrowLeft') snChangeDirection('left');
+      else if (e.key === 'ArrowUp') snChangeDirection('up');
+      else if (e.key === 'ArrowRight') snChangeDirection('right');
+      else if (e.key === 'ArrowDown') snChangeDirection('down');
+    }
+
+    document.addEventListener('keydown', snKeyHandler);
+
+    function bindArrow(btn, dir) {
+      if (!btn) return;
+      const handler = (ev) => {
+        ev.preventDefault();
+        snChangeDirection(dir);
+      };
+      btn.addEventListener('touchstart', handler, { passive: false });
+      btn.addEventListener('mousedown', handler);
+      return () => {
+        btn.removeEventListener('touchstart', handler);
+        btn.removeEventListener('mousedown', handler);
+      };
+    }
+
+    const unbinders = [
+      bindArrow(arrowUpBtn, 'up'),
+      bindArrow(arrowDownBtn, 'down'),
+      bindArrow(arrowLeftBtn, 'left'),
+      bindArrow(arrowRightBtn, 'right')
+    ].filter(Boolean);
+
+    startBtn.onclick = () => {
+      if (!rafId) {
+        snRandomApple();
+        rafId = requestAnimationFrame(snLoop);
+      }
+      if (!running) {
+        running = true;
+        if (!startTime) startTime = performance.now();
+        snSetMessage('Go! Use the arrow keys or buttons.', 'info');
+      }
+    };
+
+    resetBtn.onclick = () => {
+      running = false;
+      stopLoop();
+      snResetGame();
+    };
+
+    continueBtn.onclick = () => {
+      running = false;
+      const result = {
+        score,
+        applesEaten: score,
+        timePlayed: startTime ? Math.round((performance.now() - startTime) / 1000) : 0,
+        ended: true
+      };
+      stopLoop();
+      snSetMessage('Saved your score. Moving on.', 'info');
+      if (typeof onContinue === 'function') {
+        onContinue(result);
+      }
+    };
+
+    snResetGame();
+
+    return function teardownSnakeGame() {
+      running = false;
+      stopLoop();
+      document.removeEventListener('keydown', snKeyHandler);
+      unbinders.forEach((fn) => fn());
+    };
+  }
+
+  function renderBlockDude(containerId = 'blockdude-root', onContinue = null) {
+    const root = document.getElementById(containerId);
+    if (!root) return () => {};
+
+    root.innerHTML = `
+      <div class="bd-game-outer">
+        <div class="bd-game-shell">
+          <div class="bd-hud">
+            <div class="bd-hud-label">BLOCK&nbsp;DUDE</div>
+            <div class="bd-hud-middle">Left / Right · Down = pick/drop</div>
+            <div class="bd-hud-right">
+              <div>Reach the door</div>
+            </div>
+          </div>
+
+          <div class="bd-field">
+            <div class="bd-cloud" style="left:-40px;"></div>
+            <div class="bd-cloud c2" style="left:40px;"></div>
+            <div class="bd-cloud c3" style="left:140px;"></div>
+
+            <div class="bd-field-row">
+              <div class="bd-canvas-wrap">
+                <canvas id="bdCanvas" class="bd-canvas" width="384" height="256"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="bd-controls">
+            <button id="bdStart" class="bd-btn bd-btn-primary">START</button>
+            <button id="bdReset" class="bd-btn bd-btn-small">RESET</button>
+          </div>
+
+          <div class="bd-mobile-arrows">
+            <div class="bd-arrow-row">
+              <button class="bd-arrow-btn bd-arrow-btn-empty" disabled></button>
+              <button id="bdArrowDown" class="bd-arrow-btn">▼</button>
+              <button class="bd-arrow-btn bd-arrow-btn-empty" disabled></button>
+            </div>
+            <div class="bd-arrow-row">
+              <button id="bdArrowLeft" class="bd-arrow-btn">◀</button>
+              <button class="bd-arrow-btn bd-arrow-btn-empty" disabled></button>
+              <button id="bdArrowRight" class="bd-arrow-btn">▶</button>
+            </div>
+          </div>
+
+          <div class="bd-message-box" id="bdMessage">
+            Press START, then use keys or buttons. Get to the tiny door.
+          </div>
+
+          <div class="bd-continue-wrap">
+            <button id="bdContinue" class="bd-continue-btn">CONTINUE</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const canvas = document.getElementById('bdCanvas');
+    const context = canvas.getContext('2d');
+    const startBtn = document.getElementById('bdStart');
+    const resetBtn = document.getElementById('bdReset');
+    const msgEl = document.getElementById('bdMessage');
+    const continueBtn = document.getElementById('bdContinue');
+
+    const arrowLeftBtn = document.getElementById('bdArrowLeft');
+    const arrowRightBtn = document.getElementById('bdArrowRight');
+    const arrowDownBtn = document.getElementById('bdArrowDown');
+
+    const grid = 32;
+
+    const wallCanvas = document.createElement('canvas');
+    const wallCtx = wallCanvas.getContext('2d');
+    wallCanvas.width = wallCanvas.height = grid;
+
+    wallCtx.fillStyle = 'white';
+    wallCtx.fillRect(1, 1, grid, grid);
+    wallCtx.fillStyle = 'black';
+    wallCtx.fillRect(0, 1, 21, 10);
+    wallCtx.fillRect(23, 1, 10, 10);
+    wallCtx.fillRect(0, 12, 10, 9);
+    wallCtx.fillRect(11, 12, 21, 9);
+    wallCtx.fillRect(0, 22, 21, 10);
+    wallCtx.fillRect(23, 22, 10, 10);
+
+    let playerDir = { row: 0, col: 0 };
+    let playerPos = { row: 0, col: 0 };
+    let playerFacing = -1;
+    let rAF = null;
+    let carryingBlock = false;
+    let width = 0;
+    let running = false;
+    let reachedExit = false;
+    let actions = 0;
+    let blocksMoved = 0;
+    let resets = 0;
+    let startTime = null;
+
+    const types = {
+      wall: '#',
+      player: '@',
+      block: '$',
+      goal: '.',
+      empty: ' '
+    };
+
+    const level1 = `
+ #    ##        ##
+ #                #
+##                 #
+#.                  #
+##                   #
+ #           #  $    #
+ #           #$ $$@  #
+ #####   #############
+     #  $#
+     #####
+`;
+
+    const cells = [];
+
+    function bdSetMessage(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = 'bd-message-box';
+      if (type === 'good') msgEl.classList.add('bd-msg-good');
+      else if (type === 'bad') msgEl.classList.add('bd-msg-bad');
+      else if (type === 'warn') msgEl.classList.add('bd-msg-warn');
+    }
+
+    function buildLevel() {
+      width = 0;
+      cells.length = 0;
+      playerPos = { row: 0, col: 0 };
+      playerDir = { row: 0, col: 0 };
+      playerFacing = -1;
+      carryingBlock = false;
+      reachedExit = false;
+      actions = 0;
+      blocksMoved = 0;
+      startTime = null;
+
+      level1.split('\n')
+        .filter(rowData => rowData !== '')
+        .forEach((rowData, row) => {
+          cells[row] = [];
+          if (rowData.length > width) width = rowData.length;
+
+          rowData.split('').forEach((colData, col) => {
+            cells[row][col] = colData;
+            if (colData === types.player) {
+              playerPos = { row, col };
+            }
+          });
+        });
+    }
+
+    function clamp(min, max, value) {
+      return Math.min(Math.max(min, value), max);
+    }
+
+    function move(startPos, endPos) {
+      const startCell = cells[startPos.row][startPos.col];
+      const endCell = cells[endPos.row]?.[endPos.col];
+
+      const isPlayer = startCell === types.player;
+
+      if (startCell === types.player || startCell === types.block) {
+        cells[startPos.row][startPos.col] = types.empty;
+      }
+
+      if (endCell === types.empty || endCell === types.goal) {
+        cells[endPos.row][endPos.col] = isPlayer ? types.player : types.block;
+      }
+
+      playerFacing = endPos.col - startPos.col;
+
+      if (carryingBlock) {
+        const aboveStart = cells[startPos.row - 1];
+        if (aboveStart) aboveStart[startPos.col] = types.empty;
+        const aboveEnd = cells[endPos.row - 1];
+        if (aboveEnd) aboveEnd[endPos.col] = types.block;
+      }
+    }
+
+    function loop() {
+      rAF = requestAnimationFrame(loop);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (running) {
+        let row = playerPos.row + playerDir.row;
+        const col = playerPos.col + playerDir.col;
+        const cell = cells[row]?.[col];
+
+        switch(cell) {
+          case types.empty:
+          case types.goal:
+            let rowBelow = row + 1 + playerDir.row;
+            let belowCell = cells[rowBelow]?.[col];
+            while (belowCell === types.empty || belowCell === types.goal) {
+              row = rowBelow;
+              rowBelow = row + 1 + playerDir.row;
+              belowCell = cells[rowBelow]?.[col];
+            }
+
+            move(playerPos, { row, col });
+
+            playerPos.row = row;
+            playerPos.col = col;
+
+            if (cell === types.goal) {
+              running = false;
+              reachedExit = true;
+              bdSetMessage('Nice! You reached the exit.', 'good');
+            }
+            break;
+
+          case types.block:
+          case types.wall:
+            const rowAbove = row - 1 + playerDir.row;
+            const nextCell = cells[rowAbove]?.[col];
+
+            if (nextCell === types.empty || nextCell === types.goal) {
+              move(playerPos, { row: rowAbove, col });
+
+              playerPos.row = rowAbove;
+              playerPos.col = col;
+            }
+            break;
+        }
+
+        playerDir = { row: 0, col: 0 };
+      }
+
+      context.strokeStyle = 'black';
+      context.fillStyle = 'black';
+      context.lineWidth = 2;
+
+      const startRow = clamp(0, Math.max(0, cells.length - 8), playerPos.row - 4);
+      const startCol = clamp(0, Math.max(0, width - 12), playerPos.col - 6);
+
+      for (let row = startRow; row < cells.length; row++) {
+        for (let col = startCol; col < (cells[row]?.length || 0); col++) {
+          const cell = cells[row][col];
+          const drawRow = row - startRow;
+          const drawCol = col - startCol;
+
+          switch(cell) {
+            case types.wall:
+              context.drawImage(wallCanvas, drawCol * grid, drawRow * grid);
+              break;
+
+            case types.block:
+              context.strokeRect(drawCol * grid, drawRow * grid, grid, grid);
+              break;
+
+            case types.goal:
+              context.strokeRect((drawCol + 0.2) * grid, drawRow * grid, grid - 12, grid);
+              context.beginPath();
+              context.arc((drawCol + 0.7) * grid, (drawRow + 0.5) * grid, 2, 0, Math.PI * 2);
+              context.fill();
+              break;
+
+            case types.player:
+              context.beginPath();
+              context.arc((drawCol + 0.5) * grid, (drawRow + 0.3) * grid, 7, 0, Math.PI * 2);
+              context.stroke();
+
+              const x = (drawCol + ( playerFacing < 0 ? 0.1 : 0.6)) * grid;
+              context.fillRect(x, (drawRow + 0.15) * grid, grid / 3, 2);
+              context.beginPath();
+              context.arc((drawCol + 0.5) * grid, (drawRow + 0.25) * grid, 7, 0, Math.PI, 1);
+              context.fill();
+
+              context.fillRect((drawCol + 0.48) * grid, (drawRow + 0.4) * grid, 2, grid / 2.5 );
+              context.fillRect((drawCol + 0.3) * grid, (drawRow + 0.6) * grid, grid / 2.5, 2);
+
+              context.moveTo((drawCol + 0.5) * grid, (drawRow + 0.8) * grid);
+              context.lineTo((drawCol + 0.65) * grid, (drawRow + 1) * grid);
+              context.moveTo((drawCol + 0.5) * grid, (drawRow + 0.8) * grid);
+              context.lineTo((drawCol + 0.35) * grid, (drawRow + 1) * grid);
+              context.stroke();
+              break;
+          }
+        }
+      }
+    }
+
+    function handleInput(dir) {
+      if (!running) return;
+      if (!startTime) startTime = performance.now();
+
+      playerDir = { row: 0, col: 0 };
+      let acted = false;
+
+      if (dir === 'left') {
+        playerDir.col = -1;
+        acted = true;
+      } else if (dir === 'right') {
+        playerDir.col = 1;
+        acted = true;
+      } else if (dir === 'down') {
+        const nextCol = playerFacing + playerPos.col;
+        const rowLength = cells[playerPos.row]?.length || 0;
+        if (nextCol < 0 || nextCol >= rowLength) return;
+        const nextCell = cells[playerPos.row]?.[nextCol];
+        const cellAbove = cells[playerPos.row - 1]?.[nextCol];
+
+        if (!carryingBlock && nextCell === types.block && cellAbove === types.empty) {
+          cells[playerPos.row][nextCol] = types.empty;
+          cells[playerPos.row - 1][playerPos.col] = types.block;
+          carryingBlock = true;
+          blocksMoved++;
+          acted = true;
+          bdSetMessage('Block picked up.', 'info');
+        } else if (carryingBlock) {
+          let row = playerPos.row;
+
+          if (nextCell === types.empty) {
+            let rowBelow = row - 1;
+            let belowCell = cells[rowBelow]?.[nextCol];
+            while (belowCell === types.empty) {
+              row = rowBelow;
+              rowBelow++;
+              belowCell = cells[rowBelow]?.[nextCol];
+            }
+          }
+
+          if ((nextCell === types.wall || nextCell === types.block) && cellAbove === types.empty) {
+            row = row - 1;
+          }
+
+          cells[playerPos.row - 1][playerPos.col] = types.empty;
+          cells[row][nextCol] = types.block;
+          carryingBlock = false;
+          blocksMoved++;
+          acted = true;
+          bdSetMessage('Block dropped.', 'info');
+        }
+      }
+
+      if (acted) actions++;
+    }
+
+    function keyHandler(e) {
+      const key = e.key || e.code;
+      if (key === 'ArrowLeft' || e.which === 37) {
+        e.preventDefault();
+        handleInput('left');
+      } else if (key === 'ArrowRight' || e.which === 39) {
+        e.preventDefault();
+        handleInput('right');
+      } else if (key === 'ArrowDown' || e.which === 40) {
+        e.preventDefault();
+        handleInput('down');
+      }
+    }
+
+    document.addEventListener('keydown', keyHandler);
+
+    function bindArrow(btn, dir) {
+      if (!btn) return () => {};
+      const handler = (ev) => {
+        ev.preventDefault();
+        handleInput(dir);
+      };
+      btn.addEventListener('touchstart', handler, { passive: false });
+      btn.addEventListener('mousedown', handler);
+      return () => {
+        btn.removeEventListener('touchstart', handler);
+        btn.removeEventListener('mousedown', handler);
+      };
+    }
+
+    const unbinders = [
+      bindArrow(arrowLeftBtn, 'left'),
+      bindArrow(arrowRightBtn, 'right'),
+      bindArrow(arrowDownBtn, 'down'),
+    ];
+
+    function stopLoop() {
+      if (rAF) cancelAnimationFrame(rAF);
+      rAF = null;
+    }
+
+    startBtn.onclick = () => {
+      if (!rAF) rAF = requestAnimationFrame(loop);
+      running = true;
+      if (!startTime) startTime = performance.now();
+      bdSetMessage('Go! Use arrows or buttons.', 'info');
+    };
+
+    resetBtn.onclick = () => {
+      running = false;
+      resets++;
+      buildLevel();
+      bdSetMessage('Level reset. Try again.', 'info');
+      if (!rAF) rAF = requestAnimationFrame(loop);
+    };
+
+    continueBtn.onclick = () => {
+      const result = {
+        moves: actions,
+        blocksMoved,
+        resets,
+        completed: reachedExit,
+        timePlayed: startTime ? Math.round((performance.now() - startTime) / 1000) : 0
+      };
+      running = false;
+      stopLoop();
+      bdSetMessage('Saved your progress. Moving on.', 'info');
+      if (typeof onContinue === 'function') {
+        onContinue(result);
+      }
+    };
+
+    buildLevel();
+    rAF = requestAnimationFrame(loop);
+
+    return function teardownBlockDude() {
+      running = false;
+      stopLoop();
+      document.removeEventListener('keydown', keyHandler);
+      unbinders.forEach((fn) => fn());
+    };
+  }
+
   function renderMeta() {
     app.innerHTML = `
-      <div class="container flex flex-col justify-center items-center h-full px-6">
-        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md">
-          <h1 class="text-4xl font-black text-center mb-10">How Smart are You?</h1>
-          <div class="space-y-8">
-            <div>
-              <label class="block text-xl font-semibold mb-3">Staying in Algarve?</label>
-              <select id="stay" class="w-full p-5 rounded-2xl border-[3px] border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-lg">
+      <div class="container app-surface">
+        <div class="app-shell">
+          <div class="question-card">
+            <h1 class="question-title">How Smart are You?</h1>
+            <p class="muted-note">Retro challenges and mini-games are waiting.</p>
+
+            <div class="retro-field">
+              <label class="retro-label" for="stay">Staying in Algarve?</label>
+              <select id="stay" class="retro-select">
                 <option value="leaving">Leaving soon</option>
                 <option value="few">Few more days</option>
                 <option value="just">Just arrived</option>
@@ -421,14 +2840,14 @@ ZwIDAQAB
               </select>
             </div>
 
-            <div>
-              <label class="block text-xl font-semibold mb-3">How Bored are you? (1-10)</label>
-              <input id="mins" type="range" min="1" max="10" value="5" class="w-full">
-              <div class="text-center text-5xl font-bold mt-4"><span id="minsVal">5</span></div>
+            <div class="retro-field">
+              <label class="retro-label" for="mins">How bored are you? (1-10)</label>
+              <input id="mins" type="range" min="1" max="10" value="5" class="retro-range">
+              <div class="range-value"><span id="minsVal">5</span></div>
             </div>
 
-            <div class="space-y-3">
-              <button id="start" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-3xl shadow-xl">Start</button>
+            <div class="action-row">
+              <button id="start" class="retro-btn secondary">Start</button>
             </div>
           </div>
         </div>
@@ -451,6 +2870,7 @@ ZwIDAQAB
     const maxS = mins < 4 ? 2 : mins < 7 ? 5 : 8;
 
     const stars = shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just'))).slice(0, maxS);
+    const starmaqItems = shuffle(localBusinessStarMultiQuestions);
 
     const facts = shuffle([
       ...trueFalseQuestions.map(f => ({...f,isTF:true})),
@@ -477,10 +2897,19 @@ ZwIDAQAB
       si++;
     }
 
-    // ADDED: insert mini-game randomly between questions
+    starmaqItems.forEach(item => {
+      sequence.push({ type: 'starmaq', q: item.q, options: item.options });
+    });
+
+    // ADDED: insert mini-games between questions
     if (sequence.length > 1) {
-      const insertAt = Math.floor(Math.random() * (sequence.length - 1)) + 1;
-      sequence.splice(insertAt, 0, { type: 'game', id: pdGameId });
+      const gameIds = [pdGameId, snakeGameId, blockdudeGameId];
+      const slotSize = Math.max(1, Math.floor(sequence.length / (gameIds.length + 1)));
+
+      gameIds.forEach((id, index) => {
+        const position = Math.min(sequence.length, Math.max(1, slotSize * (index + 1) + index));
+        sequence.splice(position, 0, { type: 'game', id });
+      });
     }
 
     pointer = 0;
@@ -516,69 +2945,85 @@ ZwIDAQAB
   }
 
   function renderQuestion() {
-      stopPdTimer();
+      pdStopTimer();
+      if (currentGameCleanup) {
+        currentGameCleanup();
+        currentGameCleanup = null;
+      }
       const q = sequence[pointer];
       const progress = Math.round(((pointer + 1) / sequence.length) * 100);
 
     app.innerHTML = `
-      <div class="container flex flex-col h-full">
-        <div class="flex justify-between items-center py-4 px-6">
-          <button id="back" class="text-3xl">←</button>
-          <div class="text-lg font-bold">${pointer+1}/${sequence.length}</div>
-          <div class="w-32 h-2 bg-gray-300 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div class="h-full bg-indigo-600 transition-all duration-300" style="width:${progress}%"></div>
+      <div class="container app-surface">
+        <div class="app-shell">
+          <div class="app-header">
+            <button id="back" class="nav-btn" aria-label="Go back">←</button>
+            <div class="header-meta">
+              <div class="badge">STEP ${pointer+1}/${sequence.length}</div>
+              <div class="app-progress"><div class="app-progress-bar" style="width:${progress}%"></div></div>
+            </div>
+            <div class="title-pill">QUIZ</div>
           </div>
-        </div>
 
-        <div class="flex-1 flex flex-col justify-center px-6">
-          ${q.type === 'fact' ? `
-            <div class="text-center mb-8">
-              <svg width="90" height="90" viewBox="0 0 480 480" class="mx-auto">
-                <circle cx="240" cy="240" r="216" stroke="#e2e8f0" stroke-width="36" fill="none" class="dark:stroke-[#334155]"/>
-                <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" style="stroke-dashoffset:1356" class="timer-ring"/>
-                <text id="time" x="240" y="280" font-size="120" text-anchor="middle" font-weight="bold" fill="currentColor">30</text>
-              </svg>
-              <h2 class="text-2xl font-black leading-tight mt-6">${esc(q.q)}</h2>
-            </div>
+          <div class="app-body">
+            ${q.type === 'fact' ? `
+              <div class="question-card">
+                <svg width="120" height="120" viewBox="0 0 480 480">
+                  <circle cx="240" cy="240" r="216" stroke="#e2e8f0" stroke-width="36" fill="none"/>
+                  <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" style="stroke-dashoffset:1356" class="timer-ring"/>
+                  <text id="time" x="240" y="280" font-size="120" text-anchor="middle" font-weight="bold" fill="currentColor">30</text>
+                </svg>
+                <h2 class="question-title">${esc(q.q)}</h2>
+                <p class="muted-note">Answer before the timer runs dry.</p>
+              </div>
 
-            <div class="space-y-3 mt-auto">
-              ${q.isTF ? `
-                <button class="true w-full py-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-2xl font-bold rounded-3xl shadow-xl">TRUE</button>
-                <button class="false w-full py-6 bg-gradient-to-r from-red-500 to-rose-600 text-white text-2xl font-bold rounded-3xl shadow-xl">FALSE</button>
-              ` : q.options.map((o,i) => `
-                <button data-i="${i}" class="option w-full py-5 text-xl font-medium bg-white dark:bg-slate-800 border-[3px] border-gray-300 dark:border-slate-700 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-400 transition">${esc(o)}</button>
-              `).join('')}
-            </div>
-          ` : q.type === 'game' ? `
-            <div class="flex-1 flex items-center justify-center px-2">
-              <div class="pd-game-wrapper">
-                <h2 class="pd-title">Prisoner's Dilemma</h2>
-                <p class="pd-subtitle">1 minute. Make as many points as you can. You vs the algorithm (Tit for Tat).</p>
-                <div class="pd-row-top">
-                  <div class="pd-timer" id="pdTimer">01:00</div>
-                  <div class="pd-scores">
-                    <div class="pd-score-box"><span>You</span><span id="pdUserScore">0</span></div>
-                    <div class="pd-score-box pd-ai"><span>AI</span><span id="pdAiScore">0</span></div>
+              <div class="choice-grid ${q.isTF ? 'two-col' : ''}">
+                ${q.isTF ? `
+                  <button class="true retro-btn secondary">TRUE</button>
+                  <button class="false retro-btn">FALSE</button>
+                ` : q.options.map((o,i) => `
+                  <button data-i="${i}" class="option choice-btn">${esc(o)}</button>
+                `).join('')}
+              </div>
+            ` : q.type === 'starmaq' ? `
+              <div class="question-card starmaq-card">
+                <h2 class="question-title">${esc(q.q)}</h2>
+                <p class="muted-note">Pick all that match you.</p>
+                <div class="option-scroll">
+                  <div class="choice-grid two-col">
+                    ${q.options.map((o) => `
+                      <button class="choice-btn starmaq-option" data-val="${esc(o)}">${esc(o)}</button>
+                    `).join('')}
                   </div>
                 </div>
-                <p class="pd-rules">Payoffs per round: • Both Attack: 1 point each · • One attacks, other cooperates: attacker 5, other 0 · • Both cooperate: 3 points each. AI plays <strong>Tit for Tat</strong>: it copies your last move (starts by cooperating).</p>
-                <div class="pd-controls">
-                  <button id="pdAttack" class="pd-btn pd-btn-secondary">Attack</button>
-                  <button id="pdCooperate" class="pd-btn pd-btn-primary">Cooperate</button>
-                  <button id="pdStart" class="pd-btn-small">Start / Reset</button>
+                <div class="action-row">
+                  <button id="nextStarMaq" class="retro-btn secondary">Next</button>
                 </div>
-                <div id="pdMessage" class="pd-msg pd-msg-info">Press “Start / Reset” to begin your 1-minute game.</div>
-                <div class="pd-history" id="pdHistory"></div>
-                <button id="pdContinue" class="mt-3 w-full py-3 bg-indigo-600 text-white font-semibold rounded-2xl shadow">Continue</button>
               </div>
-            </div>
-          ` : `
-            <div class="flex-1 flex flex-col justify-center">
-              <h2 class="text-2xl font-black leading-tight mb-6">${esc(q.text)}</h2>
-              <textarea id="txt" class="flex-1 min-h-0 p-5 text-lg rounded-2xl border-[3px] border-gray-300 dark:border-slate-700 dark:bg-slate-800 focus:border-indigo-500 outline-none resize-none" placeholder="Your answer...">${answers[q.id]?.answer||''}</textarea>
-              <button id="nextStar" class="mt-6 w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-xl font-bold rounded-2xl shadow-xl">Next</button>
-            </div>
-          `}
+            ` : q.type === 'game' ? `
+              <div class="answer-card game-card">
+                ${q.id === pdGameId ? `
+                  <div id="pd-root" class="game-slot"></div>
+                  <div id="pd-user-summary" class="game-summary"></div>
+                ` : q.id === snakeGameId ? `
+                  <div id="snake-root" class="game-slot"></div>
+                  <div id="snake-user-summary" class="game-summary"></div>
+                ` : `
+                  <div id="blockdude-root" class="game-slot"></div>
+                  <div id="blockdude-user-summary" class="game-summary"></div>
+                `}
+              </div>
+            ` : `
+              <div class="question-card">
+                <h2 class="question-title">${esc(q.text)}</h2>
+                <p class="muted-note">Tell us what you think.</p>
+                <textarea id="txt" class="app-input" placeholder="Your answer...">${answers[q.id]?.answer||''}</textarea>
+                <div class="action-row">
+                  <button id="nextStar" class="retro-btn secondary">Next</button>
+                </div>
+              </div>
+            `}
+          </div>
         </div>
       </div>`;
 
@@ -595,101 +3040,105 @@ ZwIDAQAB
     if (q.type === 'fact' && !q.isTF) {
       document.querySelectorAll('.option').forEach(b => {
         b.onclick = () => {
-          document.querySelectorAll('.option').forEach(x => x.classList.remove('border-indigo-500','bg-indigo-50','dark:bg-indigo-900'));
-          b.classList.add('border-indigo-500','bg-indigo-50','dark:bg-indigo-900');
+          document.querySelectorAll('.option').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
           choose(+b.dataset.i);
         };
       });
     }
 
-    if (q.type === 'game') {
-      const saved = answers[q.id];
-      resetPdState(saved);
+    if (q.type === 'starmaq') {
+      const selected = new Set(answers[q.q]?.selectedOptions || []);
+      document.querySelectorAll('.starmaq-option').forEach(btn => {
+        const val = btn.dataset.val;
+        if (selected.has(val)) btn.classList.add('active');
+        btn.onclick = () => {
+          if (btn.classList.toggle('active')) selected.add(val);
+          else selected.delete(val);
+        };
+      });
 
-      const timerEl = document.getElementById('pdTimer');
-      const userScoreEl = document.getElementById('pdUserScore');
-      const aiScoreEl = document.getElementById('pdAiScore');
-      const attackBtn = document.getElementById('pdAttack');
-      const coopBtn = document.getElementById('pdCooperate');
-      const startBtn = document.getElementById('pdStart');
-      const msgEl = document.getElementById('pdMessage');
-      const historyEl = document.getElementById('pdHistory');
-      const continueBtn = document.getElementById('pdContinue');
-
-      function setPdMessage(text, type = 'info') {
-        msgEl.textContent = text;
-        msgEl.className = 'pd-msg';
-        msgEl.classList.add(type === 'good' ? 'pd-msg-good' : type === 'bad' ? 'pd-msg-bad' : type === 'warn' ? 'pd-msg-warn' : 'pd-msg-info');
-      }
-
-      function renderPdHistory() {
-        historyEl.innerHTML = pdState.history.map(h => `<div class="pd-history-entry"><span>${h.user}</span><span>${h.ai}</span></div>`).join('');
-      }
-
-      function updatePdUi() {
-        timerEl.textContent = pdFormatTime(pdState.timeLeft);
-        userScoreEl.textContent = pdState.userScore;
-        aiScoreEl.textContent = pdState.aiScore;
-        renderPdHistory();
-      }
-
-      function pdEndGame() {
-        stopPdTimer();
-        pdState.active = false;
-        pdState.ended = true;
-        attackBtn.disabled = true;
-        coopBtn.disabled = true;
-        const verdict = pdState.userScore > pdState.aiScore ? 'good' : pdState.userScore < pdState.aiScore ? 'bad' : 'info';
-        setPdMessage(pdState.userScore === pdState.aiScore ? `Time's up! It's a tie: ${pdState.userScore} - ${pdState.aiScore}.` : pdState.userScore > pdState.aiScore ? `Time's up! You win ${pdState.userScore} vs ${pdState.aiScore}. Nice play.` : `Time's up! AI wins ${pdState.aiScore} vs ${pdState.userScore}. Try a different strategy next time.`, verdict);
-        continueBtn.disabled = false;
-        savePdAnswer(q.id, true);
-      }
-
-      function pdPlayRound(userMove) {
-        if (!pdState.active || pdState.timeLeft <= 0) return;
-        const aiMove = pdState.lastUserMove;
-        const [userPts, aiPts] = pdOutcome(userMove, aiMove);
-        pdState.userScore += userPts;
-        pdState.aiScore += aiPts;
-        pdState.lastUserMove = userMove;
-        pdState.history.unshift({ user: `${userMove === 'attack' ? 'Attack' : 'Cooperate'} (+${userPts})`, ai: `${aiMove === 'attack' ? 'Attack' : 'Cooperate'} (+${aiPts})` });
-        setPdMessage(`You: ${userMove === 'attack' ? 'Attack' : 'Cooperate'} (${userPts}) · AI: ${aiMove === 'attack' ? 'Attack' : 'Cooperate'} (${aiPts})`, userPts >= aiPts ? 'good' : 'bad');
-        savePdAnswer(q.id, false);
-        updatePdUi();
-      }
-
-      function startPdGame() {
-        resetPdState();
-        pdState.active = true;
-        attackBtn.disabled = false;
-        coopBtn.disabled = false;
-        continueBtn.disabled = false;
-        setPdMessage('Game started. Choose Attack or Cooperate each round.', 'info');
-        updatePdUi();
-        stopPdTimer();
-        pdState.timerId = setInterval(() => {
-          pdState.timeLeft--;
-          updatePdUi();
-          if (pdState.timeLeft <= 0) pdEndGame();
-        }, 1000);
-      }
-
-      attackBtn.onclick = () => pdPlayRound('attack');
-      coopBtn.onclick = () => pdPlayRound('cooperate');
-      startBtn.onclick = startPdGame;
-      continueBtn.onclick = () => {
-        pdState.ended = true;
-        stopPdTimer();
-        savePdAnswer(q.id, true);
+      document.getElementById('nextStarMaq').onclick = () => {
+        answers[q.q] = {
+          type: 'starmaq',
+          question: q.q,
+          selectedOptions: Array.from(selected)
+        };
+        autoSave();
         next();
       };
+    }
 
-      // Initial render for saved state
-      attackBtn.disabled = true;
-      coopBtn.disabled = true;
-      continueBtn.disabled = false;
-      if (saved?.ended) setPdMessage('Game finished earlier. Continue when ready.', 'info');
-      updatePdUi();
+    if (q.type === 'game') {
+      if (q.id === pdGameId) {
+        pdState = {
+          userScore: 0,
+          aiScore: 0,
+          timeLeft: pdDefaultDuration,
+          timerId: null,
+          active: false,
+          lastUserMove: 'cooperate',
+          history: [],
+          ended: false
+        };
+
+        const summaryEl = document.getElementById('pd-user-summary');
+        if (summaryEl) {
+          summaryEl.textContent = pdUserInfo
+            ? `Previous round: You ${pdUserInfo.userScore} · AI ${pdUserInfo.aiScore} in ${pdFormatTime(pdUserInfo.timePlayed)}.`
+            : 'Play a round, then tap CONTINUE to move on.';
+        }
+
+        renderPrisonersDilemma('pd-root', (result) => {
+          pdUserInfo = {
+            ...result,
+            ended: pdState.ended
+          };
+
+          if (summaryEl) {
+            summaryEl.textContent = `You scored ${result.userScore} while AI scored ${result.aiScore} in ${pdFormatTime(result.timePlayed)}.`;
+          }
+
+          next();
+        });
+
+        currentGameCleanup = () => pdStopTimer();
+      } else if (q.id === snakeGameId) {
+        const summaryEl = document.getElementById('snake-user-summary');
+        if (summaryEl) {
+          summaryEl.textContent = snakeUserInfo
+            ? `Previous round: ${snakeUserInfo.applesEaten ?? snakeUserInfo.score} apples in ${snakeUserInfo.timePlayed}s.`
+            : 'Press START, use the arrows or buttons, then CONTINUE to proceed.';
+        }
+
+        const teardown = renderSnakeGame('snake-root', (result) => {
+          snakeUserInfo = { ...result };
+          if (summaryEl) {
+            summaryEl.textContent = `You ate ${result.applesEaten} apples in ${result.timePlayed}s.`;
+          }
+          next();
+        });
+
+        currentGameCleanup = teardown;
+      } else if (q.id === blockdudeGameId) {
+        const summaryEl = document.getElementById('blockdude-user-summary');
+        if (summaryEl) {
+          summaryEl.textContent = blockdudeUserInfo
+            ? `${blockdudeUserInfo.completed ? 'Reached exit' : 'Not yet at exit'} in ${blockdudeUserInfo.timePlayed}s after ${blockdudeUserInfo.moves} moves.`
+            : 'Press START, move with arrows or the down button, then CONTINUE to proceed.';
+        }
+
+        const teardown = renderBlockDude('blockdude-root', (result) => {
+          blockdudeUserInfo = { ...result };
+          if (summaryEl) {
+            const status = result.completed ? 'Reached exit' : 'Stopped early';
+            summaryEl.textContent = `${status} in ${result.timePlayed}s after ${result.moves} moves (blocks moved: ${result.blocksMoved}).`;
+          }
+          next();
+        });
+
+        currentGameCleanup = teardown;
+      }
     }
 
     if (q.type === 'star') {
@@ -747,8 +3196,8 @@ ZwIDAQAB
       const corr = f.isTF ? (f.correct ? 'True' : 'False') : f.options[f.correct];
 
       recap += `
-        <div class="p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl mb-3">
-          <strong class="block mb-1">${esc(f.q)}</strong>
+        <div class="recap-card">
+          <strong>${esc(f.q)}</strong>
           <div>You: ${user} | Correct: ${corr}</div>
         </div>`;
     });
@@ -757,19 +3206,22 @@ ZwIDAQAB
     autoSave(true);
 
     app.innerHTML = `
-      <div class="container flex flex-col h-full px-6 pt-8 overflow-y-auto">
-        <h1 class="text-5xl font-black text-center mb-8">Results</h1>
-
-        <div class="grid grid-cols-1 gap-5 mb-8">
-          <div class="bg-indigo-100 dark:bg-indigo-900 p-6 rounded-3xl text-center">
-            <div class="text-xl font-bold">Smart</div>
-            <div class="text-6xl font-black">${smart}</div>
+      <div class="container app-surface">
+        <div class="app-shell">
+          <div class="question-card">
+            <h1 class="question-title">Results</h1>
+            <div class="result-grid">
+              <div class="result-tile">
+                <div>Smart Score</div>
+                <div class="result-score">${smart}</div>
+              </div>
+            </div>
+            <div class="recap-stack">${recap}</div>
+            <div class="action-row">
+              <button onclick="location.reload()" class="retro-btn secondary">Retake Survey</button>
+            </div>
           </div>
         </div>
-
-        <div class="space-y-3 flex-1 overflow-y-auto">${recap}</div>
-
-        <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white text-xl font-bold rounded-2xl shadow-xl mt-6">Retake Survey</button>
       </div>`;
   }
 
