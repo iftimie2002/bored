@@ -664,6 +664,304 @@
         0 0 0 #000;
     }
 
+    /* BLOCK DUDE MINI GAME */
+    .bd-game-outer {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      border-radius: 18px;
+      padding: 8px;
+      background: #111827;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+      image-rendering: pixelated;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+    }
+
+    .bd-game-shell {
+      border-radius: 14px;
+      padding: 6px;
+      background: #27272f;
+      border: 3px solid #4b5563;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bd-game-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        135deg,
+        rgba(255,255,255,0.04) 0,
+        rgba(255,255,255,0.04) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      pointer-events: none;
+    }
+
+    .bd-hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      color: #e5e7eb;
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .bd-hud-label {
+      background: #000;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 2px solid #6b7280;
+      box-shadow: 0 0 0 2px #000;
+    }
+
+    .bd-hud-middle {
+      font-size: 8px;
+      color: #e5e7eb;
+      opacity: 0.9;
+      text-align: center;
+    }
+
+    .bd-hud-right {
+      font-size: 7px;
+      text-align: right;
+      color: #9ca3af;
+    }
+
+    .bd-field {
+      position: relative;
+      margin-top: 4px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #374151;
+      box-shadow: 0 0 0 2px #111827;
+      background:
+        linear-gradient(#60a5fa 0%, #60a5fa 40%, #22c55e 40%, #15803d 100%);
+      padding: 16px 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bd-cloud {
+      position: absolute;
+      top: 6px;
+      width: 46px;
+      height: 18px;
+      background: #e5f2ff;
+      border-radius: 8px;
+      box-shadow:
+        10px 0 0 #e5f2ff,
+        -10px 0 0 #e5f2ff,
+        0 6px 0 #e5f2ff;
+      filter: drop-shadow(0 0 2px rgba(15,23,42,0.5));
+      animation: bd-cloud-drift 16s linear infinite;
+    }
+
+    .bd-cloud.c2 {
+      top: 16px;
+      animation-duration: 22s;
+      opacity: 0.8;
+    }
+
+    .bd-cloud.c3 {
+      top: 2px;
+      animation-duration: 26s;
+      opacity: 0.65;
+    }
+
+    @keyframes bd-cloud-drift {
+      0%   { transform: translateX(-60px); }
+      100% { transform: translateX(260px); }
+    }
+
+    .bd-field-row {
+      display: flex;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .bd-canvas-wrap {
+      padding: 6px;
+      background: #064e3b;
+      border-radius: 10px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 4px 0 #000;
+    }
+
+    .bd-canvas {
+      display: block;
+      background: #022c22;
+      box-shadow: inset 0 0 0 2px #111827;
+      image-rendering: pixelated;
+    }
+
+    .bd-controls {
+      display: flex;
+      gap: 8px;
+      margin: 6px 4px 4px;
+      z-index: 1;
+    }
+
+    .bd-btn {
+      flex: 1;
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      font-size: 9px;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      padding: 9px 4px;
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 6px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+    }
+
+    .bd-btn-primary {
+      background: #4f46e5;
+      color: #f9fafb;
+    }
+
+    .bd-btn-small {
+      flex: 0 0 auto;
+      font-size: 8px;
+      padding: 7px 6px;
+      background: #fecaca;
+    }
+
+    .bd-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+      filter: brightness(0.85);
+    }
+
+    .bd-btn[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.4);
+    }
+
+    .bd-message-box {
+      margin: 4px 4px 2px;
+      padding: 6px 6px 4px;
+      border-radius: 8px;
+      background: #020617;
+      box-shadow: 0 0 0 2px #000;
+      font-size: 8px;
+      color: #e5e7eb;
+      z-index: 1;
+      min-height: 1.6em;
+    }
+
+    .bd-msg-good { color: #4ade80; }
+    .bd-msg-bad  { color: #f97373; }
+    .bd-msg-warn { color: #fbbf24; }
+
+    .bd-mobile-arrows {
+      margin: 6px 4px 4px;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .bd-arrow-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .bd-arrow-btn {
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: 12px;
+      padding: 10px 14px;
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 8px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      min-width: 52px;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+    }
+
+    .bd-arrow-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+      filter: brightness(0.85);
+    }
+
+    .bd-arrow-btn-empty {
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: none;
+    }
+
+    .bd-continue-wrap {
+      margin: 6px 4px 4px;
+    }
+
+    .bd-continue-btn {
+      width: 100%;
+      border-radius: 8px;
+      border: 0;
+      outline: 0;
+      padding: 9px 4px;
+      background: #22c55e;
+      color: #052e16;
+      font-size: 9px;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      cursor: pointer;
+      transition: transform 0.06s ease, box-shadow 0.06s ease;
+    }
+
+    .bd-continue-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+    }
+
+    @media (max-width: 400px) {
+      .bd-hud {
+        font-size: 7px;
+      }
+      .bd-btn {
+        font-size: 8px;
+        padding: 8px 4px;
+      }
+      .bd-arrow-btn {
+        font-size: 10px;
+        min-width: 44px;
+        padding: 8px 10px;
+      }
+      .bd-continue-btn {
+        font-size: 8px;
+      }
+    }
+
     @media (max-width: 400px) {
       .sn-hud {
         font-size: 7px;
@@ -1014,6 +1312,8 @@ ZwIDAQAB
   };
   const snakeGameId = 'snakeClassic';
   let snakeUserInfo = null;
+  const blockdudeGameId = 'blockdude';
+  let blockdudeUserInfo = null;
   let currentGameCleanup = null;
   const app = document.getElementById('app');
 
@@ -1564,6 +1864,430 @@ ZwIDAQAB
     };
   }
 
+  function renderBlockDude(containerId = 'blockdude-root', onContinue = null) {
+    const root = document.getElementById(containerId);
+    if (!root) return () => {};
+
+    root.innerHTML = `
+      <div class="bd-game-outer">
+        <div class="bd-game-shell">
+          <div class="bd-hud">
+            <div class="bd-hud-label">BLOCK&nbsp;DUDE</div>
+            <div class="bd-hud-middle">Left / Right · Down = pick/drop</div>
+            <div class="bd-hud-right">
+              <div>Reach the door</div>
+            </div>
+          </div>
+
+          <div class="bd-field">
+            <div class="bd-cloud" style="left:-40px;"></div>
+            <div class="bd-cloud c2" style="left:40px;"></div>
+            <div class="bd-cloud c3" style="left:140px;"></div>
+
+            <div class="bd-field-row">
+              <div class="bd-canvas-wrap">
+                <canvas id="bdCanvas" class="bd-canvas" width="384" height="256"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="bd-controls">
+            <button id="bdStart" class="bd-btn bd-btn-primary">START</button>
+            <button id="bdReset" class="bd-btn bd-btn-small">RESET</button>
+          </div>
+
+          <div class="bd-mobile-arrows">
+            <div class="bd-arrow-row">
+              <button class="bd-arrow-btn bd-arrow-btn-empty" disabled></button>
+              <button id="bdArrowDown" class="bd-arrow-btn">▼</button>
+              <button class="bd-arrow-btn bd-arrow-btn-empty" disabled></button>
+            </div>
+            <div class="bd-arrow-row">
+              <button id="bdArrowLeft" class="bd-arrow-btn">◀</button>
+              <button class="bd-arrow-btn bd-arrow-btn-empty" disabled></button>
+              <button id="bdArrowRight" class="bd-arrow-btn">▶</button>
+            </div>
+          </div>
+
+          <div class="bd-message-box" id="bdMessage">
+            Press START, then use keys or buttons. Get to the tiny door.
+          </div>
+
+          <div class="bd-continue-wrap">
+            <button id="bdContinue" class="bd-continue-btn">CONTINUE</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const canvas = document.getElementById('bdCanvas');
+    const context = canvas.getContext('2d');
+    const startBtn = document.getElementById('bdStart');
+    const resetBtn = document.getElementById('bdReset');
+    const msgEl = document.getElementById('bdMessage');
+    const continueBtn = document.getElementById('bdContinue');
+
+    const arrowLeftBtn = document.getElementById('bdArrowLeft');
+    const arrowRightBtn = document.getElementById('bdArrowRight');
+    const arrowDownBtn = document.getElementById('bdArrowDown');
+
+    const grid = 32;
+
+    const wallCanvas = document.createElement('canvas');
+    const wallCtx = wallCanvas.getContext('2d');
+    wallCanvas.width = wallCanvas.height = grid;
+
+    wallCtx.fillStyle = 'white';
+    wallCtx.fillRect(1, 1, grid, grid);
+    wallCtx.fillStyle = 'black';
+    wallCtx.fillRect(0, 1, 21, 10);
+    wallCtx.fillRect(23, 1, 10, 10);
+    wallCtx.fillRect(0, 12, 10, 9);
+    wallCtx.fillRect(11, 12, 21, 9);
+    wallCtx.fillRect(0, 22, 21, 10);
+    wallCtx.fillRect(23, 22, 10, 10);
+
+    let playerDir = { row: 0, col: 0 };
+    let playerPos = { row: 0, col: 0 };
+    let playerFacing = -1;
+    let rAF = null;
+    let carryingBlock = false;
+    let width = 0;
+    let running = false;
+    let reachedExit = false;
+    let actions = 0;
+    let blocksMoved = 0;
+    let resets = 0;
+    let startTime = null;
+
+    const types = {
+      wall: '#',
+      player: '@',
+      block: '$',
+      goal: '.',
+      empty: ' '
+    };
+
+    const level1 = `
+ #    ##        ##
+ #                #
+##                 #
+#.                  #
+##                   #
+ #           #  $    #
+ #           #$ $$@  #
+ #####   #############
+     #  $#
+     #####
+`;
+
+    const cells = [];
+
+    function bdSetMessage(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = 'bd-message-box';
+      if (type === 'good') msgEl.classList.add('bd-msg-good');
+      else if (type === 'bad') msgEl.classList.add('bd-msg-bad');
+      else if (type === 'warn') msgEl.classList.add('bd-msg-warn');
+    }
+
+    function buildLevel() {
+      width = 0;
+      cells.length = 0;
+      playerPos = { row: 0, col: 0 };
+      playerDir = { row: 0, col: 0 };
+      playerFacing = -1;
+      carryingBlock = false;
+      reachedExit = false;
+      actions = 0;
+      blocksMoved = 0;
+      startTime = null;
+
+      level1.split('\n')
+        .filter(rowData => rowData !== '')
+        .forEach((rowData, row) => {
+          cells[row] = [];
+          if (rowData.length > width) width = rowData.length;
+
+          rowData.split('').forEach((colData, col) => {
+            cells[row][col] = colData;
+            if (colData === types.player) {
+              playerPos = { row, col };
+            }
+          });
+        });
+    }
+
+    function clamp(min, max, value) {
+      return Math.min(Math.max(min, value), max);
+    }
+
+    function move(startPos, endPos) {
+      const startCell = cells[startPos.row][startPos.col];
+      const endCell = cells[endPos.row]?.[endPos.col];
+
+      const isPlayer = startCell === types.player;
+
+      if (startCell === types.player || startCell === types.block) {
+        cells[startPos.row][startPos.col] = types.empty;
+      }
+
+      if (endCell === types.empty || endCell === types.goal) {
+        cells[endPos.row][endPos.col] = isPlayer ? types.player : types.block;
+      }
+
+      playerFacing = endPos.col - startPos.col;
+
+      if (carryingBlock) {
+        const aboveStart = cells[startPos.row - 1];
+        if (aboveStart) aboveStart[startPos.col] = types.empty;
+        const aboveEnd = cells[endPos.row - 1];
+        if (aboveEnd) aboveEnd[endPos.col] = types.block;
+      }
+    }
+
+    function loop() {
+      rAF = requestAnimationFrame(loop);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (running) {
+        let row = playerPos.row + playerDir.row;
+        const col = playerPos.col + playerDir.col;
+        const cell = cells[row]?.[col];
+
+        switch(cell) {
+          case types.empty:
+          case types.goal:
+            let rowBelow = row + 1 + playerDir.row;
+            let belowCell = cells[rowBelow]?.[col];
+            while (belowCell === types.empty || belowCell === types.goal) {
+              row = rowBelow;
+              rowBelow = row + 1 + playerDir.row;
+              belowCell = cells[rowBelow]?.[col];
+            }
+
+            move(playerPos, { row, col });
+
+            playerPos.row = row;
+            playerPos.col = col;
+
+            if (cell === types.goal) {
+              running = false;
+              reachedExit = true;
+              bdSetMessage('Nice! You reached the exit.', 'good');
+            }
+            break;
+
+          case types.block:
+          case types.wall:
+            const rowAbove = row - 1 + playerDir.row;
+            const nextCell = cells[rowAbove]?.[col];
+
+            if (nextCell === types.empty || nextCell === types.goal) {
+              move(playerPos, { row: rowAbove, col });
+
+              playerPos.row = rowAbove;
+              playerPos.col = col;
+            }
+            break;
+        }
+
+        playerDir = { row: 0, col: 0 };
+      }
+
+      context.strokeStyle = 'black';
+      context.fillStyle = 'black';
+      context.lineWidth = 2;
+
+      const startRow = clamp(0, Math.max(0, cells.length - 8), playerPos.row - 4);
+      const startCol = clamp(0, Math.max(0, width - 12), playerPos.col - 6);
+
+      for (let row = startRow; row < cells.length; row++) {
+        for (let col = startCol; col < (cells[row]?.length || 0); col++) {
+          const cell = cells[row][col];
+          const drawRow = row - startRow;
+          const drawCol = col - startCol;
+
+          switch(cell) {
+            case types.wall:
+              context.drawImage(wallCanvas, drawCol * grid, drawRow * grid);
+              break;
+
+            case types.block:
+              context.strokeRect(drawCol * grid, drawRow * grid, grid, grid);
+              break;
+
+            case types.goal:
+              context.strokeRect((drawCol + 0.2) * grid, drawRow * grid, grid - 12, grid);
+              context.beginPath();
+              context.arc((drawCol + 0.7) * grid, (drawRow + 0.5) * grid, 2, 0, Math.PI * 2);
+              context.fill();
+              break;
+
+            case types.player:
+              context.beginPath();
+              context.arc((drawCol + 0.5) * grid, (drawRow + 0.3) * grid, 7, 0, Math.PI * 2);
+              context.stroke();
+
+              const x = (drawCol + ( playerFacing < 0 ? 0.1 : 0.6)) * grid;
+              context.fillRect(x, (drawRow + 0.15) * grid, grid / 3, 2);
+              context.beginPath();
+              context.arc((drawCol + 0.5) * grid, (drawRow + 0.25) * grid, 7, 0, Math.PI, 1);
+              context.fill();
+
+              context.fillRect((drawCol + 0.48) * grid, (drawRow + 0.4) * grid, 2, grid / 2.5 );
+              context.fillRect((drawCol + 0.3) * grid, (drawRow + 0.6) * grid, grid / 2.5, 2);
+
+              context.moveTo((drawCol + 0.5) * grid, (drawRow + 0.8) * grid);
+              context.lineTo((drawCol + 0.65) * grid, (drawRow + 1) * grid);
+              context.moveTo((drawCol + 0.5) * grid, (drawRow + 0.8) * grid);
+              context.lineTo((drawCol + 0.35) * grid, (drawRow + 1) * grid);
+              context.stroke();
+              break;
+          }
+        }
+      }
+    }
+
+    function handleInput(dir) {
+      if (!running) return;
+      if (!startTime) startTime = performance.now();
+
+      playerDir = { row: 0, col: 0 };
+      let acted = false;
+
+      if (dir === 'left') {
+        playerDir.col = -1;
+        acted = true;
+      } else if (dir === 'right') {
+        playerDir.col = 1;
+        acted = true;
+      } else if (dir === 'down') {
+        const nextCol = playerFacing + playerPos.col;
+        const rowLength = cells[playerPos.row]?.length || 0;
+        if (nextCol < 0 || nextCol >= rowLength) return;
+        const nextCell = cells[playerPos.row]?.[nextCol];
+        const cellAbove = cells[playerPos.row - 1]?.[nextCol];
+
+        if (!carryingBlock && nextCell === types.block && cellAbove === types.empty) {
+          cells[playerPos.row][nextCol] = types.empty;
+          cells[playerPos.row - 1][playerPos.col] = types.block;
+          carryingBlock = true;
+          blocksMoved++;
+          acted = true;
+          bdSetMessage('Block picked up.', 'info');
+        } else if (carryingBlock) {
+          let row = playerPos.row;
+
+          if (nextCell === types.empty) {
+            let rowBelow = row - 1;
+            let belowCell = cells[rowBelow]?.[nextCol];
+            while (belowCell === types.empty) {
+              row = rowBelow;
+              rowBelow++;
+              belowCell = cells[rowBelow]?.[nextCol];
+            }
+          }
+
+          if ((nextCell === types.wall || nextCell === types.block) && cellAbove === types.empty) {
+            row = row - 1;
+          }
+
+          cells[playerPos.row - 1][playerPos.col] = types.empty;
+          cells[row][nextCol] = types.block;
+          carryingBlock = false;
+          blocksMoved++;
+          acted = true;
+          bdSetMessage('Block dropped.', 'info');
+        }
+      }
+
+      if (acted) actions++;
+    }
+
+    function keyHandler(e) {
+      const key = e.key || e.code;
+      if (key === 'ArrowLeft' || e.which === 37) {
+        e.preventDefault();
+        handleInput('left');
+      } else if (key === 'ArrowRight' || e.which === 39) {
+        e.preventDefault();
+        handleInput('right');
+      } else if (key === 'ArrowDown' || e.which === 40) {
+        e.preventDefault();
+        handleInput('down');
+      }
+    }
+
+    document.addEventListener('keydown', keyHandler);
+
+    function bindArrow(btn, dir) {
+      if (!btn) return () => {};
+      const handler = (ev) => {
+        ev.preventDefault();
+        handleInput(dir);
+      };
+      btn.addEventListener('touchstart', handler, { passive: false });
+      btn.addEventListener('mousedown', handler);
+      return () => {
+        btn.removeEventListener('touchstart', handler);
+        btn.removeEventListener('mousedown', handler);
+      };
+    }
+
+    const unbinders = [
+      bindArrow(arrowLeftBtn, 'left'),
+      bindArrow(arrowRightBtn, 'right'),
+      bindArrow(arrowDownBtn, 'down'),
+    ];
+
+    function stopLoop() {
+      if (rAF) cancelAnimationFrame(rAF);
+      rAF = null;
+    }
+
+    startBtn.onclick = () => {
+      if (!rAF) rAF = requestAnimationFrame(loop);
+      running = true;
+      if (!startTime) startTime = performance.now();
+      bdSetMessage('Go! Use arrows or buttons.', 'info');
+    };
+
+    resetBtn.onclick = () => {
+      running = false;
+      resets++;
+      buildLevel();
+      bdSetMessage('Level reset. Try again.', 'info');
+      if (!rAF) rAF = requestAnimationFrame(loop);
+    };
+
+    continueBtn.onclick = () => {
+      const result = {
+        moves: actions,
+        blocksMoved,
+        resets,
+        completed: reachedExit,
+        timePlayed: startTime ? Math.round((performance.now() - startTime) / 1000) : 0
+      };
+      running = false;
+      stopLoop();
+      bdSetMessage('Saved your progress. Moving on.', 'info');
+      if (typeof onContinue === 'function') {
+        onContinue(result);
+      }
+    };
+
+    buildLevel();
+    rAF = requestAnimationFrame(loop);
+
+    return function teardownBlockDude() {
+      running = false;
+      stopLoop();
+      document.removeEventListener('keydown', keyHandler);
+      unbinders.forEach((fn) => fn());
+    };
+  }
+
   function renderMeta() {
     app.innerHTML = `
       <div class="container flex flex-col justify-center items-center h-full px-6">
@@ -1638,7 +2362,7 @@ ZwIDAQAB
 
     // ADDED: insert mini-games between questions
     if (sequence.length > 1) {
-      const gameIds = [pdGameId, snakeGameId];
+      const gameIds = [pdGameId, snakeGameId, blockdudeGameId];
       const slotSize = Math.max(1, Math.floor(sequence.length / (gameIds.length + 1)));
 
       gameIds.forEach((id, index) => {
@@ -1722,9 +2446,12 @@ ZwIDAQAB
               ${q.id === pdGameId ? `
                 <div id="pd-root" class="flex-1 flex items-center justify-center w-full px-2"></div>
                 <div id="pd-user-summary" class="text-xs text-center text-slate-600 dark:text-slate-200"></div>
-              ` : `
+              ` : q.id === snakeGameId ? `
                 <div id="snake-root" class="flex-1 flex items-center justify-center w-full px-2"></div>
                 <div id="snake-user-summary" class="text-xs text-center text-slate-600 dark:text-slate-200"></div>
+              ` : `
+                <div id="blockdude-root" class="flex-1 flex items-center justify-center w-full px-2"></div>
+                <div id="blockdude-user-summary" class="text-xs text-center text-slate-600 dark:text-slate-200"></div>
               `}
             </div>
           ` : `
@@ -1791,9 +2518,7 @@ ZwIDAQAB
         });
 
         currentGameCleanup = () => pdStopTimer();
-      }
-
-      if (q.id === snakeGameId) {
+      } else if (q.id === snakeGameId) {
         const summaryEl = document.getElementById('snake-user-summary');
         if (summaryEl) {
           summaryEl.textContent = snakeUserInfo
@@ -1805,6 +2530,24 @@ ZwIDAQAB
           snakeUserInfo = { ...result };
           if (summaryEl) {
             summaryEl.textContent = `You ate ${result.applesEaten} apples in ${result.timePlayed}s.`;
+          }
+          next();
+        });
+
+        currentGameCleanup = teardown;
+      } else if (q.id === blockdudeGameId) {
+        const summaryEl = document.getElementById('blockdude-user-summary');
+        if (summaryEl) {
+          summaryEl.textContent = blockdudeUserInfo
+            ? `${blockdudeUserInfo.completed ? 'Reached exit' : 'Not yet at exit'} in ${blockdudeUserInfo.timePlayed}s after ${blockdudeUserInfo.moves} moves.`
+            : 'Press START, move with arrows or the down button, then CONTINUE to proceed.';
+        }
+
+        const teardown = renderBlockDude('blockdude-root', (result) => {
+          blockdudeUserInfo = { ...result };
+          if (summaryEl) {
+            const status = result.completed ? 'Reached exit' : 'Stopped early';
+            summaryEl.textContent = `${status} in ${result.timePlayed}s after ${result.moves} moves (blocks moved: ${result.blocksMoved}).`;
           }
           next();
         });
