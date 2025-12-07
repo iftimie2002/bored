@@ -2671,13 +2671,10 @@ ZwIDAQAB
       ...mcQuestions.map(f => ({...f,isTF:false}))
     ]).slice(0, maxF);
 
-    const gamePool = shuffle([pdGameId, snakeGameId, blockdudeGameId]);
-
     sequence = [];
-    let fi = 0, si = 0, mi = 0, gi = 0;
-    let prevGame = null;
+    let fi = 0, si = 0, mi = 0;
 
-    while (fi < factPool.length || si < stars.length || mi < starmaqPool.length || gi < gamePool.length) {
+    while (fi < factPool.length || si < stars.length || mi < starmaqPool.length) {
       if (fi < factPool.length) {
         const f = factPool[fi++];
         sequence.push({type:'fact', q:f.q, options:f.options||null, correct:f.correct, isTF:f.isTF});
