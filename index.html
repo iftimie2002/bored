@@ -587,6 +587,54 @@
     .sn-msg-bad  { color: #f97373; }
     .sn-msg-warn { color: #fbbf24; }
 
+    /* MOBILE ARROW KEYS */
+    .sn-mobile-arrows {
+      margin: 6px 4px 4px;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sn-arrow-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .sn-arrow-btn {
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: 12px;
+      padding: 10px 14px;
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 8px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      min-width: 52px;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+    }
+
+    .sn-arrow-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+      filter: brightness(0.85);
+    }
+
+    .sn-arrow-btn-empty {
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: none;
+    }
+
     .sn-continue-wrap {
       margin: 6px 4px 4px;
     }
@@ -622,6 +670,11 @@
       }
       .sn-btn {
         font-size: 8px;
+      }
+      .sn-arrow-btn {
+        font-size: 10px;
+        min-width: 44px;
+        padding: 8px 10px;
       }
       .sn-continue-btn {
         font-size: 8px;
@@ -1269,8 +1322,22 @@ ZwIDAQAB
             <button id="snReset" class="sn-btn sn-btn-small">RESET</button>
           </div>
 
+          <div class="sn-mobile-arrows">
+            <div class="sn-arrow-row">
+              <button id="snArrowUp" class="sn-arrow-btn">▲</button>
+            </div>
+            <div class="sn-arrow-row">
+              <button id="snArrowLeft" class="sn-arrow-btn">◀</button>
+              <button class="sn-arrow-btn sn-arrow-btn-empty" disabled></button>
+              <button id="snArrowRight" class="sn-arrow-btn">▶</button>
+            </div>
+            <div class="sn-arrow-row">
+              <button id="snArrowDown" class="sn-arrow-btn">▼</button>
+            </div>
+          </div>
+
           <div class="sn-message-box" id="snMessage">
-            Press START, then use the arrow keys. Don't eat yourself.
+            Press START, then use the arrow keys or buttons. Don't eat yourself.
           </div>
 
           <div class="sn-continue-wrap">
@@ -1287,6 +1354,11 @@ ZwIDAQAB
     const startBtn = document.getElementById('snStart');
     const resetBtn = document.getElementById('snReset');
     const continueBtn = document.getElementById('snContinue');
+
+    const arrowUpBtn = document.getElementById('snArrowUp');
+    const arrowDownBtn = document.getElementById('snArrowDown');
+    const arrowLeftBtn = document.getElementById('snArrowLeft');
+    const arrowRightBtn = document.getElementById('snArrowRight');
 
     const grid = 16;
     let count = 0;
@@ -1336,6 +1408,19 @@ ZwIDAQAB
       count = 0;
       startTime = null;
       snSetMessage('Game reset. Press START to play again.', 'info');
+    }
+
+    function snChangeDirection(dir) {
+      if (!running) return;
+      if (dir === 'left' && snake.dx === 0) {
+        snake.dx = -grid; snake.dy = 0;
+      } else if (dir === 'up' && snake.dy === 0) {
+        snake.dy = -grid; snake.dx = 0;
+      } else if (dir === 'right' && snake.dx === 0) {
+        snake.dx = grid; snake.dy = 0;
+      } else if (dir === 'down' && snake.dy === 0) {
+        snake.dy = grid; snake.dx = 0;
+      }
     }
 
     function snLoop() {
@@ -1407,19 +1492,34 @@ ZwIDAQAB
     }
 
     function snKeyHandler(e) {
-      if (!running) return;
-      if (e.key === 'ArrowLeft' && snake.dx === 0) {
-        snake.dx = -grid; snake.dy = 0;
-      } else if (e.key === 'ArrowUp' && snake.dy === 0) {
-        snake.dy = -grid; snake.dx = 0;
-      } else if (e.key === 'ArrowRight' && snake.dx === 0) {
-        snake.dx = grid; snake.dy = 0;
-      } else if (e.key === 'ArrowDown' && snake.dy === 0) {
-        snake.dy = grid; snake.dx = 0;
-      }
+      if (e.key === 'ArrowLeft') snChangeDirection('left');
+      else if (e.key === 'ArrowUp') snChangeDirection('up');
+      else if (e.key === 'ArrowRight') snChangeDirection('right');
+      else if (e.key === 'ArrowDown') snChangeDirection('down');
     }
 
     document.addEventListener('keydown', snKeyHandler);
+
+    function bindArrow(btn, dir) {
+      if (!btn) return;
+      const handler = (ev) => {
+        ev.preventDefault();
+        snChangeDirection(dir);
+      };
+      btn.addEventListener('touchstart', handler, { passive: false });
+      btn.addEventListener('mousedown', handler);
+      return () => {
+        btn.removeEventListener('touchstart', handler);
+        btn.removeEventListener('mousedown', handler);
+      };
+    }
+
+    const unbinders = [
+      bindArrow(arrowUpBtn, 'up'),
+      bindArrow(arrowDownBtn, 'down'),
+      bindArrow(arrowLeftBtn, 'left'),
+      bindArrow(arrowRightBtn, 'right')
+    ].filter(Boolean);
 
     startBtn.onclick = () => {
       if (!rafId) {
@@ -1429,7 +1529,7 @@ ZwIDAQAB
       if (!running) {
         running = true;
         if (!startTime) startTime = performance.now();
-        snSetMessage('Go! Use the arrow keys.', 'info');
+        snSetMessage('Go! Use the arrow keys or buttons.', 'info');
       }
     };
 
@@ -1460,6 +1560,7 @@ ZwIDAQAB
       running = false;
       stopLoop();
       document.removeEventListener('keydown', snKeyHandler);
+      unbinders.forEach((fn) => fn());
     };
   }
 
@@ -1697,7 +1798,7 @@ ZwIDAQAB
         if (summaryEl) {
           summaryEl.textContent = snakeUserInfo
             ? `Previous round: ${snakeUserInfo.applesEaten ?? snakeUserInfo.score} apples in ${snakeUserInfo.timePlayed}s.`
-            : 'Press START, play a round, then CONTINUE to proceed.';
+            : 'Press START, use the arrows or buttons, then CONTINUE to proceed.';
         }
 
         const teardown = renderSnakeGame('snake-root', (result) => {
