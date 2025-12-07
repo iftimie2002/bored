@@ -544,17 +544,26 @@ ZwIDAQAB
     };
   }
 
+  // IMPORTANT CHANGE: strip Prisoner's Dilemma answer before sending
   function autoSave(isFinal = false) {
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(() => {
+      const answersForSheets = Object.fromEntries(
+        Object.entries(answers).filter(([key]) => key !== pdGameId)
+      );
+
       const payload = {
         meta: {
           stay: document.getElementById('stay')?.value || null,
           mins: document.getElementById('mins')?.value || null,
           client: getClientInfo()
         },
-        answers: answers,
-        sequence: sequence.map(q => q.type === 'star' ? {type:'star', id:q.id} : {type:'fact', q:q.q}),
+        answers: answersForSheets,
+        sequence: sequence.map(q =>
+          q.type === 'star'
+            ? { type: 'star', id: q.id }
+            : { type: 'fact', q: q.q }
+        ),
         pointer: pointer
       };
       if (isFinal) {
