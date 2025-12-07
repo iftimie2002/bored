@@ -4,43 +4,49 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>How Smart are You?</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' }
-  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: light;
-      --bg: #f4f5f9;
-      --card: #ffffff;
+      --bg: #f8f1e3;
+      --bg-secondary: #f1e7d4;
+      --card: #fffaf0;
       --text: #0f172a;
-      --muted: #475569;
-      --accent: #4f46e5;
-      --surface-border: rgba(15, 23, 42, 0.08);
-      --glow: 0 18px 40px rgba(15, 23, 42, 0.14);
+      --muted: #4a5568;
+      --accent: #f59e0b;
+      --accent-2: #22c55e;
+      --surface-border: rgba(15, 23, 42, 0.15);
+      --glow: 0 16px 42px rgba(15, 23, 42, 0.18);
+      --pixel-font: 'Press Start 2P', system-ui, sans-serif;
+      --body-font: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
         color-scheme: dark;
-        --bg: #0b1224;
+        --bg: #0c1324;
+        --bg-secondary: #0f1a30;
         --card: #0f172a;
         --text: #e2e8f0;
-        --muted: #94a3b8;
-        --accent: #8b5cf6;
-        --surface-border: rgba(148, 163, 184, 0.16);
-        --glow: 0 18px 42px rgba(0, 0, 0, 0.55);
+        --muted: #a5b4cb;
+        --accent: #f8b23c;
+        --accent-2: #4ade80;
+        --surface-border: rgba(148, 163, 184, 0.2);
+        --glow: 0 18px 42px rgba(0, 0, 0, 0.65);
       }
     }
 
     html, body, #app { height: 100%; margin: 0; padding: 0; overflow: hidden; }
     body {
-      background: radial-gradient(circle at 20% 20%, rgba(79, 70, 229, 0.08), transparent 26%),
-                  radial-gradient(circle at 80% 30%, rgba(34, 197, 94, 0.08), transparent 22%),
-                  radial-gradient(circle at 40% 80%, rgba(14, 165, 233, 0.08), transparent 25%),
-                  var(--bg);
+      background:
+        radial-gradient(circle at 10% 16%, rgba(245, 158, 11, 0.18), transparent 26%),
+        radial-gradient(circle at 78% 24%, rgba(34, 197, 94, 0.16), transparent 22%),
+        radial-gradient(circle at 48% 82%, rgba(14, 165, 233, 0.12), transparent 25%),
+        linear-gradient(135deg, var(--bg-secondary), var(--bg));
       color: var(--text);
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: var(--body-font);
       transition: background 0.4s ease, color 0.3s ease;
     }
 
@@ -49,16 +55,37 @@
 
     .app-surface { min-height: 100%; display: flex; align-items: stretch; }
     .app-shell {
-      width: min(960px, 100%);
+      width: min(1040px, 100%);
       margin: 0 auto;
-      background: var(--card);
-      border: 2px solid var(--surface-border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,245,230,0.9));
+      border: 3px solid var(--surface-border);
       box-shadow: var(--glow);
-      border-radius: 22px;
+      border-radius: 26px;
       display: flex;
       flex-direction: column;
       gap: clamp(0.75rem, 1.5vw, 1.5rem);
-      padding: clamp(0.75rem, 2vw, 1.5rem);
+      padding: clamp(1rem, 2.25vw, 1.75rem);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .app-shell::before {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 20px;
+      border: 2px dashed rgba(15, 23, 42, 0.08);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .app-shell {
+        background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(12,19,36,0.9));
+        border-color: var(--surface-border);
+      }
+      .app-shell::before { border-color: rgba(148, 163, 184, 0.25); }
     }
 
     .app-header {
@@ -69,19 +96,42 @@
       padding: 0.25rem 0.5rem;
     }
 
+    .header-meta { display: flex; align-items: center; gap: 0.75rem; }
+    .badge {
+      font-family: var(--pixel-font);
+      font-size: clamp(0.55rem, 1.5vw, 0.7rem);
+      letter-spacing: 0.05em;
+      padding: 8px 10px;
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 10px;
+      border: 2px solid var(--surface-border);
+      box-shadow: 0 4px 0 #000;
+    }
+
+    .title-pill {
+      font-family: var(--pixel-font);
+      font-size: clamp(0.7rem, 2vw, 0.9rem);
+      padding: 8px 12px;
+      background: #111827;
+      color: #fef9c3;
+      border-radius: 12px;
+      border: 2px solid #000;
+      box-shadow: 0 4px 0 #000;
+    }
+
     .app-progress {
-      width: 100%;
-      max-width: 140px;
-      height: 10px;
-      background: rgba(148, 163, 184, 0.25);
+      width: min(180px, 26vw);
+      height: 14px;
+      background: rgba(15, 23, 42, 0.12);
       border-radius: 999px;
       overflow: hidden;
-      border: 1px solid var(--surface-border);
+      border: 2px solid var(--surface-border);
     }
 
     .app-progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, var(--accent), #22c55e);
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
       transition: width 0.3s ease;
     }
 
@@ -94,85 +144,173 @@
     }
 
     .question-title {
-      font-size: clamp(1.3rem, 2.4vw, 2rem);
+      font-size: clamp(1.4rem, 2.6vw, 2.1rem);
       line-height: 1.3;
       font-weight: 800;
-      margin-top: clamp(0.5rem, 1vw, 1.25rem);
+      margin-top: clamp(0.35rem, 1vw, 1rem);
       color: var(--text);
       text-align: center;
     }
 
     .question-copy { color: var(--muted); font-size: clamp(0.95rem, 2vw, 1.05rem); text-align: center; }
 
-    .answer-card {
-      background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.55));
-      border: 2px solid var(--surface-border);
-      border-radius: 18px;
-      padding: clamp(0.75rem, 1.5vw, 1rem);
+    .answer-card, .question-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,244,223,0.85));
+      border: 3px solid var(--surface-border);
+      border-radius: 20px;
+      padding: clamp(0.85rem, 1.6vw, 1.15rem);
       backdrop-filter: blur(4px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.12);
     }
 
     @media (prefers-color-scheme: dark) {
-      .answer-card {
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.65));
+      .answer-card, .question-card {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(12, 19, 36, 0.85));
+        box-shadow: 0 14px 32px rgba(0,0,0,0.45);
       }
     }
 
-    .app-cta {
-      font-weight: 700;
-      letter-spacing: 0.01em;
-      border-radius: 16px;
-      padding: clamp(0.9rem, 1.8vw, 1.2rem);
-      border: 2px solid var(--surface-border);
-      background: linear-gradient(90deg, var(--accent), #22c55e);
-      color: #f8fafc;
+    .choice-grid { width: 100%; max-width: 820px; margin: 0 auto; display: grid; gap: clamp(0.65rem, 1.8vw, 1rem); }
+    .choice-grid.two-col { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+
+    .choice-btn {
       width: 100%;
-      box-shadow: 0 16px 30px rgba(79, 70, 229, 0.15);
-      transition: transform 0.1s ease, box-shadow 0.15s ease;
+      text-align: center;
+      font-weight: 700;
+      font-size: clamp(1rem, 2.4vw, 1.15rem);
+      padding: clamp(0.85rem, 1.8vw, 1.15rem);
+      border-radius: 16px;
+      border: 2px solid var(--surface-border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,250,240,0.78));
+      color: var(--text);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.12s ease, border-color 0.12s ease;
     }
 
-    .app-cta:active { transform: translateY(1px); box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+    .choice-btn:hover, .choice-btn.active {
+      border-color: var(--accent);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.16), 0 0 0 2px rgba(245, 158, 11, 0.25);
+      transform: translateY(-1px);
+    }
 
-    .app-muted-box {
-      background: rgba(148, 163, 184, 0.08);
-      border: 1px dashed var(--surface-border);
+    .retro-btn {
+      font-family: var(--pixel-font);
+      letter-spacing: 0.04em;
       border-radius: 14px;
-      padding: clamp(0.6rem, 1vw, 0.85rem);
-      font-size: clamp(0.85rem, 1.8vw, 1rem);
-      color: var(--muted);
+      padding: clamp(0.85rem, 1.8vw, 1.1rem);
+      border: 2px solid #000;
+      background: linear-gradient(90deg, #f97316, #fbbf24);
+      color: #0f172a;
+      width: 100%;
+      box-shadow: 0 5px 0 #000, 0 14px 22px rgba(0,0,0,0.25);
+      transition: transform 0.08s ease, box-shadow 0.12s ease, filter 0.12s ease;
     }
+
+    .retro-btn.secondary {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      color: #031b0d;
+    }
+
+    .retro-btn.hollow {
+      background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.45));
+      color: var(--text);
+      border-color: var(--surface-border);
+    }
+
+    .retro-btn:active { transform: translateY(2px); box-shadow: 0 3px 0 #000, 0 6px 12px rgba(0,0,0,0.25); filter: brightness(0.96); }
+
+    .nav-btn {
+      width: clamp(44px, 6vw, 54px);
+      height: clamp(44px, 6vw, 54px);
+      border-radius: 14px;
+      border: 2px solid #000;
+      background: #0f172a;
+      color: #f8fafc;
+      box-shadow: 0 4px 0 #000;
+      font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+      cursor: pointer;
+    }
+
+    .game-card { display: flex; flex-direction: column; gap: 0.75rem; align-items: center; justify-content: center; padding: clamp(0.75rem, 1.5vw, 1rem); }
+    .game-slot { width: 100%; display: flex; align-items: center; justify-content: center; padding: clamp(0.5rem, 1vw, 1rem); }
+    .game-summary { font-size: clamp(0.75rem, 1.6vw, 0.9rem); color: var(--muted); text-align: center; }
 
     .app-input {
       width: 100%;
       border-radius: 18px;
       border: 2px solid var(--surface-border);
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.85);
       color: var(--text);
       padding: clamp(0.9rem, 2vw, 1.2rem);
       min-height: 160px;
       resize: none;
-      box-shadow: inset 0 2px 8px rgba(15, 23, 42, 0.04);
+      box-shadow: inset 0 2px 8px rgba(15, 23, 42, 0.08);
+      font-family: var(--body-font);
+      font-size: 1rem;
     }
 
     @media (prefers-color-scheme: dark) {
-      .app-input { background: rgba(15, 23, 42, 0.8); box-shadow: inset 0 2px 8px rgba(0,0,0,0.4); }
+      .app-input { background: rgba(15, 23, 42, 0.85); box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); }
     }
 
-    .app-nav-btn { font-size: clamp(1.35rem, 3vw, 1.7rem); color: var(--text); }
+    .question-card { display: flex; flex-direction: column; gap: clamp(0.75rem, 1.5vw, 1rem); align-items: center; text-align: center; }
+    .muted-note { color: var(--muted); font-size: clamp(0.85rem, 1.6vw, 0.95rem); }
+
+    .recap-card {
+      background: rgba(255,255,255,0.9);
+      border-radius: 16px;
+      border: 2px solid var(--surface-border);
+      padding: 0.9rem 1rem;
+      color: var(--text);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .recap-card { background: rgba(15,23,42,0.9); }
+    }
+
+    .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+    .result-tile { background: linear-gradient(180deg, rgba(34,197,94,0.22), rgba(245,158,11,0.2)); border: 2px solid #111; padding: 1.1rem; border-radius: 16px; text-align: center; font-family: var(--pixel-font); box-shadow: 0 10px 18px rgba(0,0,0,0.25); }
+    .result-score { font-size: clamp(2.2rem, 5vw, 3.2rem); margin-top: 0.35rem; }
+
+    .action-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+    .recap-stack { display: flex; flex-direction: column; gap: 0.65rem; max-height: 50vh; overflow-y: auto; width: 100%; }
+
+    .retro-field { display: flex; flex-direction: column; gap: 0.4rem; }
+    .retro-label { font-weight: 800; font-size: clamp(1rem, 2.4vw, 1.2rem); color: var(--text); }
+    .retro-select, .retro-range {
+      width: 100%;
+      border-radius: 14px;
+      border: 2px solid var(--surface-border);
+      background: rgba(255,255,255,0.9);
+      padding: 0.9rem 1rem;
+      font-size: 1rem;
+      font-family: var(--body-font);
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .retro-select, .retro-range { background: rgba(15,23,42,0.85); color: var(--text); }
+    }
+
+    .retro-range { accent-color: var(--accent); padding: 0.5rem 0; }
+    .range-value { font-family: var(--pixel-font); font-size: clamp(1.6rem, 4vw, 2.2rem); text-align: center; }
 
     /* Retro mini-game styles */
     @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
     .pd-game-outer {
       width: 100%;
-      max-width: 520px;
+      max-width: clamp(600px, 92vw, 760px);
       margin: 0 auto;
-      border-radius: 18px;
-      padding: 8px;
+      border-radius: 20px;
+      padding: clamp(10px, 2vw, 16px);
       background: #111827;
       box-shadow: 0 18px 40px rgba(0,0,0,0.7);
       image-rendering: pixelated;
       font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: clamp(8px, 1.5vw, 12px);
     }
 
     .pd-game-shell {
@@ -520,14 +658,15 @@
     /* Snake mini-game */
     .sn-game-outer {
       width: 100%;
-      max-width: 520px;
+      max-width: clamp(600px, 92vw, 760px);
       margin: 0 auto;
-      border-radius: 18px;
-      padding: 8px;
+      border-radius: 20px;
+      padding: clamp(10px, 2vw, 16px);
       background: #111827;
       box-shadow: 0 18px 40px rgba(0,0,0,0.7);
       image-rendering: pixelated;
       font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: clamp(8px, 1.5vw, 12px);
     }
 
     .sn-game-shell {
@@ -813,17 +952,18 @@
     }
 
     /* BLOCK DUDE MINI GAME */
-    .bd-game-outer {
-      width: 100%;
-      max-width: 520px;
-      margin: 0 auto;
-      border-radius: 18px;
-      padding: 8px;
-      background: #111827;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.7);
-      image-rendering: pixelated;
-      font-family: "Press Start 2P", system-ui, sans-serif;
-    }
+  .bd-game-outer {
+    width: 100%;
+    max-width: clamp(600px, 92vw, 760px);
+    margin: 0 auto;
+    border-radius: 20px;
+    padding: clamp(10px, 2vw, 16px);
+    background: #111827;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    image-rendering: pixelated;
+    font-family: "Press Start 2P", system-ui, sans-serif;
+    font-size: clamp(8px, 1.5vw, 12px);
+  }
 
     .bd-game-shell {
       border-radius: 14px;
@@ -1155,9 +1295,9 @@
 
 </head>
 
-<body class="h-full text-slate-900 dark:text-slate-100 transition-colors duration-300">
+<body>
 
-  <div id="app" class="h-full flex flex-col"></div>
+  <div id="app" class="h-full"></div>
 
   <!-- ADDED STATUS BAR -->
   <div id="status" style="text-align:center; margin:8px; font-weight:bold;"></div>
@@ -2446,13 +2586,15 @@ ZwIDAQAB
 
   function renderMeta() {
     app.innerHTML = `
-      <div class="container flex flex-col justify-center items-center h-full px-6">
-        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md">
-          <h1 class="text-4xl font-black text-center mb-10">How Smart are You?</h1>
-          <div class="space-y-8">
-            <div>
-              <label class="block text-xl font-semibold mb-3">Staying in Algarve?</label>
-              <select id="stay" class="w-full p-5 rounded-2xl border-[3px] border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-lg">
+      <div class="container app-surface">
+        <div class="app-shell">
+          <div class="question-card">
+            <h1 class="question-title">How Smart are You?</h1>
+            <p class="muted-note">Retro-styled questions and mini-games sized to your screen.</p>
+
+            <div class="retro-field">
+              <label class="retro-label" for="stay">Staying in Algarve?</label>
+              <select id="stay" class="retro-select">
                 <option value="leaving">Leaving soon</option>
                 <option value="few">Few more days</option>
                 <option value="just">Just arrived</option>
@@ -2460,14 +2602,14 @@ ZwIDAQAB
               </select>
             </div>
 
-            <div>
-              <label class="block text-xl font-semibold mb-3">How Bored are you? (1-10)</label>
-              <input id="mins" type="range" min="1" max="10" value="5" class="w-full">
-              <div class="text-center text-5xl font-bold mt-4"><span id="minsVal">5</span></div>
+            <div class="retro-field">
+              <label class="retro-label" for="mins">How bored are you? (1-10)</label>
+              <input id="mins" type="range" min="1" max="10" value="5" class="retro-range">
+              <div class="range-value"><span id="minsVal">5</span></div>
             </div>
 
-            <div class="space-y-3">
-              <button id="start" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-3xl shadow-xl">Start</button>
+            <div class="action-row">
+              <button id="start" class="retro-btn secondary">Start</button>
             </div>
           </div>
         </div>
@@ -2572,49 +2714,55 @@ ZwIDAQAB
       <div class="container app-surface">
         <div class="app-shell">
           <div class="app-header">
-            <button id="back" class="app-nav-btn">←</button>
-            <div class="text-sm font-semibold tracking-wide text-slate-600 dark:text-slate-200">${pointer+1}/${sequence.length}</div>
-            <div class="app-progress"><div class="app-progress-bar" style="width:${progress}%"></div></div>
+            <button id="back" class="nav-btn" aria-label="Go back">←</button>
+            <div class="header-meta">
+              <div class="badge">STEP ${pointer+1}/${sequence.length}</div>
+              <div class="app-progress"><div class="app-progress-bar" style="width:${progress}%"></div></div>
+            </div>
+            <div class="title-pill">QUIZ</div>
           </div>
 
           <div class="app-body">
             ${q.type === 'fact' ? `
-              <div class="answer-card flex flex-col items-center gap-4 text-center">
-                <svg width="90" height="90" viewBox="0 0 480 480" class="mx-auto">
-                  <circle cx="240" cy="240" r="216" stroke="#e2e8f0" stroke-width="36" fill="none" class="dark:stroke-[#334155]"/>
+              <div class="question-card">
+                <svg width="120" height="120" viewBox="0 0 480 480">
+                  <circle cx="240" cy="240" r="216" stroke="#e2e8f0" stroke-width="36" fill="none"/>
                   <circle id="ring" cx="240" cy="240" r="216" stroke="#10b981" stroke-width="36" fill="none" stroke-dasharray="1356" style="stroke-dashoffset:1356" class="timer-ring"/>
                   <text id="time" x="240" y="280" font-size="120" text-anchor="middle" font-weight="bold" fill="currentColor">30</text>
                 </svg>
                 <h2 class="question-title">${esc(q.q)}</h2>
-                <p class="question-copy">Tap quickly — questions scale to your screen.</p>
+                <p class="muted-note">Tap quickly — everything scales to your screen size.</p>
               </div>
 
-              <div class="space-y-3 w-full max-w-2xl mx-auto">
+              <div class="choice-grid ${q.isTF ? 'two-col' : ''}">
                 ${q.isTF ? `
-                  <button class="true app-cta" style="background: linear-gradient(90deg,#22c55e,#16a34a);">TRUE</button>
-                  <button class="false app-cta" style="background: linear-gradient(90deg,#f43f5e,#e11d48);">FALSE</button>
+                  <button class="true retro-btn secondary">TRUE</button>
+                  <button class="false retro-btn">FALSE</button>
                 ` : q.options.map((o,i) => `
-                  <button data-i="${i}" class="option answer-card w-full text-lg font-semibold border-2 border-transparent hover:border-indigo-500 transition">${esc(o)}</button>
+                  <button data-i="${i}" class="option choice-btn">${esc(o)}</button>
                 `).join('')}
               </div>
             ` : q.type === 'game' ? `
-              <div class="answer-card flex-1 flex flex-col items-center justify-center gap-3">
+              <div class="answer-card game-card">
                 ${q.id === pdGameId ? `
-                  <div id="pd-root" class="flex-1 flex items-center justify-center w-full px-2"></div>
-                  <div id="pd-user-summary" class="text-xs text-center text-slate-600 dark:text-slate-200"></div>
+                  <div id="pd-root" class="game-slot"></div>
+                  <div id="pd-user-summary" class="game-summary"></div>
                 ` : q.id === snakeGameId ? `
-                  <div id="snake-root" class="flex-1 flex items-center justify-center w-full px-2"></div>
-                  <div id="snake-user-summary" class="text-xs text-center text-slate-600 dark:text-slate-200"></div>
+                  <div id="snake-root" class="game-slot"></div>
+                  <div id="snake-user-summary" class="game-summary"></div>
                 ` : `
-                  <div id="blockdude-root" class="flex-1 flex items-center justify-center w-full px-2"></div>
-                  <div id="blockdude-user-summary" class="text-xs text-center text-slate-600 dark:text-slate-200"></div>
+                  <div id="blockdude-root" class="game-slot"></div>
+                  <div id="blockdude-user-summary" class="game-summary"></div>
                 `}
               </div>
             ` : `
-              <div class="answer-card flex-1 flex flex-col gap-4">
+              <div class="question-card">
                 <h2 class="question-title">${esc(q.text)}</h2>
+                <p class="muted-note">Tell us what you think. The field grows with your screen.</p>
                 <textarea id="txt" class="app-input" placeholder="Your answer...">${answers[q.id]?.answer||''}</textarea>
-                <button id="nextStar" class="app-cta">Next</button>
+                <div class="action-row">
+                  <button id="nextStar" class="retro-btn secondary">Next</button>
+                </div>
               </div>
             `}
           </div>
@@ -2634,8 +2782,8 @@ ZwIDAQAB
     if (q.type === 'fact' && !q.isTF) {
       document.querySelectorAll('.option').forEach(b => {
         b.onclick = () => {
-          document.querySelectorAll('.option').forEach(x => x.classList.remove('border-indigo-500','bg-indigo-50','dark:bg-indigo-900'));
-          b.classList.add('border-indigo-500','bg-indigo-50','dark:bg-indigo-900');
+          document.querySelectorAll('.option').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
           choose(+b.dataset.i);
         };
       });
@@ -2768,8 +2916,8 @@ ZwIDAQAB
       const corr = f.isTF ? (f.correct ? 'True' : 'False') : f.options[f.correct];
 
       recap += `
-        <div class="p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl mb-3">
-          <strong class="block mb-1">${esc(f.q)}</strong>
+        <div class="recap-card">
+          <strong>${esc(f.q)}</strong>
           <div>You: ${user} | Correct: ${corr}</div>
         </div>`;
     });
@@ -2778,19 +2926,22 @@ ZwIDAQAB
     autoSave(true);
 
     app.innerHTML = `
-      <div class="container flex flex-col h-full px-6 pt-8 overflow-y-auto">
-        <h1 class="text-5xl font-black text-center mb-8">Results</h1>
-
-        <div class="grid grid-cols-1 gap-5 mb-8">
-          <div class="bg-indigo-100 dark:bg-indigo-900 p-6 rounded-3xl text-center">
-            <div class="text-xl font-bold">Smart</div>
-            <div class="text-6xl font-black">${smart}</div>
+      <div class="container app-surface">
+        <div class="app-shell">
+          <div class="question-card">
+            <h1 class="question-title">Results</h1>
+            <div class="result-grid">
+              <div class="result-tile">
+                <div>Smart</div>
+                <div class="result-score">${smart}</div>
+              </div>
+            </div>
+            <div class="recap-stack">${recap}</div>
+            <div class="action-row">
+              <button onclick="location.reload()" class="retro-btn secondary">Retake Survey</button>
+            </div>
           </div>
         </div>
-
-        <div class="space-y-3 flex-1 overflow-y-auto">${recap}</div>
-
-        <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white text-xl font-bold rounded-2xl shadow-xl mt-6">Retake Survey</button>
       </div>`;
   }
 
