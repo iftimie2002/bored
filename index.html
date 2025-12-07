@@ -1629,7 +1629,16 @@ ZwIDAQAB
   let currentGameCleanup = null;
   const app = document.getElementById('app');
 
-  function esc(t){ return t.replace(/[&<>"']/g, r=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[r])); }
+  function esc(t) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return t.replace(/[&<>"']/g, r => map[r]);
+  }
   function shuffle(a){ return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); }
 
   // Prisoner's Dilemma helpers
