@@ -385,9 +385,9 @@ ZwIDAQAB
             </div>
 
             <div>
-              <label class="block text-xl font-semibold mb-3">Uber ride (min)?</label>
-              <input id="mins" type="range" min="1" max="60" value="10" class="w-full">
-              <div class="text-center text-5xl font-bold mt-4"><span id="minsVal">10</span></div>
+              <label class="block text-xl font-semibold mb-3">How bored are you? (1-10)</label>
+              <input id="mins" type="range" min="1" max="10" value="5" class="w-full">
+              <div class="text-center text-5xl font-bold mt-4"><span id="minsVal">5</span></div>
             </div>
 
             <div class="space-y-3">
@@ -410,8 +410,8 @@ ZwIDAQAB
     const mins = +document.getElementById('mins').value;
     const stay = document.getElementById('stay').value;
 
-    const maxF = mins < 5 ? 5 : mins < 15 ? 10 : 16;
-    const maxS = mins < 5 ? 2 : mins < 15 ? 5 : 8;
+    const maxF = mins < 4 ? 5 : mins < 7 ? 10 : 16;
+    const maxS = mins < 4 ? 2 : mins < 7 ? 5 : 8;
 
     const stars = shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just'))).slice(0, maxS);
 
