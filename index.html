@@ -2648,6 +2648,7 @@ ZwIDAQAB
     const maxS = mins < 4 ? 2 : mins < 7 ? 5 : 8;
 
     const stars = shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just'))).slice(0, maxS);
+    const starmaqItems = shuffle(localBusinessStarMultiQuestions);
 
     const facts = shuffle([
       ...trueFalseQuestions.map(f => ({...f,isTF:true})),
