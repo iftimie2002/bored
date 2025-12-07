@@ -12,7 +12,7 @@
     html, body, #app { height: 100%; margin: 0; padding: 0; overflow: hidden; }
     .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
-    /* Retro Prisoner's Dilemma mini-game styles */
+    /* Retro mini-game styles */
     @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
     .pd-game-outer {
@@ -369,6 +369,265 @@
         0 0 0 #000;
     }
 
+    /* Snake mini-game */
+    .sn-game-outer {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      border-radius: 18px;
+      padding: 8px;
+      background: #111827;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+      image-rendering: pixelated;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+    }
+
+    .sn-game-shell {
+      border-radius: 14px;
+      padding: 6px;
+      background: #27272f;
+      border: 3px solid #4b5563;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sn-game-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        135deg,
+        rgba(255,255,255,0.04) 0,
+        rgba(255,255,255,0.04) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      pointer-events: none;
+    }
+
+    .sn-hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8px;
+      color: #e5e7eb;
+      margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sn-hud-label {
+      background: #000;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 2px solid #6b7280;
+      box-shadow: 0 0 0 2px #000;
+    }
+
+    .sn-hud-middle {
+      font-size: 8px;
+      color: #e5e7eb;
+      opacity: 0.9;
+      text-align: center;
+    }
+
+    .sn-hud-scorebox {
+      display: flex;
+      gap: 4px;
+      font-size: 7px;
+    }
+
+    .sn-hud-chip {
+      background: #000;
+      padding: 3px 5px;
+      border-radius: 6px;
+      border: 2px solid #4ade80;
+      box-shadow: 0 0 0 2px #000;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sn-score-value {
+      background: #111;
+      padding: 3px 4px;
+      border-radius: 4px;
+      min-width: 22px;
+      text-align: center;
+    }
+
+    .sn-field {
+      position: relative;
+      margin-top: 4px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #374151;
+      box-shadow: 0 0 0 2px #111827;
+      background:
+        linear-gradient(#60a5fa 0%, #60a5fa 40%, #22c55e 40%, #15803d 100%);
+      padding: 18px 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sn-cloud {
+      position: absolute;
+      top: 6px;
+      width: 46px;
+      height: 18px;
+      background: #e5f2ff;
+      border-radius: 8px;
+      box-shadow:
+        10px 0 0 #e5f2ff,
+        -10px 0 0 #e5f2ff,
+        0 6px 0 #e5f2ff;
+      filter: drop-shadow(0 0 2px rgba(15,23,42,0.5));
+      animation: cloud-drift 12s linear infinite;
+    }
+
+    .sn-cloud.c2 {
+      top: 16px;
+      animation-duration: 20s;
+      opacity: 0.8;
+    }
+
+    .sn-cloud.c3 {
+      top: 2px;
+      animation-duration: 24s;
+      opacity: 0.65;
+    }
+
+    .sn-field-row {
+      display: flex;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .sn-canvas-wrap {
+      padding: 6px;
+      background: #064e3b;
+      border-radius: 10px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 4px 0 #000;
+    }
+
+    .sn-canvas {
+      display: block;
+      background: #022c22;
+      box-shadow: inset 0 0 0 2px #111827;
+      image-rendering: pixelated;
+    }
+
+    .sn-controls {
+      display: flex;
+      gap: 8px;
+      margin: 6px 4px 4px;
+      z-index: 1;
+    }
+
+    .sn-btn {
+      flex: 1;
+      border: 0;
+      outline: none;
+      cursor: pointer;
+      font-size: 9px;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      padding: 9px 4px;
+      background: #e5e7eb;
+      color: #111827;
+      border-radius: 6px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+    }
+
+    .sn-btn-primary {
+      background: #4f46e5;
+      color: #f9fafb;
+    }
+
+    .sn-btn-small {
+      flex: 0 0 auto;
+      font-size: 8px;
+      padding: 7px 6px;
+      background: #fecaca;
+    }
+
+    .sn-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+      filter: brightness(0.85);
+    }
+
+    .sn-btn[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.4);
+    }
+
+    .sn-message-box {
+      margin: 4px 4px 2px;
+      padding: 6px 6px 4px;
+      border-radius: 8px;
+      background: #020617;
+      box-shadow: 0 0 0 2px #000;
+      font-size: 8px;
+      color: #e5e7eb;
+      z-index: 1;
+      min-height: 1.6em;
+    }
+
+    .sn-msg-good { color: #4ade80; }
+    .sn-msg-bad  { color: #f97373; }
+    .sn-msg-warn { color: #fbbf24; }
+
+    .sn-continue-wrap {
+      margin: 6px 4px 4px;
+    }
+
+    .sn-continue-btn {
+      width: 100%;
+      border-radius: 8px;
+      border: 0;
+      outline: 0;
+      padding: 9px 4px;
+      background: #22c55e;
+      color: #052e16;
+      font-size: 9px;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      text-transform: uppercase;
+      box-shadow:
+        0 0 0 2px #000,
+        0 3px 0 #000;
+      cursor: pointer;
+      transition: transform 0.06s ease, box-shadow 0.06s ease;
+    }
+
+    .sn-continue-btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 0 #000;
+    }
+
+    @media (max-width: 400px) {
+      .sn-hud {
+        font-size: 7px;
+      }
+      .sn-btn {
+        font-size: 8px;
+      }
+      .sn-continue-btn {
+        font-size: 8px;
+      }
+    }
+
     @media (max-width: 400px) {
       .pd-hud {
         font-size: 7px;
@@ -700,6 +959,9 @@ ZwIDAQAB
     history: [],
     ended: false
   };
+  const snakeGameId = 'snakeClassic';
+  let snakeUserInfo = null;
+  let currentGameCleanup = null;
   const app = document.getElementById('app');
 
   function esc(t){ return t.replace(/[&<>"']/g, r=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[r])); }
@@ -972,6 +1234,235 @@ ZwIDAQAB
     updatePdUi();
   }
 
+  function renderSnakeGame(containerId = 'snake-root', onContinue = null) {
+    const root = document.getElementById(containerId);
+    if (!root) return () => {};
+
+    root.innerHTML = `
+      <div class="sn-game-outer">
+        <div class="sn-game-shell">
+          <div class="sn-hud">
+            <div class="sn-hud-label">SNAKE&nbsp;FIELD</div>
+            <div class="sn-hud-middle">Use arrows · Eat apples</div>
+            <div class="sn-hud-scorebox">
+              <div class="sn-hud-chip">
+                <span>SCORE</span>
+                <span class="sn-score-value" id="snScore">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sn-field">
+            <div class="sn-cloud" style="left:-40px;"></div>
+            <div class="sn-cloud c2" style="left:40px;"></div>
+            <div class="sn-cloud c3" style="left:140px;"></div>
+
+            <div class="sn-field-row">
+              <div class="sn-canvas-wrap">
+                <canvas id="snCanvas" class="sn-canvas" width="256" height="256"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="sn-controls">
+            <button id="snStart" class="sn-btn sn-btn-primary">START</button>
+            <button id="snReset" class="sn-btn sn-btn-small">RESET</button>
+          </div>
+
+          <div class="sn-message-box" id="snMessage">
+            Press START, then use the arrow keys. Don't eat yourself.
+          </div>
+
+          <div class="sn-continue-wrap">
+            <button id="snContinue" class="sn-continue-btn">CONTINUE</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const canvas = document.getElementById('snCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('snScore');
+    const msgEl = document.getElementById('snMessage');
+    const startBtn = document.getElementById('snStart');
+    const resetBtn = document.getElementById('snReset');
+    const continueBtn = document.getElementById('snContinue');
+
+    const grid = 16;
+    let count = 0;
+    let running = false;
+    let rafId = null;
+    let score = 0;
+    let startTime = null;
+
+    const snake = {
+      x: 5 * grid,
+      y: 5 * grid,
+      dx: grid,
+      dy: 0,
+      cells: [],
+      maxCells: 4
+    };
+
+    const apple = {
+      x: 10 * grid,
+      y: 10 * grid
+    };
+
+    function snSetMessage(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = 'sn-message-box';
+      if (type === 'good') msgEl.classList.add('sn-msg-good');
+      else if (type === 'bad') msgEl.classList.add('sn-msg-bad');
+      else if (type === 'warn') msgEl.classList.add('sn-msg-warn');
+    }
+
+    function snRandomApple() {
+      const max = canvas.width / grid;
+      apple.x = Math.floor(Math.random() * max) * grid;
+      apple.y = Math.floor(Math.random() * max) * grid;
+    }
+
+    function snResetGame() {
+      score = 0;
+      scoreEl.textContent = '0';
+      snake.x = 5 * grid;
+      snake.y = 5 * grid;
+      snake.cells = [];
+      snake.maxCells = 4;
+      snake.dx = grid;
+      snake.dy = 0;
+      snRandomApple();
+      count = 0;
+      startTime = null;
+      snSetMessage('Game reset. Press START to play again.', 'info');
+    }
+
+    function snLoop() {
+      rafId = requestAnimationFrame(snLoop);
+      if (!running) return;
+
+      if (++count < 4) return;
+
+      count = 0;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#022c22';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#064e3b';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += grid) {
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += grid) {
+        ctx.beginPath();
+        ctx.moveTo(0, y + 0.5);
+        ctx.lineTo(canvas.width, y + 0.5);
+        ctx.stroke();
+      }
+
+      snake.x += snake.dx;
+      snake.y += snake.dy;
+
+      if (snake.x < 0) snake.x = canvas.width - grid;
+      else if (snake.x >= canvas.width) snake.x = 0;
+
+      if (snake.y < 0) snake.y = canvas.height - grid;
+      else if (snake.y >= canvas.height) snake.y = 0;
+
+      snake.cells.unshift({ x: snake.x, y: snake.y });
+      if (snake.cells.length > snake.maxCells) snake.cells.pop();
+
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(apple.x + 1, apple.y + 1, grid - 2, grid - 2);
+
+      ctx.fillStyle = '#22c55e';
+      snake.cells.forEach(function(cell, index) {
+        ctx.fillRect(cell.x + 1, cell.y + 1, grid - 2, grid - 2);
+
+        if (cell.x === apple.x && cell.y === apple.y) {
+          snake.maxCells++;
+          score++;
+          scoreEl.textContent = score.toString();
+          snSetMessage('Yum! +1.', 'good');
+          snRandomApple();
+        }
+
+        for (let i = index + 1; i < snake.cells.length; i++) {
+          if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+            running = false;
+            snSetMessage('You ate yourself. Press START or RESET.', 'bad');
+            return;
+          }
+        }
+      });
+    }
+
+    function stopLoop() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    function snKeyHandler(e) {
+      if (!running) return;
+      if (e.key === 'ArrowLeft' && snake.dx === 0) {
+        snake.dx = -grid; snake.dy = 0;
+      } else if (e.key === 'ArrowUp' && snake.dy === 0) {
+        snake.dy = -grid; snake.dx = 0;
+      } else if (e.key === 'ArrowRight' && snake.dx === 0) {
+        snake.dx = grid; snake.dy = 0;
+      } else if (e.key === 'ArrowDown' && snake.dy === 0) {
+        snake.dy = grid; snake.dx = 0;
+      }
+    }
+
+    document.addEventListener('keydown', snKeyHandler);
+
+    startBtn.onclick = () => {
+      if (!rafId) {
+        snRandomApple();
+        rafId = requestAnimationFrame(snLoop);
+      }
+      if (!running) {
+        running = true;
+        if (!startTime) startTime = performance.now();
+        snSetMessage('Go! Use the arrow keys.', 'info');
+      }
+    };
+
+    resetBtn.onclick = () => {
+      running = false;
+      stopLoop();
+      snResetGame();
+    };
+
+    continueBtn.onclick = () => {
+      running = false;
+      const result = {
+        score,
+        applesEaten: score,
+        timePlayed: startTime ? Math.round((performance.now() - startTime) / 1000) : 0,
+        ended: true
+      };
+      stopLoop();
+      snSetMessage('Saved your score. Moving on.', 'info');
+      if (typeof onContinue === 'function') {
+        onContinue(result);
+      }
+    };
+
+    snResetGame();
+
+    return function teardownSnakeGame() {
+      running = false;
+      stopLoop();
+      document.removeEventListener('keydown', snKeyHandler);
+    };
+  }
+
   function renderMeta() {
     app.innerHTML = `
       <div class="container flex flex-col justify-center items-center h-full px-6">
@@ -1044,10 +1535,15 @@ ZwIDAQAB
       si++;
     }
 
-    // ADDED: insert mini-game randomly between questions
+    // ADDED: insert mini-games between questions
     if (sequence.length > 1) {
-      const insertAt = Math.floor(Math.random() * (sequence.length - 1)) + 1;
-      sequence.splice(insertAt, 0, { type: 'game', id: pdGameId });
+      const gameIds = [pdGameId, snakeGameId];
+      const slotSize = Math.max(1, Math.floor(sequence.length / (gameIds.length + 1)));
+
+      gameIds.forEach((id, index) => {
+        const position = Math.min(sequence.length, Math.max(1, slotSize * (index + 1) + index));
+        sequence.splice(position, 0, { type: 'game', id });
+      });
     }
 
     pointer = 0;
@@ -1084,6 +1580,10 @@ ZwIDAQAB
 
   function renderQuestion() {
       pdStopTimer();
+      if (currentGameCleanup) {
+        currentGameCleanup();
+        currentGameCleanup = null;
+      }
       const q = sequence[pointer];
       const progress = Math.round(((pointer + 1) / sequence.length) * 100);
 
@@ -1118,8 +1618,13 @@ ZwIDAQAB
             </div>
           ` : q.type === 'game' ? `
             <div class="flex-1 flex flex-col items-center justify-center px-2 space-y-2">
-              <div id="pd-root" class="flex-1 flex items-center justify-center w-full px-2"></div>
-              <div id="pd-user-summary" class="text-xs text-center text-slate-600 dark:text-slate-200"></div>
+              ${q.id === pdGameId ? `
+                <div id="pd-root" class="flex-1 flex items-center justify-center w-full px-2"></div>
+                <div id="pd-user-summary" class="text-xs text-center text-slate-600 dark:text-slate-200"></div>
+              ` : `
+                <div id="snake-root" class="flex-1 flex items-center justify-center w-full px-2"></div>
+                <div id="snake-user-summary" class="text-xs text-center text-slate-600 dark:text-slate-200"></div>
+              `}
             </div>
           ` : `
             <div class="flex-1 flex flex-col justify-center">
@@ -1152,36 +1657,59 @@ ZwIDAQAB
     }
 
     if (q.type === 'game') {
-      pdState = {
-        userScore: 0,
-        aiScore: 0,
-        timeLeft: pdDefaultDuration,
-        timerId: null,
-        active: false,
-        lastUserMove: 'cooperate',
-        history: [],
-        ended: false
-      };
-
-      const summaryEl = document.getElementById('pd-user-summary');
-      if (summaryEl) {
-        summaryEl.textContent = pdUserInfo
-          ? `Previous round: You ${pdUserInfo.userScore} · AI ${pdUserInfo.aiScore} in ${pdFormatTime(pdUserInfo.timePlayed)}.`
-          : 'Play a round, then tap CONTINUE to move on.';
-      }
-
-      renderPrisonersDilemma('pd-root', (result) => {
-        pdUserInfo = {
-          ...result,
-          ended: pdState.ended
+      if (q.id === pdGameId) {
+        pdState = {
+          userScore: 0,
+          aiScore: 0,
+          timeLeft: pdDefaultDuration,
+          timerId: null,
+          active: false,
+          lastUserMove: 'cooperate',
+          history: [],
+          ended: false
         };
 
+        const summaryEl = document.getElementById('pd-user-summary');
         if (summaryEl) {
-          summaryEl.textContent = `You scored ${result.userScore} while AI scored ${result.aiScore} in ${pdFormatTime(result.timePlayed)}.`;
+          summaryEl.textContent = pdUserInfo
+            ? `Previous round: You ${pdUserInfo.userScore} · AI ${pdUserInfo.aiScore} in ${pdFormatTime(pdUserInfo.timePlayed)}.`
+            : 'Play a round, then tap CONTINUE to move on.';
         }
 
-        next();
-      });
+        renderPrisonersDilemma('pd-root', (result) => {
+          pdUserInfo = {
+            ...result,
+            ended: pdState.ended
+          };
+
+          if (summaryEl) {
+            summaryEl.textContent = `You scored ${result.userScore} while AI scored ${result.aiScore} in ${pdFormatTime(result.timePlayed)}.`;
+          }
+
+          next();
+        });
+
+        currentGameCleanup = () => pdStopTimer();
+      }
+
+      if (q.id === snakeGameId) {
+        const summaryEl = document.getElementById('snake-user-summary');
+        if (summaryEl) {
+          summaryEl.textContent = snakeUserInfo
+            ? `Previous round: ${snakeUserInfo.applesEaten ?? snakeUserInfo.score} apples in ${snakeUserInfo.timePlayed}s.`
+            : 'Press START, play a round, then CONTINUE to proceed.';
+        }
+
+        const teardown = renderSnakeGame('snake-root', (result) => {
+          snakeUserInfo = { ...result };
+          if (summaryEl) {
+            summaryEl.textContent = `You ate ${result.applesEaten} apples in ${result.timePlayed}s.`;
+          }
+          next();
+        });
+
+        currentGameCleanup = teardown;
+      }
     }
 
     if (q.type === 'star') {
