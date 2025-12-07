@@ -2648,31 +2648,34 @@ ZwIDAQAB
     const maxS = mins < 4 ? 2 : mins < 7 ? 5 : 8;
 
     const stars = shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just'))).slice(0, maxS);
+    const starmaqPool = shuffle(localBusinessStarMultiQuestions);
 
-    const facts = shuffle([
+    const factPool = shuffle([
       ...trueFalseQuestions.map(f => ({...f,isTF:true})),
       ...mcQuestions.map(f => ({...f,isTF:false}))
     ]).slice(0, maxF);
 
+    const gamePool = shuffle([pdGameId, snakeGameId, blockdudeGameId]);
+
     sequence = [];
-    let streak = 0, si = 0;
+    let fi = 0, si = 0, mi = 0, gi = 0;
+    let prevGame = null;
 
-    facts.forEach(f => {
-      sequence.push({type:'fact', q:f.q, options:f.options||null, correct:f.correct, isTF:f.isTF});
-      streak++;
-      if ((streak >= 2 && Math.random()<0.7) || streak >= 3) {
-        if (si < stars.length) {
-          sequence.push({type:'star', id:stars[si].id, text:stars[si].text});
-          si++;
-          streak = 0;
-        }
+    while (fi < factPool.length || si < stars.length || mi < starmaqPool.length || gi < gamePool.length) {
+      if (fi < factPool.length) {
+        const f = factPool[fi++];
+        sequence.push({type:'fact', q:f.q, options:f.options||null, correct:f.correct, isTF:f.isTF});
       }
-    });
 
-    while (si < stars.length) {
-      sequence.push({type:'star', id:stars[si].id, text:stars[si].text});
-      si++;
-    }
+      if (si < stars.length) {
+        sequence.push({type:'star', id:stars[si].id, text:stars[si].text});
+        si++;
+      }
+
+      if (mi < starmaqPool.length) {
+        const item = starmaqPool[mi++];
+        sequence.push({ type: 'starmaq', q: item.q, options: item.options });
+      }
 
     // ADDED: insert mini-games between questions
     if (sequence.length > 1) {
