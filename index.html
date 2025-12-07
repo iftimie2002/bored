@@ -176,29 +176,6 @@
     .choice-grid { width: 100%; max-width: 820px; margin: 0 auto; display: grid; gap: clamp(0.65rem, 1.8vw, 1rem); }
     .choice-grid.two-col { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 
-    .starmaq-card {
-      display: flex;
-      flex-direction: column;
-      gap: clamp(0.65rem, 1.5vw, 1rem);
-    }
-
-    .option-scroll {
-      max-height: min(42vh, 360px);
-      overflow-y: auto;
-      width: 100%;
-      margin: 0 auto;
-      padding-right: 6px;
-    }
-
-    .option-scroll::-webkit-scrollbar { width: 8px; }
-    .option-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
-    .option-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 8px; }
-
-    @media (prefers-color-scheme: dark) {
-      .option-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
-      .option-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); }
-    }
-
     .choice-btn {
       width: 100%;
       text-align: center;
@@ -1507,35 +1484,6 @@ ZwIDAQAB
     };
   }
 
-  function buildAnswerString() {
-    return (sequence || []).map(item => {
-      if (item.type === 'fact') {
-        const a = answers[item.q] || {};
-        let user = 'No answer';
-        if (a.timedOut) user = 'Timed out';
-        else if (item.isTF) {
-          if (a.answer === true) user = 'True';
-          else if (a.answer === false) user = 'False';
-        } else if (typeof a.answer === 'number' && item.options && item.options[a.answer] !== undefined) {
-          user = item.options[a.answer];
-        }
-        return `${item.q} -> ${user}`;
-      }
-
-      if (item.type === 'star') {
-        const a = answers[item.id]?.answer?.trim();
-        return `${item.text} -> ${a || 'No answer'}`;
-      }
-
-      if (item.type === 'starmaq') {
-        const selected = answers[item.q]?.selectedOptions || [];
-        return `${item.q} -> ${selected.length ? selected.join(', ') : 'No selection'}`;
-      }
-
-      return null;
-    }).filter(Boolean).join(' | ');
-  }
-
   function autoSave(isFinal = false) {
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(() => {
@@ -1546,13 +1494,7 @@ ZwIDAQAB
           client: getClientInfo()
         },
         answers: answers,
-        answerString: buildAnswerString(),
-        sequence: sequence.map(q => {
-          if (q.type === 'star') return {type:'star', id:q.id};
-          if (q.type === 'starmaq') return {type:'starmaq', q:q.q};
-          if (q.type === 'game') return {type:'game', id:q.id};
-          return {type:'fact', q:q.q};
-        }),
+        sequence: sequence.map(q => q.type === 'star' ? {type:'star', id:q.id} : {type:'fact', q:q.q}),
         pointer: pointer
       };
       if (isFinal) {
@@ -1664,84 +1606,6 @@ ZwIDAQAB
 {id:"s15", text:"What would’ve made your stay in the Algarve more comfortable?", tag:"experienced"},
 {id:"s16", text:"What felt overpriced in the Algarve?", tag:"experienced"},
 {id:"s17", text:"What from home would’ve made your Algarve stay smoother?", tag:"all"}
-  ];
-
-  const localBusinessStarMultiQuestions = [
-    {
-      type:"starmaq",
-      q:"Which types of restaurants do you wish were more common in the Algarve?",
-      options:["Mexican","Greek","Indian","Japanese","Healthy bowls","BBQ American"]
-    },
-    {
-      type:"starmaq",
-      q:"What food items would you love to see more often in Algarve cafés?",
-      options:["Fresh smoothies","Protein-packed breakfasts","Vegan cakes","Real sourdough bread","Premium brunch toasts"]
-    },
-    {
-      type:"starmaq",
-      q:"What’s your preferred style of breakfast in the Algarve?",
-      options:["Brunch style","Coffee + pastel de nata","Continental","Portuguese pastry","Coffee + cigarette"]
-    },
-    {
-      type:"starmaq",
-      q:"What ingredients would you include in your perfect salad?",
-      options:["Chicken","Salmon","Egg","Avocado","Olives","Tomatoes","Cucumber","Quinoa","Cheese","Croutons"]
-    },
-    {
-      type:"starmaq",
-      q:"Build your ideal burger:",
-      options:["Beef patty","Chicken patty","Vegan patty","Cheddar","Bacon","Onion rings","Fried egg","Pickles","BBQ sauce","Garlic mayo"]
-    },
-    {
-      type:"starmaq",
-      q:"Favourite Portuguese classic dish?",
-      options:["Bacalhau à Brás","Cataplana","Frango Piri-Piri","Polvo à lagareiro","Feijoada"]
-    },
-    {
-      type:"starmaq",
-      q:"How much are you willing to spend on a very good meal in Portugal?",
-      options:["10€ - 20€","20€ - 35€","35€ - 60€","60€ - 100€"]
-    },
-    {
-      type:"starmaq",
-      q:"What new services would you love to see in the Algarve?",
-      options:["24h food delivery","Home cleaning on demand","Night-time pharmacies","Local meal prep service","Affordable gyms"]
-    },
-    {
-      type:"starmaq",
-      q:"What products do you wish local supermarkets stocked more often?",
-      options:["International spices","Better quality meat","Vegan options","Protein snacks","Premium bakery items"]
-    },
-    {
-      type:"starmaq",
-      q:"What makes you choose one café over another?",
-      options:["Fast service","Good Wi-Fi","Outdoor seating","Affordable prices","Healthy options"]
-    },
-    {
-      type:"starmaq",
-      q:"If a new restaurant opened near you, what cuisine would attract you most?",
-      options:["Thai","Korean BBQ","Mediterranean","Italian","Seafood-focused","Vegan/plant based"]
-    },
-    {
-      type:"starmaq",
-      q:"What type of nightlife do you feel is missing in the Algarve?",
-      options:["Live music bars","Rooftop lounges","Silent discos","Late-night cafés","Comedy clubs"]
-    },
-    {
-      type:"starmaq",
-      q:"Which gym features matter most to you?",
-      options:["Cheap monthly price","Good machines","Classes included","Sauna/steam room","Open 24/7"]
-    },
-    {
-      type:"starmaq",
-      q:"Which beach amenities would improve your experience the most?",
-      options:["Cheap sunbeds","Healthy food options","Showers","Better parking","Umbrella rental"]
-    },
-    {
-      type:"starmaq",
-      q:"What would make transportation around the Algarve easier?",
-      options:["Cheaper Uber prices","Better public transport","Bike lanes","More parking","Car-sharing services"]
-    }
   ];
 
   let answers = {}, sequence = [], pointer = 0, timer = null, timeLeft = 30;
@@ -2811,10 +2675,6 @@ ZwIDAQAB
       si++;
     }
 
-    starmaqItems.forEach(item => {
-      sequence.push({ type: 'starmaq', q: item.q, options: item.options });
-    });
-
     // ADDED: insert mini-games between questions
     if (sequence.length > 1) {
       const gameIds = [pdGameId, snakeGameId, blockdudeGameId];
@@ -2899,21 +2759,6 @@ ZwIDAQAB
                   <button data-i="${i}" class="option choice-btn">${esc(o)}</button>
                 `).join('')}
               </div>
-            ` : q.type === 'starmaq' ? `
-              <div class="question-card starmaq-card">
-                <h2 class="question-title">${esc(q.q)}</h2>
-                <p class="muted-note">Pick all that match you.</p>
-                <div class="option-scroll">
-                  <div class="choice-grid two-col">
-                    ${q.options.map((o) => `
-                      <button class="choice-btn starmaq-option" data-val="${esc(o)}">${esc(o)}</button>
-                    `).join('')}
-                  </div>
-                </div>
-                <div class="action-row">
-                  <button id="nextStarMaq" class="retro-btn secondary">Next</button>
-                </div>
-              </div>
             ` : q.type === 'game' ? `
               <div class="answer-card game-card">
                 ${q.id === pdGameId ? `
@@ -2959,28 +2804,6 @@ ZwIDAQAB
           choose(+b.dataset.i);
         };
       });
-    }
-
-    if (q.type === 'starmaq') {
-      const selected = new Set(answers[q.q]?.selectedOptions || []);
-      document.querySelectorAll('.starmaq-option').forEach(btn => {
-        const val = btn.dataset.val;
-        if (selected.has(val)) btn.classList.add('active');
-        btn.onclick = () => {
-          if (btn.classList.toggle('active')) selected.add(val);
-          else selected.delete(val);
-        };
-      });
-
-      document.getElementById('nextStarMaq').onclick = () => {
-        answers[q.q] = {
-          type: 'starmaq',
-          question: q.q,
-          selectedOptions: Array.from(selected)
-        };
-        autoSave();
-        next();
-      };
     }
 
     if (q.type === 'game') {
