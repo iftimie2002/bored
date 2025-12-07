@@ -6,7 +6,7 @@
   <title>How Smart are You?</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: light;
@@ -20,7 +20,7 @@
       --surface-border: rgba(15, 23, 42, 0.15);
       --glow: 0 16px 42px rgba(15, 23, 42, 0.18);
       --pixel-font: 'Press Start 2P', system-ui, sans-serif;
-      --body-font: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --body-font: 'Press Start 2P', system-ui, sans-serif;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -47,6 +47,7 @@
         linear-gradient(135deg, var(--bg-secondary), var(--bg));
       color: var(--text);
       font-family: var(--body-font);
+      letter-spacing: 0.02em;
       transition: background 0.4s ease, color 0.3s ease;
     }
 
@@ -177,21 +178,33 @@
       width: 100%;
       text-align: center;
       font-weight: 700;
-      font-size: clamp(1rem, 2.4vw, 1.15rem);
-      padding: clamp(0.85rem, 1.8vw, 1.15rem);
-      border-radius: 16px;
-      border: 2px solid var(--surface-border);
-      background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,250,240,0.78));
-      color: var(--text);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+      font-family: var(--pixel-font);
+      font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+      padding: clamp(1rem, 2.4vw, 1.35rem);
+      border-radius: 14px;
+      border: 2px solid #000;
+      background: linear-gradient(90deg, #f97316, #fbbf24);
+      color: #0f172a;
+      box-shadow:
+        0 5px 0 #000,
+        0 14px 22px rgba(0,0,0,0.25);
       cursor: pointer;
-      transition: transform 0.08s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+      transition: transform 0.08s ease, box-shadow 0.12s ease, filter 0.12s ease;
     }
 
-    .choice-btn:hover, .choice-btn.active {
-      border-color: var(--accent);
-      box-shadow: 0 10px 22px rgba(0,0,0,0.16), 0 0 0 2px rgba(245, 158, 11, 0.25);
-      transform: translateY(-1px);
+    .choice-btn:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 7px 0 #000,
+        0 16px 24px rgba(0,0,0,0.28);
+    }
+
+    .choice-btn.active {
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      color: #031b0d;
+      box-shadow:
+        0 7px 0 #000,
+        0 16px 24px rgba(0,0,0,0.28);
     }
 
     .retro-btn {
@@ -544,10 +557,10 @@
       border: 0;
       outline: none;
       cursor: pointer;
-      font-size: 9px;
+      font-size: 11px;
       font-family: "Press Start 2P", system-ui, sans-serif;
       text-transform: uppercase;
-      padding: 9px 4px;
+      padding: 14px 8px;
       background: #e5e7eb;
       color: #111827;
       border-radius: 6px;
@@ -896,15 +909,15 @@
       outline: none;
       cursor: pointer;
       font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 12px;
-      padding: 10px 14px;
+      font-size: 14px;
+      padding: 14px 18px;
       background: #e5e7eb;
       color: #111827;
-      border-radius: 8px;
+      border-radius: 10px;
       box-shadow:
         0 0 0 2px #000,
-        0 3px 0 #000;
-      min-width: 52px;
+        0 4px 0 #000;
+      min-width: 64px;
       transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
     }
 
@@ -1177,15 +1190,15 @@
       outline: none;
       cursor: pointer;
       font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 12px;
-      padding: 10px 14px;
+      font-size: 14px;
+      padding: 14px 18px;
       background: #e5e7eb;
       color: #111827;
-      border-radius: 8px;
+      border-radius: 10px;
       box-shadow:
         0 0 0 2px #000,
-        0 3px 0 #000;
-      min-width: 52px;
+        0 4px 0 #000;
+      min-width: 64px;
       transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
     }
 
@@ -1241,9 +1254,9 @@
         padding: 8px 4px;
       }
       .bd-arrow-btn {
-        font-size: 10px;
-        min-width: 44px;
-        padding: 8px 10px;
+        font-size: 12px;
+        min-width: 56px;
+        padding: 11px 14px;
       }
       .bd-continue-btn {
         font-size: 8px;
@@ -1258,9 +1271,9 @@
         font-size: 8px;
       }
       .sn-arrow-btn {
-        font-size: 10px;
-        min-width: 44px;
-        padding: 8px 10px;
+        font-size: 12px;
+        min-width: 56px;
+        padding: 11px 14px;
       }
       .sn-continue-btn {
         font-size: 8px;
@@ -1275,7 +1288,7 @@
         font-size: 8px;
       }
       .pd-btn {
-        font-size: 8px;
+        font-size: 10px;
       }
       .pd-continue-btn {
         font-size: 8px;
@@ -2590,7 +2603,7 @@ ZwIDAQAB
         <div class="app-shell">
           <div class="question-card">
             <h1 class="question-title">How Smart are You?</h1>
-            <p class="muted-note">Retro-styled questions and mini-games sized to your screen.</p>
+            <p class="muted-note">Retro challenges and mini-games are waiting.</p>
 
             <div class="retro-field">
               <label class="retro-label" for="stay">Staying in Algarve?</label>
@@ -2731,7 +2744,7 @@ ZwIDAQAB
                   <text id="time" x="240" y="280" font-size="120" text-anchor="middle" font-weight="bold" fill="currentColor">30</text>
                 </svg>
                 <h2 class="question-title">${esc(q.q)}</h2>
-                <p class="muted-note">Tap quickly — everything scales to your screen size.</p>
+                <p class="muted-note">Answer before the timer runs dry.</p>
               </div>
 
               <div class="choice-grid ${q.isTF ? 'two-col' : ''}">
@@ -2758,7 +2771,7 @@ ZwIDAQAB
             ` : `
               <div class="question-card">
                 <h2 class="question-title">${esc(q.text)}</h2>
-                <p class="muted-note">Tell us what you think. The field grows with your screen.</p>
+                <p class="muted-note">Tell us what you think.</p>
                 <textarea id="txt" class="app-input" placeholder="Your answer...">${answers[q.id]?.answer||''}</textarea>
                 <div class="action-row">
                   <button id="nextStar" class="retro-btn secondary">Next</button>
@@ -2932,7 +2945,7 @@ ZwIDAQAB
             <h1 class="question-title">Results</h1>
             <div class="result-grid">
               <div class="result-tile">
-                <div>Smart</div>
+                <div>Smart Score</div>
                 <div class="result-score">${smart}</div>
               </div>
             </div>
