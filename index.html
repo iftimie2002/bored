@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Are you Smart, or just Confident?</title>
+  <title>How Smart are You?</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = { darkMode: 'class' }
@@ -12,6 +12,31 @@
     html, body, #app { height: 100%; margin: 0; padding: 0; overflow: hidden; }
     .container { padding: env(safe-area-inset-top, 1rem) env(safe-area-inset-right, 0.5rem) max( env(safe-area-inset-bottom, 1.5rem), 2rem ) env(safe-area-inset-left, 0.5rem); }
     .timer-ring { transition: stroke-dashoffset 0.35s ease; }
+    /* ADDED: Prisoner's Dilemma mini-game styles */
+    .pd-game-wrapper { background: #ffffff; border-radius: 18px; padding: 22px 20px; max-width: 480px; width: 100%; box-shadow: 0 18px 40px rgba(15,23,42,0.25); display: flex; flex-direction: column; gap: 10px; margin: 0 auto; }
+    .pd-title { font-size: 1.4rem; font-weight: 800; text-align: center; margin: 0; }
+    .pd-subtitle { font-size: 0.9rem; text-align: center; color: #4b5563; margin: 0; }
+    .pd-row-top { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 8px; }
+    .pd-timer { font-size: 1.1rem; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: #111827; color: #f9fafb; }
+    .pd-scores { display: flex; gap: 6px; }
+    .pd-score-box { flex: 1; padding: 6px 10px; border-radius: 999px; font-size: 0.85rem; background: #eef2ff; color: #111827; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .pd-score-box.pd-ai { background: #fee2e2; }
+    .pd-controls { margin-top: 10px; display: flex; gap: 10px; }
+    .pd-btn { flex: 1; padding: 10px 14px; border-radius: 999px; border: none; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: transform 0.05s ease, box-shadow 0.1s ease, opacity 0.1s; }
+    .pd-btn:active { transform: translateY(1px); box-shadow: none; }
+    .pd-btn-primary { background: #4f46e5; color: #ffffff; box-shadow: 0 8px 20px rgba(79,70,229,0.4); }
+    .pd-btn-secondary { background: #e5e7eb; color: #111827; }
+    .pd-btn-small { flex: 0 0 auto; padding: 6px 12px; font-size: 0.85rem; border-radius: 999px; border: none; background: #e5e7eb; cursor: pointer; font-weight: 600; }
+    .pd-btn[disabled] { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    .pd-msg { min-height: 1.3em; font-size: 0.9rem; font-weight: 600; }
+    .pd-msg-info { color: #6b7280; }
+    .pd-msg-good { color: #16a34a; }
+    .pd-msg-bad  { color: #dc2626; }
+    .pd-msg-warn { color: #d97706; }
+    .pd-rules { font-size: 0.8rem; color: #6b7280; margin: 0; line-height: 1.4; }
+    .pd-history { margin-top: 8px; padding: 8px; border-radius: 10px; background: #f3f4f6; max-height: 120px; overflow-y: auto; font-size: 0.8rem; }
+    .pd-history-entry { display: flex; justify-content: space-between; margin-bottom: 2px; }
+    .pd-history-entry span { white-space: nowrap; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
@@ -116,6 +141,15 @@ ZwIDAQAB
   function getClientInfo() {
     const colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // ADDED: capture URL, referrer, and UTM params for anonymous analytics
+    const href = window.location.href;
+    const referrer = document.referrer || '';
+    const urlParams = new URLSearchParams(window.location.search || '');
+    const utm = {
+      utm_source: urlParams.get('utm_source') || '',
+      utm_medium: urlParams.get('utm_medium') || '',
+      utm_campaign: urlParams.get('utm_campaign') || ''
+    };
 
     return {
       userAgent: navigator.userAgent,
@@ -135,7 +169,11 @@ ZwIDAQAB
         effectiveType: navigator.connection.effectiveType,
         downlink: navigator.connection.downlink,
         rtt: navigator.connection.rtt
-      } : null
+      } : null,
+      // ADDED: anonymous analytics fields
+      url: href,
+      referrer,
+      utm
     };
   }
 
@@ -154,7 +192,6 @@ ZwIDAQAB
       };
       if (isFinal) {
         payload.smartScore = smart;
-        payload.confidenceScore = conf;
         payload.starIds = sequence.filter(q => q.type === 'star').map(q => q.id);
       }
       const encryptedPayload = {
@@ -172,11 +209,10 @@ ZwIDAQAB
       clientId,
       timestamp: new Date().toISOString(),
       meta: { test: true, note: 'manual ping from UI', client: getClientInfo() },
-      answers: { sample: { answer: 'ping', confidence: 100 } },
+      answers: { sample: { answer: 'ping' } },
       sequence: [{ type: 'info', q: 'connectivity check' }],
       pointer: 0,
       smartScore: 0,
-      confidenceScore: 0,
       testPing: true
     };
 
@@ -261,16 +297,75 @@ ZwIDAQAB
   ];
 
   let answers = {}, sequence = [], pointer = 0, timer = null, timeLeft = 30;
+  // ADDED: Prisoner's Dilemma game state
+  const pdGameId = 'prisonersDilemma';
+  const pdDefaultDuration = 60;
+  let pdState = {
+    userScore: 0,
+    aiScore: 0,
+    timeLeft: pdDefaultDuration,
+    timerId: null,
+    active: false,
+    lastUserMove: 'cooperate',
+    history: [],
+    ended: false
+  };
   const app = document.getElementById('app');
 
   function esc(t){ return t.replace(/[&<>"']/g, r=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[r])); }
   function shuffle(a){ return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(v=>v[1]); }
 
+  // ADDED: Prisoner's Dilemma helpers
+  function resetPdState(saved = null) {
+    stopPdTimer();
+    pdState = {
+      userScore: saved?.userScore || 0,
+      aiScore: saved?.aiScore || 0,
+      timeLeft: pdDefaultDuration,
+      timerId: null,
+      active: false,
+      lastUserMove: 'cooperate',
+      history: saved?.history ? [...saved.history] : [],
+      ended: saved?.ended || false
+    };
+  }
+
+  function stopPdTimer() {
+    if (pdState.timerId) {
+      clearInterval(pdState.timerId);
+      pdState.timerId = null;
+    }
+  }
+
+  function pdFormatTime(seconds) {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function savePdAnswer(id, finalized = false) {
+    answers[id] = {
+      userScore: pdState.userScore,
+      aiScore: pdState.aiScore,
+      history: pdState.history,
+      timePlayed: pdDefaultDuration - pdState.timeLeft,
+      ended: finalized
+    };
+    autoSave();
+  }
+
+  function pdOutcome(userMove, aiMove) {
+    if (userMove === 'attack' && aiMove === 'attack') return [1, 1];
+    if (userMove === 'attack' && aiMove === 'cooperate') return [5, 0];
+    if (userMove === 'cooperate' && aiMove === 'attack') return [0, 5];
+    return [3, 3];
+  }
+
   function renderMeta() {
     app.innerHTML = `
       <div class="container flex flex-col justify-center items-center h-full px-6">
         <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md">
-          <h1 class="text-4xl font-black text-center mb-10">Are you Smart,<br>or just Confident?</h1>
+          <h1 class="text-4xl font-black text-center mb-10">How Smart are You?</h1>
           <div class="space-y-8">
             <div>
               <label class="block text-xl font-semibold mb-3">Staying in Algarve?</label>
@@ -290,8 +385,6 @@ ZwIDAQAB
 
             <div class="space-y-3">
               <button id="start" class="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-3xl shadow-xl">Start</button>
-              <button id="testSubmit" class="w-full py-4 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-2xl text-lg font-semibold hover:bg-emerald-200">Send test to Sheet</button>
-              <p class="text-sm text-slate-600 dark:text-slate-400 text-center">Use the test button once to verify a row appears in the <strong>RawData</strong> tab.</p>
             </div>
           </div>
         </div>
@@ -303,7 +396,6 @@ ZwIDAQAB
     };
 
     document.getElementById('stay').onchange = () => autoSave();
-    document.getElementById('testSubmit').onclick = () => sendTestRow();
     document.getElementById('start').onclick = startSurvey;
   }
 
@@ -341,6 +433,12 @@ ZwIDAQAB
       si++;
     }
 
+    // ADDED: insert mini-game randomly between questions
+    if (sequence.length > 1) {
+      const insertAt = Math.floor(Math.random() * (sequence.length - 1)) + 1;
+      sequence.splice(insertAt, 0, { type: 'game', id: pdGameId });
+    }
+
     pointer = 0;
     answers = {};
     renderQuestion();
@@ -356,7 +454,7 @@ ZwIDAQAB
       updateTimer();
       if (timeLeft <= 0) {
         clearInterval(timer);
-        answers[sequence[pointer].q] = {answer:null, confidence:0, timedOut:true};
+        answers[sequence[pointer].q] = {answer:null, timedOut:true};
         autoSave();
         next();
       }
@@ -374,6 +472,7 @@ ZwIDAQAB
   }
 
   function renderQuestion() {
+      stopPdTimer();
       const q = sequence[pointer];
       const progress = Math.round(((pointer + 1) / sequence.length) * 100);
 
@@ -406,6 +505,29 @@ ZwIDAQAB
                 <button data-i="${i}" class="option w-full py-5 text-xl font-medium bg-white dark:bg-slate-800 border-[3px] border-gray-300 dark:border-slate-700 rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-400 transition">${esc(o)}</button>
               `).join('')}
             </div>
+          ` : q.type === 'game' ? `
+            <div class="flex-1 flex items-center justify-center px-2">
+              <div class="pd-game-wrapper">
+                <h2 class="pd-title">Prisoner's Dilemma</h2>
+                <p class="pd-subtitle">1 minute. Make as many points as you can. You vs the algorithm (Tit for Tat).</p>
+                <div class="pd-row-top">
+                  <div class="pd-timer" id="pdTimer">01:00</div>
+                  <div class="pd-scores">
+                    <div class="pd-score-box"><span>You</span><span id="pdUserScore">0</span></div>
+                    <div class="pd-score-box pd-ai"><span>AI</span><span id="pdAiScore">0</span></div>
+                  </div>
+                </div>
+                <p class="pd-rules">Payoffs per round: • Both Attack: 1 point each · • One attacks, other cooperates: attacker 5, other 0 · • Both cooperate: 3 points each. AI plays <strong>Tit for Tat</strong>: it copies your last move (starts by cooperating).</p>
+                <div class="pd-controls">
+                  <button id="pdAttack" class="pd-btn pd-btn-secondary">Attack</button>
+                  <button id="pdCooperate" class="pd-btn pd-btn-primary">Cooperate</button>
+                  <button id="pdStart" class="pd-btn-small">Start / Reset</button>
+                </div>
+                <div id="pdMessage" class="pd-msg pd-msg-info">Press “Start / Reset” to begin your 1-minute game.</div>
+                <div class="pd-history" id="pdHistory"></div>
+                <button id="pdContinue" class="mt-3 w-full py-3 bg-indigo-600 text-white font-semibold rounded-2xl shadow">Continue</button>
+              </div>
+            </div>
           ` : `
             <div class="flex-1 flex flex-col justify-center">
               <h2 class="text-2xl font-black leading-tight mb-6">${esc(q.text)}</h2>
@@ -436,6 +558,96 @@ ZwIDAQAB
       });
     }
 
+    if (q.type === 'game') {
+      const saved = answers[q.id];
+      resetPdState(saved);
+
+      const timerEl = document.getElementById('pdTimer');
+      const userScoreEl = document.getElementById('pdUserScore');
+      const aiScoreEl = document.getElementById('pdAiScore');
+      const attackBtn = document.getElementById('pdAttack');
+      const coopBtn = document.getElementById('pdCooperate');
+      const startBtn = document.getElementById('pdStart');
+      const msgEl = document.getElementById('pdMessage');
+      const historyEl = document.getElementById('pdHistory');
+      const continueBtn = document.getElementById('pdContinue');
+
+      function setPdMessage(text, type = 'info') {
+        msgEl.textContent = text;
+        msgEl.className = 'pd-msg';
+        msgEl.classList.add(type === 'good' ? 'pd-msg-good' : type === 'bad' ? 'pd-msg-bad' : type === 'warn' ? 'pd-msg-warn' : 'pd-msg-info');
+      }
+
+      function renderPdHistory() {
+        historyEl.innerHTML = pdState.history.map(h => `<div class="pd-history-entry"><span>${h.user}</span><span>${h.ai}</span></div>`).join('');
+      }
+
+      function updatePdUi() {
+        timerEl.textContent = pdFormatTime(pdState.timeLeft);
+        userScoreEl.textContent = pdState.userScore;
+        aiScoreEl.textContent = pdState.aiScore;
+        renderPdHistory();
+      }
+
+      function pdEndGame() {
+        stopPdTimer();
+        pdState.active = false;
+        pdState.ended = true;
+        attackBtn.disabled = true;
+        coopBtn.disabled = true;
+        const verdict = pdState.userScore > pdState.aiScore ? 'good' : pdState.userScore < pdState.aiScore ? 'bad' : 'info';
+        setPdMessage(pdState.userScore === pdState.aiScore ? `Time's up! It's a tie: ${pdState.userScore} - ${pdState.aiScore}.` : pdState.userScore > pdState.aiScore ? `Time's up! You win ${pdState.userScore} vs ${pdState.aiScore}. Nice play.` : `Time's up! AI wins ${pdState.aiScore} vs ${pdState.userScore}. Try a different strategy next time.`, verdict);
+        continueBtn.disabled = false;
+        savePdAnswer(q.id, true);
+      }
+
+      function pdPlayRound(userMove) {
+        if (!pdState.active || pdState.timeLeft <= 0) return;
+        const aiMove = pdState.lastUserMove;
+        const [userPts, aiPts] = pdOutcome(userMove, aiMove);
+        pdState.userScore += userPts;
+        pdState.aiScore += aiPts;
+        pdState.lastUserMove = userMove;
+        pdState.history.unshift({ user: `${userMove === 'attack' ? 'Attack' : 'Cooperate'} (+${userPts})`, ai: `${aiMove === 'attack' ? 'Attack' : 'Cooperate'} (+${aiPts})` });
+        setPdMessage(`You: ${userMove === 'attack' ? 'Attack' : 'Cooperate'} (${userPts}) · AI: ${aiMove === 'attack' ? 'Attack' : 'Cooperate'} (${aiPts})`, userPts >= aiPts ? 'good' : 'bad');
+        savePdAnswer(q.id, false);
+        updatePdUi();
+      }
+
+      function startPdGame() {
+        resetPdState();
+        pdState.active = true;
+        attackBtn.disabled = false;
+        coopBtn.disabled = false;
+        continueBtn.disabled = false;
+        setPdMessage('Game started. Choose Attack or Cooperate each round.', 'info');
+        updatePdUi();
+        stopPdTimer();
+        pdState.timerId = setInterval(() => {
+          pdState.timeLeft--;
+          updatePdUi();
+          if (pdState.timeLeft <= 0) pdEndGame();
+        }, 1000);
+      }
+
+      attackBtn.onclick = () => pdPlayRound('attack');
+      coopBtn.onclick = () => pdPlayRound('cooperate');
+      startBtn.onclick = startPdGame;
+      continueBtn.onclick = () => {
+        pdState.ended = true;
+        stopPdTimer();
+        savePdAnswer(q.id, true);
+        next();
+      };
+
+      // Initial render for saved state
+      attackBtn.disabled = true;
+      coopBtn.disabled = true;
+      continueBtn.disabled = false;
+      if (saved?.ended) setPdMessage('Game finished earlier. Continue when ready.', 'info');
+      updatePdUi();
+    }
+
     if (q.type === 'star') {
       const textarea = document.getElementById('txt');
       textarea.addEventListener('input', () => {
@@ -462,36 +674,8 @@ ZwIDAQAB
   function choose(val) {
     clearInterval(timer);
     answers[sequence[pointer].q] = {answer: val};
-    renderConfidence();
     autoSave();
-  }
-
-  function renderConfidence() {
-    const currentQ = sequence[pointer].q;
-    app.innerHTML = `
-      <div class="container flex flex-col justify-center items-center h-full px-6">
-        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 w-full max-w-md text-center">
-          <h2 class="text-3xl font-black mb-10">How confident are you?</h2>
-          <input id="slider" type="range" min="0" max="100" value="${answers[currentQ]?.confidence || 70}" class="w-full h-10 rounded-full">
-          <div class="text-7xl font-black my-8" id="val">${answers[currentQ]?.confidence || 70}%</div>
-          <button id="go" class="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white text-2xl font-bold rounded-2xl shadow-xl">Continue</button>
-        </div>
-      </div>`;
-
-    const s = document.getElementById('slider');
-    const v = document.getElementById('val');
-
-    s.oninput = () => {
-      v.textContent = s.value + '%';
-      answers[currentQ].confidence = +s.value;
-      autoSave();
-    };
-
-    document.getElementById('go').onclick = () => {
-      answers[currentQ].confidence = +s.value;
-      autoSave();
-      next();
-    };
+    next();
   }
 
   function next() {
@@ -501,7 +685,7 @@ ZwIDAQAB
     else renderQuestion();
   }
 
-  let smart = 0, conf = 0;
+  let smart = 0;
 
   function finish() {
     clearInterval(timer);
@@ -509,13 +693,11 @@ ZwIDAQAB
     const facts = sequence.filter(x => x.type === 'fact');
 
     let correct = 0;
-    let confSum = 0;
     let recap = '';
 
     facts.forEach(f => {
-      const a = answers[f.q] || {answer:null, confidence:0};
+      const a = answers[f.q] || {answer:null};
       if (a.answer === f.correct) correct++;
-      confSum += a.confidence || 0;
 
       const user = a.answer === null ? 'Timed out' : f.isTF ? (a.answer ? 'True' : 'False') : f.options[a.answer];
       const corr = f.isTF ? (f.correct ? 'True' : 'False') : f.options[f.correct];
@@ -528,22 +710,16 @@ ZwIDAQAB
     });
 
     smart = facts.length ? Math.round(correct / facts.length * 100) : 0;
-    conf = facts.length ? Math.round(confSum / facts.length) : 0;
-
     autoSave(true);
 
     app.innerHTML = `
       <div class="container flex flex-col h-full px-6 pt-8 overflow-y-auto">
         <h1 class="text-5xl font-black text-center mb-8">Results</h1>
 
-        <div class="grid grid-cols-2 gap-5 mb-8">
+        <div class="grid grid-cols-1 gap-5 mb-8">
           <div class="bg-indigo-100 dark:bg-indigo-900 p-6 rounded-3xl text-center">
             <div class="text-xl font-bold">Smart</div>
             <div class="text-6xl font-black">${smart}</div>
-          </div>
-          <div class="bg-pink-100 dark:bg-pink-900 p-6 rounded-3xl text-center">
-            <div class="text-xl font-bold">Confidence</div>
-            <div class="text-6xl font-black">${conf}</div>
           </div>
         </div>
 
