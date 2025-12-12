@@ -176,6 +176,25 @@
     .choice-grid { width: 100%; max-width: 820px; margin: 0 auto; display: grid; gap: clamp(0.65rem, 1.8vw, 1rem); }
     .choice-grid.two-col { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 
+    .starmaq-card { display: flex; flex-direction: column; gap: clamp(0.65rem, 1.6vw, 1.1rem); }
+
+    .option-scroll {
+      max-height: min(40vh, 340px);
+      overflow-y: auto;
+      width: 100%;
+      margin: 0 auto;
+      padding-right: 6px;
+    }
+
+    .option-scroll::-webkit-scrollbar { width: 8px; }
+    .option-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+    .option-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 8px; }
+
+    @media (prefers-color-scheme: dark) {
+      .option-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); }
+      .option-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); }
+    }
+
     .choice-btn {
       width: 100%;
       text-align: center;
@@ -1494,7 +1513,11 @@ ZwIDAQAB
           client: getClientInfo()
         },
         answers: answers,
-        sequence: sequence.map(q => q.type === 'star' ? {type:'star', id:q.id} : {type:'fact', q:q.q}),
+        sequence: sequence.map(q => {
+          if (q.type === 'star') return {type:'star', id:q.id};
+          if (q.type === 'starmaq') return {type:'starmaq', q:q.q};
+          return {type:'fact', q:q.q};
+        }),
         pointer: pointer
       };
       if (isFinal) {
@@ -1586,6 +1609,84 @@ ZwIDAQAB
 {type:"mc", q:"Which one is not a planet?", options:["Mars","Venus","Pluto","Sirius"], correct:3},
 {type:"mc", q:"Which one is not a fruit?", options:["Apple","Banana","Carrot","Grape"], correct:2},
 {type:"mc", q:"Which one cannot fly?", options:["Eagle","Bat","Penguin","Parrot"], correct:2}
+  ];
+
+  const localBusinessStarMultiQuestions = [
+    {
+      type: "starmaq",
+      q: "Which types of restaurants do you wish were more common in the Algarve?",
+      options: ["Mexican", "Greek", "Indian", "Japanese", "Healthy bowls", "BBQ American"]
+    },
+    {
+      type: "starmaq",
+      q: "What food items would you love to see more often in Algarve cafés?",
+      options: ["Fresh smoothies", "Protein-packed breakfasts", "Vegan cakes", "Real sourdough bread", "Premium brunch toasts"]
+    },
+    {
+      type: "starmaq",
+      q: "What’s your preferred style of breakfast in the Algarve?",
+      options: ["Brunch style", "Coffee + pastel de nata", "Continental", "Portuguese pastry", "Coffee + cigarette"]
+    },
+    {
+      type: "starmaq",
+      q: "What ingredients would you include in your perfect salad?",
+      options: ["Chicken", "Salmon", "Egg", "Avocado", "Olives", "Tomatoes", "Cucumber", "Quinoa", "Cheese", "Croutons"]
+    },
+    {
+      type: "starmaq",
+      q: "Build your ideal burger:",
+      options: ["Beef patty", "Chicken patty", "Vegan patty", "Cheddar", "Bacon", "Onion rings", "Fried egg", "Pickles", "BBQ sauce", "Garlic mayo"]
+    },
+    {
+      type: "starmaq",
+      q: "Favourite Portuguese classic dish?",
+      options: ["Bacalhau à Brás", "Cataplana", "Frango Piri-Piri", "Polvo à lagareiro", "Feijoada"]
+    },
+    {
+      type: "starmaq",
+      q: "How much are you willing to spend on a very good meal in Portugal?",
+      options: ["10€ - 20€", "20€ - 35€", "35€ - 60€", "60€ - 100€"]
+    },
+    {
+      type: "starmaq",
+      q: "What new services would you love to see in the Algarve?",
+      options: ["24h food delivery", "Home cleaning on demand", "Night-time pharmacies", "Local meal prep service", "Affordable gyms"]
+    },
+    {
+      type: "starmaq",
+      q: "What products do you wish local supermarkets stocked more often?",
+      options: ["International spices", "Better quality meat", "Vegan options", "Protein snacks", "Premium bakery items"]
+    },
+    {
+      type: "starmaq",
+      q: "What makes you choose one café over another?",
+      options: ["Fast service", "Good Wi-Fi", "Outdoor seating", "Affordable prices", "Healthy options"]
+    },
+    {
+      type: "starmaq",
+      q: "If a new restaurant opened near you, what cuisine would attract you most?",
+      options: ["Thai", "Korean BBQ", "Mediterranean", "Italian", "Seafood-focused", "Vegan/plant based"]
+    },
+    {
+      type: "starmaq",
+      q: "What type of nightlife do you feel is missing in the Algarve?",
+      options: ["Live music bars", "Rooftop lounges", "Silent discos", "Late-night cafés", "Comedy clubs"]
+    },
+    {
+      type: "starmaq",
+      q: "Which gym features matter most to you?",
+      options: ["Cheap monthly price", "Good machines", "Classes included", "Sauna/steam room", "Open 24/7"]
+    },
+    {
+      type: "starmaq",
+      q: "Which beach amenities would improve your experience the most?",
+      options: ["Cheap sunbeds", "Healthy food options", "Showers", "Better parking", "Umbrella rental"]
+    },
+    {
+      type: "starmaq",
+      q: "What would make transportation around the Algarve easier?",
+      options: ["Cheaper Uber prices", "Better public transport", "Bike lanes", "More parking", "Car-sharing services"]
+    }
   ];
 
   const starQuestions = [
@@ -2647,45 +2748,34 @@ ZwIDAQAB
     const maxF = mins < 4 ? 5 : mins < 7 ? 10 : 16;
     const maxS = mins < 4 ? 2 : mins < 7 ? 5 : 8;
 
-    const stars = shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just'))).slice(0, maxS);
-    const starmaqPool = shuffle(localBusinessStarMultiQuestions);
+    const mcPool = shuffle(mcQuestions).slice(0, maxF);
+    const tfPool = shuffle(trueFalseQuestions).slice(0, maxF);
+    const starPool = shuffle(
+      shuffle(starQuestions.filter(q => q.tag === 'all' || (q.tag === 'experienced' && stay !== 'just')))
+        .slice(0, maxS)
+        .map(s => ({ type: 'star', id: s.id, text: s.text }))
+    );
 
-    const factPool = shuffle([
-      ...trueFalseQuestions.map(f => ({...f,isTF:true})),
-      ...mcQuestions.map(f => ({...f,isTF:false}))
-    ]).slice(0, maxF);
+    const starmaqPool = shuffle(localBusinessStarMultiQuestions).map(item => ({
+      type: 'starmaq',
+      q: item.q,
+      options: item.options
+    }));
 
-    const gamePool = shuffle([pdGameId, snakeGameId, blockdudeGameId]);
+    const starLikePool = shuffle([...starPool, ...starmaqPool]);
+
+    const tripCount = Math.min(mcPool.length, tfPool.length, starLikePool.length);
 
     sequence = [];
-    let fi = 0, si = 0, mi = 0, gi = 0;
-    let prevGame = null;
 
-    while (fi < factPool.length || si < stars.length || mi < starmaqPool.length || gi < gamePool.length) {
-      if (fi < factPool.length) {
-        const f = factPool[fi++];
-        sequence.push({type:'fact', q:f.q, options:f.options||null, correct:f.correct, isTF:f.isTF});
-      }
+    for (let i = 0; i < tripCount; i++) {
+      const mc = mcPool[i];
+      const tf = tfPool[i];
+      const star = starLikePool[i];
 
-      if (si < stars.length) {
-        sequence.push({type:'star', id:stars[si].id, text:stars[si].text});
-        si++;
-      }
-
-      if (mi < starmaqPool.length) {
-        const item = starmaqPool[mi++];
-        sequence.push({ type: 'starmaq', q: item.q, options: item.options });
-      }
-
-    // ADDED: insert mini-games between questions
-    if (sequence.length > 1) {
-      const gameIds = [pdGameId, snakeGameId, blockdudeGameId];
-      const slotSize = Math.max(1, Math.floor(sequence.length / (gameIds.length + 1)));
-
-      gameIds.forEach((id, index) => {
-        const position = Math.min(sequence.length, Math.max(1, slotSize * (index + 1) + index));
-        sequence.splice(position, 0, { type: 'game', id });
-      });
+      sequence.push({ type: 'fact', q: mc.q, options: mc.options, correct: mc.correct, isTF: false });
+      sequence.push({ type: 'fact', q: tf.q, options: tf.options || null, correct: tf.correct, isTF: true });
+      sequence.push(star);
     }
 
     pointer = 0;
@@ -2761,18 +2851,20 @@ ZwIDAQAB
                   <button data-i="${i}" class="option choice-btn">${esc(o)}</button>
                 `).join('')}
               </div>
-            ` : q.type === 'game' ? `
-              <div class="answer-card game-card">
-                ${q.id === pdGameId ? `
-                  <div id="pd-root" class="game-slot"></div>
-                  <div id="pd-user-summary" class="game-summary"></div>
-                ` : q.id === snakeGameId ? `
-                  <div id="snake-root" class="game-slot"></div>
-                  <div id="snake-user-summary" class="game-summary"></div>
-                ` : `
-                  <div id="blockdude-root" class="game-slot"></div>
-                  <div id="blockdude-user-summary" class="game-summary"></div>
-                `}
+            ` : q.type === 'starmaq' ? `
+              <div class="question-card starmaq-card">
+                <h2 class="question-title">${esc(q.q)}</h2>
+                <p class="muted-note">Pick all that match you.</p>
+                <div class="option-scroll">
+                  <div class="choice-grid two-col">
+                    ${q.options.map((o) => `
+                      <button class="choice-btn starmaq-option" data-val="${esc(o)}">${esc(o)}</button>
+                    `).join('')}
+                  </div>
+                </div>
+                <div class="action-row">
+                  <button id="nextStarMaq" class="retro-btn secondary">Next</button>
+                </div>
               </div>
             ` : `
               <div class="question-card">
@@ -2808,76 +2900,26 @@ ZwIDAQAB
       });
     }
 
-    if (q.type === 'game') {
-      if (q.id === pdGameId) {
-        pdState = {
-          userScore: 0,
-          aiScore: 0,
-          timeLeft: pdDefaultDuration,
-          timerId: null,
-          active: false,
-          lastUserMove: 'cooperate',
-          history: [],
-          ended: false
+    if (q.type === 'starmaq') {
+      const selected = new Set(answers[q.q]?.selectedOptions || []);
+      document.querySelectorAll('.starmaq-option').forEach(btn => {
+        const val = btn.dataset.val;
+        if (selected.has(val)) btn.classList.add('active');
+        btn.onclick = () => {
+          if (btn.classList.toggle('active')) selected.add(val);
+          else selected.delete(val);
         };
+      });
 
-        const summaryEl = document.getElementById('pd-user-summary');
-        if (summaryEl) {
-          summaryEl.textContent = pdUserInfo
-            ? `Previous round: You ${pdUserInfo.userScore} · AI ${pdUserInfo.aiScore} in ${pdFormatTime(pdUserInfo.timePlayed)}.`
-            : 'Play a round, then tap CONTINUE to move on.';
-        }
-
-        renderPrisonersDilemma('pd-root', (result) => {
-          pdUserInfo = {
-            ...result,
-            ended: pdState.ended
-          };
-
-          if (summaryEl) {
-            summaryEl.textContent = `You scored ${result.userScore} while AI scored ${result.aiScore} in ${pdFormatTime(result.timePlayed)}.`;
-          }
-
-          next();
-        });
-
-        currentGameCleanup = () => pdStopTimer();
-      } else if (q.id === snakeGameId) {
-        const summaryEl = document.getElementById('snake-user-summary');
-        if (summaryEl) {
-          summaryEl.textContent = snakeUserInfo
-            ? `Previous round: ${snakeUserInfo.applesEaten ?? snakeUserInfo.score} apples in ${snakeUserInfo.timePlayed}s.`
-            : 'Press START, use the arrows or buttons, then CONTINUE to proceed.';
-        }
-
-        const teardown = renderSnakeGame('snake-root', (result) => {
-          snakeUserInfo = { ...result };
-          if (summaryEl) {
-            summaryEl.textContent = `You ate ${result.applesEaten} apples in ${result.timePlayed}s.`;
-          }
-          next();
-        });
-
-        currentGameCleanup = teardown;
-      } else if (q.id === blockdudeGameId) {
-        const summaryEl = document.getElementById('blockdude-user-summary');
-        if (summaryEl) {
-          summaryEl.textContent = blockdudeUserInfo
-            ? `${blockdudeUserInfo.completed ? 'Reached exit' : 'Not yet at exit'} in ${blockdudeUserInfo.timePlayed}s after ${blockdudeUserInfo.moves} moves.`
-            : 'Press START, move with arrows or the down button, then CONTINUE to proceed.';
-        }
-
-        const teardown = renderBlockDude('blockdude-root', (result) => {
-          blockdudeUserInfo = { ...result };
-          if (summaryEl) {
-            const status = result.completed ? 'Reached exit' : 'Stopped early';
-            summaryEl.textContent = `${status} in ${result.timePlayed}s after ${result.moves} moves (blocks moved: ${result.blocksMoved}).`;
-          }
-          next();
-        });
-
-        currentGameCleanup = teardown;
-      }
+      document.getElementById('nextStarMaq').onclick = () => {
+        const selection = Array.from(selected);
+        answers[q.q] = {
+          answer: JSON.stringify(selection),
+          selectedOptions: selection
+        };
+        autoSave();
+        next();
+      };
     }
 
     if (q.type === 'star') {
