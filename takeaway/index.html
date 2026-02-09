@@ -104,14 +104,12 @@
     }
 
     .app-header {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto auto minmax(0, 1fr) auto;
       align-items: center;
-      justify-content: space-between;
-      gap: clamp(0.5rem, 2vw, 0.9rem);
+      gap: clamp(0.45rem, 2vw, 0.9rem);
       padding: clamp(0.15rem, 1vw, 0.5rem) clamp(0.35rem, 2vw, 0.65rem);
     }
-
-    .header-meta { display: flex; align-items: center; gap: clamp(0.5rem, 2vw, 0.9rem); }
 
     .badge {
       font-family: var(--pixel-font);
@@ -123,6 +121,7 @@
       border-radius: 10px;
       border: 2px solid var(--surface-border);
       box-shadow: 0 4px 0 #000;
+      white-space: nowrap;
     }
 
     .title-pill {
@@ -134,10 +133,12 @@
       border-radius: 12px;
       border: 2px solid #000;
       box-shadow: 0 4px 0 #000;
+      white-space: nowrap;
     }
 
     .app-progress {
-      width: clamp(160px, 60vw, 240px);
+      width: 100%;
+      min-width: 0;
       height: clamp(12px, 3vw, 16px);
       background: rgba(15, 23, 42, 0.12);
       border-radius: 999px;
@@ -310,11 +311,22 @@
     .retro-range { accent-color: var(--accent); padding: 0.5rem 0; }
     .range-value { font-family: var(--pixel-font); font-size: clamp(1.6rem, 4vw, 2.2rem); text-align: center; }
 
+    .reward-code {
+      font-family: var(--pixel-font);
+      font-size: clamp(1rem, 3.5vw, 1.4rem);
+      letter-spacing: 0.08em;
+      background: rgba(15, 23, 42, 0.08);
+      border: 2px dashed var(--surface-border);
+      border-radius: 12px;
+      padding: 0.5rem 0.9rem;
+    }
+
     #status {
       text-align: center;
       margin: 8px;
       font-weight: bold;
       color: var(--muted);
+      min-height: 1.2em;
     }
   </style>
 
@@ -338,7 +350,7 @@
   <script>
     function setStatus(text) {
       const el = document.getElementById('status');
-      if (el) el.textContent = text;
+      if (el) el.textContent = text || '';
     }
 
     (function () {
@@ -419,6 +431,17 @@ ZwIDAQAB
         }
       }
 
+      function getOrCreateSessionGiftCode() {
+        let code = sessionStorage.getItem('surveyGiftCode');
+        if (!code) {
+          code = String(Math.floor(1000000 + Math.random() * 9000000));
+          sessionStorage.setItem('surveyGiftCode', code);
+        }
+        return code;
+      }
+
+      const sessionGiftCode = getOrCreateSessionGiftCode();
+
       let saveTimeout;
       function getClientInfo() {
         const colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -465,9 +488,10 @@ ZwIDAQAB
             meta: {
               stay: metaState.stay,
               age: metaState.age,
-              freeMealCode: freeMealCode,
+              giftCode: sessionGiftCode,
               client: getClientInfo()
             },
+            giftCode: sessionGiftCode,
             answers: answers,
             sequence: sequence.map(q => ({ type: 'starmaq', q: q.q, single: !!q.single })),
             pointer: pointer,
@@ -477,7 +501,6 @@ ZwIDAQAB
           const encryptedPayload = {
             clientId,
             timestamp: new Date().toISOString(),
-            freeMealCode: freeMealCode,
             ...payload
           };
 
@@ -503,16 +526,6 @@ ZwIDAQAB
         });
         localStorage.setItem('surveyClientId', clientId);
       }
-
-      function getOrCreateSessionCode() {
-        let code = sessionStorage.getItem('freeMealCode');
-        if (!/^\d{7}$/.test(code || '')) {
-          code = String(Math.floor(1000000 + Math.random() * 9000000));
-          sessionStorage.setItem('freeMealCode', code);
-        }
-        return code;
-      }
-      const freeMealCode = getOrCreateSessionCode();
 
       const localBusinessStarMultiQuestions = [
         {
@@ -563,14 +576,14 @@ ZwIDAQAB
         {
           type: "starmaq",
           single: true,
-          onlyFor: ["empregado", "estudante-trabalhador"],
+          requiresEmployment: true,
           q: "O subsídio de alimentação cobre as tuas refeições diárias?",
           options: ["Sim", "Não"]
         },
         {
           type: "starmaq",
           single: true,
-          onlyFor: ["empregado", "estudante-trabalhador"],
+          requiresEmployment: true,
           q: "Preferias que a tua entidade patronal te oferecesse uma refeição diária, à tua escolha, em vez do valor do subsídio de alimentação?",
           options: ["Sim", "Não"]
         },
@@ -595,8 +608,6 @@ ZwIDAQAB
               <div class="question-card">
                 <h1 class="question-title">Está caro comer em Lisboa.</h1>
                 <p class="muted-note">Ajuda-nos a mudar isso. (em 2 minutos)</p>
-                <p class="muted-note">E recebe uma prendinha no final!</p>
-
 
                 <div class="retro-field">
                   <label class="retro-label" for="stay">Qual é a tua situação atual?</label>
@@ -643,12 +654,15 @@ ZwIDAQAB
       }
 
       function startSurvey() {
-        const filteredQuestions = localBusinessStarMultiQuestions.filter(item => {
-          if (!item.onlyFor) return true;
-          return item.onlyFor.includes(metaState.stay);
-        });
+        const includeEmploymentQuestions =
+          metaState.stay === 'empregado' || metaState.stay === 'estudante-trabalhador';
 
-        sequence = shuffle(filteredQuestions).map(item => ({
+        sequence = shuffle(
+          localBusinessStarMultiQuestions.filter(item => {
+            if (!item.requiresEmployment) return true;
+            return includeEmploymentQuestions;
+          })
+        ).map(item => ({
           type: 'starmaq',
           q: item.q,
           options: [...item.options],
@@ -657,6 +671,7 @@ ZwIDAQAB
 
         pointer = 0;
         answers = {};
+        setStatus('');
         renderQuestion();
         autoSave();
       }
@@ -665,17 +680,14 @@ ZwIDAQAB
         const q = sequence[pointer];
         const progress = Math.round(((pointer + 1) / sequence.length) * 100);
         const isSingle = !!q.single;
-        setStatus('');
 
         app.innerHTML = `
           <div class="container app-surface">
             <div class="app-shell">
               <div class="app-header">
                 <button id="back" class="nav-btn" aria-label="Go back">←</button>
-                <div class="header-meta">
-                  <div class="badge">STEP ${pointer + 1}/${sequence.length}</div>
-                  <div class="app-progress"><div class="app-progress-bar" style="width:${progress}%"></div></div>
-                </div>
+                <div class="badge">STEP ${pointer + 1}/${sequence.length}</div>
+                <div class="app-progress"><div class="app-progress-bar" style="width:${progress}%"></div></div>
                 <div class="title-pill">SURVEY</div>
               </div>
 
@@ -712,6 +724,7 @@ ZwIDAQAB
 
           btn.onclick = () => {
             setStatus('');
+
             if (isSingle) {
               optionButtons.forEach(b => b.classList.remove('active'));
               selected.clear();
@@ -736,6 +749,7 @@ ZwIDAQAB
             answer: JSON.stringify(selection),
             selectedOptions: selection
           };
+          setStatus('');
           autoSave();
           next();
         };
@@ -743,6 +757,7 @@ ZwIDAQAB
         document.getElementById('back').onclick = () => {
           if (pointer > 0) {
             pointer--;
+            setStatus('');
             renderQuestion();
           }
         };
@@ -776,9 +791,7 @@ ZwIDAQAB
                 <h1 class="question-title">Obrigado!</h1>
                 <p class="muted-note">As tuas respostas foram guardadas.</p>
                 <p class="muted-note">Guarda este código, para uma refeição grátis quando abrirmos!</p>
-                <div class="title-pill" style="font-size:clamp(1rem,4vw,1.45rem); letter-spacing:0.08em;">
-                  ${freeMealCode}
-                </div>
+                <p class="reward-code">${sessionGiftCode}</p>
               </div>
               <div class="app-body" style="padding-top:0;">
                 ${recap}
