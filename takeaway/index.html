@@ -343,6 +343,7 @@
 
     (function () {
       let clientIp = null;
+      let metaState = { stay: null, age: null };
 
       function loadClientIp() {
         try {
@@ -462,12 +463,12 @@ ZwIDAQAB
         saveTimeout = setTimeout(() => {
           const payload = {
             meta: {
-              stay: document.getElementById('stay')?.value || null,
-              age: document.getElementById('age')?.value || null,
+              stay: metaState.stay,
+              age: metaState.age,
               client: getClientInfo()
             },
             answers: answers,
-            sequence: sequence.map(q => ({ type: 'starmaq', q: q.q })),
+            sequence: sequence.map(q => ({ type: 'starmaq', q: q.q, single: !!q.single })),
             pointer: pointer,
             completed: !!isFinal
           };
@@ -504,21 +505,25 @@ ZwIDAQAB
       const localBusinessStarMultiQuestions = [
         {
           type: "starmaq",
+          single: true,
           q: "Em média, quanto gastas, no dia a dia, numa refeição simples fora de casa?",
           options: ["5€ - 10€", "10€ - 15€", "15€ - 20€", "20€ + "]
         },
         {
           type: "starmaq",
+          single: true,
           q: "Em média, quanto te custa fazer uma refeição em casa?",
           options: ["5€ - 10€", "10€ - 15€", "15€ - 20€", "20€ + "]
         },
         {
           type: "starmaq",
+          single: true,
           q: "Com que frequência compras comida Take-Away / Delivery?",
           options: ["Quase todos os dias", "4-5 vezes por semana", "1-2 vezes por semana", "2-3 vezes por mês", "1 vez por mês", "Nunca"]
         },
         {
           type: "starmaq",
+          single: true,
           q: "Qual seria, na tua opinião, um preço justo para uma refeição completa em Take-Away?",
           options: ["5€ - 8€", "9€ - 13€", "14€ - 18€", "19€ - 24€", "25€ + "]
         },
@@ -529,13 +534,14 @@ ZwIDAQAB
         },
         {
           type: "starmaq",
+          single: true,
           q: "Se existisse um Take-Away com refeições acessíveis (5€-8€), de boa qualidade, variedade e doses generosas, comias lá?",
           options: ["Quase todos os dias", "4-5 vezes por semana", "1-2 vezes por semana", "2-3 vezes por mês", "1 vez por mês", "Nunca"]
         },
         {
           type: "starmaq",
           q: "Escolhe os teus pratos favoritos:",
-          options: ["Lasanha", "Feijoada", "Bacalhau à Brás", "Bitoque", "Guisado", "Strogonoff", "Bolonhesa", "Pratos Vegan/ Vegetarianos" ]
+          options: ["Lasanha", "Feijoada", "Bacalhau à Brás", "Bitoque", "Guisado", "Strogonoff", "Bolonhesa", "Pratos Vegan/ Vegetarianos"]
         },
         {
           type: "starmaq",
@@ -544,16 +550,19 @@ ZwIDAQAB
         },
         {
           type: "starmaq",
+          single: true,
           q: "O subsídio de alimentação cobre as tuas refeições diárias?",
           options: ["Sim", "Não"]
         },
         {
           type: "starmaq",
+          single: true,
           q: "Preferias que a tua entidade patronal te oferecesse uma refeição diária, à tua escolha, em vez do valor do subsídio de alimentação?",
           options: ["Sim", "Não"]
         },
         {
           type: "starmaq",
+          single: true,
           q: "Se amanhã abrisse um Take-Away barato e de alta qualidade, terias interesse em experimentar?",
           options: ["Sim, muito!", "Sim.", "Talvez.", "Não."]
         }
@@ -600,12 +609,20 @@ ZwIDAQAB
         const age = document.getElementById('age');
         const stay = document.getElementById('stay');
 
+        metaState.stay = stay.value;
+        metaState.age = age.value;
+
         age.oninput = (e) => {
           document.getElementById('ageVal').textContent = e.target.value;
+          metaState.age = e.target.value;
           autoSave();
         };
 
-        stay.onchange = () => autoSave();
+        stay.onchange = () => {
+          metaState.stay = stay.value;
+          autoSave();
+        };
+
         document.getElementById('start').onclick = startSurvey;
       }
 
@@ -613,7 +630,8 @@ ZwIDAQAB
         sequence = shuffle(localBusinessStarMultiQuestions).map(item => ({
           type: 'starmaq',
           q: item.q,
-          options: [...item.options]
+          options: [...item.options],
+          single: !!item.single
         }));
 
         pointer = 0;
@@ -625,6 +643,7 @@ ZwIDAQAB
       function renderQuestion() {
         const q = sequence[pointer];
         const progress = Math.round(((pointer + 1) / sequence.length) * 100);
+        const isSingle = !!q.single;
 
         app.innerHTML = `
           <div class="container app-surface">
@@ -641,12 +660,12 @@ ZwIDAQAB
               <div class="app-body">
                 <div class="question-card">
                   <h2 class="question-title">${esc(q.q)}</h2>
-                  <p class="muted-note">Podes escolher várias opções.</p>
+                  <p class="muted-note">${isSingle ? 'Podes escolher apenas uma opção.' : 'Podes escolher várias opções.'}</p>
 
                   <div class="option-scroll">
                     <div class="choice-grid">
-                      ${q.options.map(o => `
-                        <button class="choice-btn starmaq-option" data-val="${esc(o)}">${esc(o)}</button>
+                      ${q.options.map((o, i) => `
+                        <button class="choice-btn starmaq-option" data-i="${i}">${esc(o)}</button>
                       `).join('')}
                     </div>
                   </div>
@@ -661,14 +680,24 @@ ZwIDAQAB
         `;
 
         const selected = new Set(answers[q.q]?.selectedOptions || []);
+        const optionButtons = document.querySelectorAll('.starmaq-option');
 
-        document.querySelectorAll('.starmaq-option').forEach(btn => {
-          const val = btn.dataset.val;
+        optionButtons.forEach(btn => {
+          const idx = Number(btn.dataset.i);
+          const val = q.options[idx];
+
           if (selected.has(val)) btn.classList.add('active');
 
           btn.onclick = () => {
-            if (btn.classList.toggle('active')) selected.add(val);
-            else selected.delete(val);
+            if (isSingle) {
+              optionButtons.forEach(b => b.classList.remove('active'));
+              selected.clear();
+              btn.classList.add('active');
+              selected.add(val);
+            } else {
+              if (btn.classList.toggle('active')) selected.add(val);
+              else selected.delete(val);
+            }
           };
         });
 
