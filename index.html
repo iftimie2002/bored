@@ -1,811 +1,198 @@
-<!doctype html>
-<html lang="en" class="h-full">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Está caro comer em Lisboa!</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #f8f1e3;
-      --bg-secondary: #f1e7d4;
-      --card: #fffaf0;
-      --text: #0f172a;
-      --muted: #4a5568;
-      --accent: #f59e0b;
-      --accent-2: #22c55e;
-      --surface-border: rgba(15, 23, 42, 0.15);
-      --glow: 0 16px 42px rgba(15, 23, 42, 0.18);
-      --button-font-size: clamp(1rem, 3vw, 1.2rem);
-      --pixel-font: 'Jost', system-ui, sans-serif;
-      --body-font: 'Jost', system-ui, sans-serif;
-      --base-space: clamp(0.75rem, 2.8vw, 1.3rem);
-      --card-radius: clamp(14px, 4vw, 22px);
-      --surface-padding: clamp(0.75rem, 3vw, 1.6rem);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        color-scheme: dark;
-        --bg: #0c1324;
-        --bg-secondary: #0f1a30;
-        --card: #0f172a;
-        --text: #e2e8f0;
-        --muted: #a5b4cb;
-        --accent: #f8b23c;
-        --accent-2: #4ade80;
-        --surface-border: rgba(148, 163, 184, 0.2);
-        --glow: 0 18px 42px rgba(0, 0, 0, 0.65);
-      }
-    }
-
-    html { font-size: clamp(15px, 3vw, 19px); }
-    html, body, #app { height: 100%; margin: 0; padding: 0; overflow-x: hidden; }
-
-    body {
-      background:
-        radial-gradient(circle at 10% 16%, rgba(245, 158, 11, 0.18), transparent 26%),
-        radial-gradient(circle at 78% 24%, rgba(34, 197, 94, 0.16), transparent 22%),
-        radial-gradient(circle at 48% 82%, rgba(14, 165, 233, 0.12), transparent 25%),
-        linear-gradient(135deg, var(--bg-secondary), var(--bg));
-      color: var(--text);
-      font-family: var(--body-font);
-      letter-spacing: 0.02em;
-      transition: background 0.4s ease, color 0.3s ease;
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    }
-
-    .container {
-      padding:
-        env(safe-area-inset-top, 0.5rem)
-        env(safe-area-inset-right, 0.85rem)
-        max(env(safe-area-inset-bottom, 1rem), 1.25rem)
-        env(safe-area-inset-left, 0.85rem);
-    }
-
-    .app-surface { min-height: 100%; display: flex; align-items: stretch; }
-
-    .app-shell {
-      width: min(94vw, 720px);
-      margin: 0 auto;
-      background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,245,230,0.9));
-      border: 3px solid var(--surface-border);
-      box-shadow: var(--glow);
-      border-radius: var(--card-radius);
-      display: flex;
-      flex-direction: column;
-      gap: var(--base-space);
-      padding: var(--surface-padding);
-      position: relative;
-      overflow: hidden;
-      isolation: isolate;
-    }
-
-    .app-shell::before {
-      content: "";
-      position: absolute;
-      inset: clamp(6px, 2vw, 12px);
-      border-radius: calc(var(--card-radius) - 6px);
-      border: 2px dashed rgba(15, 23, 42, 0.08);
-      opacity: 0.6;
-      pointer-events: none;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .app-shell {
-        background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(12,19,36,0.9));
-        border-color: var(--surface-border);
-      }
-      .app-shell::before { border-color: rgba(148, 163, 184, 0.25); }
-    }
-
-    .app-header {
-      display: grid;
-      grid-template-columns: auto auto minmax(0, 1fr) auto;
-      align-items: center;
-      gap: clamp(0.45rem, 2vw, 0.9rem);
-      padding: clamp(0.15rem, 1vw, 0.5rem) clamp(0.35rem, 2vw, 0.65rem);
-    }
-
-    .badge {
-      font-family: var(--pixel-font);
-      font-size: clamp(0.6rem, 2vw, 0.8rem);
-      letter-spacing: 0.04em;
-      padding: clamp(6px, 2vw, 10px) clamp(7px, 2vw, 12px);
-      background: #0f172a;
-      color: #f8fafc;
-      border-radius: 10px;
-      border: 2px solid var(--surface-border);
-      box-shadow: 0 4px 0 #000;
-      white-space: nowrap;
-    }
-
-    .title-pill {
-      font-family: var(--pixel-font);
-      font-size: clamp(0.72rem, 2.4vw, 1rem);
-      padding: clamp(7px, 2.2vw, 12px) clamp(10px, 2.8vw, 16px);
-      background: #111827;
-      color: #fef9c3;
-      border-radius: 12px;
-      border: 2px solid #000;
-      box-shadow: 0 4px 0 #000;
-      white-space: nowrap;
-    }
-
-    .app-progress {
-      width: 100%;
-      min-width: 0;
-      height: clamp(12px, 3vw, 16px);
-      background: rgba(15, 23, 42, 0.12);
-      border-radius: 999px;
-      overflow: hidden;
-      border: 2px solid var(--surface-border);
-    }
-
-    .app-progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      transition: width 0.3s ease;
-    }
-
-    .app-body {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      gap: clamp(0.8rem, 3vw, 1.6rem);
-      padding: clamp(0.35rem, 2vw, 0.9rem) clamp(0.35rem, 2vw, 1rem);
-    }
-
-    .question-title {
-      font-size: clamp(1.25rem, 4vw, 1.9rem);
-      line-height: 1.3;
-      font-weight: 800;
-      margin-top: clamp(0.25rem, 2vw, 0.8rem);
-      color: var(--text);
-      text-align: center;
-    }
-
-    .muted-note {
-      color: var(--muted);
-      font-size: clamp(0.85rem, 1.6vw, 0.95rem);
-      text-align: center;
-    }
-
-    .question-card {
-      display: flex;
-      flex-direction: column;
-      gap: clamp(0.75rem, 1.5vw, 1rem);
-      align-items: center;
-      text-align: center;
-      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,244,223,0.85));
-      border: 3px solid var(--surface-border);
-      border-radius: var(--card-radius);
-      padding: clamp(0.75rem, 3vw, 1.25rem);
-      backdrop-filter: blur(4px);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.12);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .question-card {
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(12, 19, 36, 0.85));
-        box-shadow: 0 14px 32px rgba(0,0,0,0.45);
-      }
-    }
-
-    .choice-grid {
-      width: 100%;
-      max-width: min(640px, 94vw);
-      margin: 0 auto;
-      display: grid;
-      gap: clamp(0.65rem, 2.6vw, 1.1rem);
-      grid-template-columns: repeat(auto-fit, minmax(clamp(120px, 40vw, 200px), 1fr));
-    }
-
-    .option-scroll {
-      max-height: min(42vh, 320px);
-      overflow-y: auto;
-      width: 100%;
-      margin: 0 auto;
-      padding-right: 6px;
-    }
-
-    .option-scroll::-webkit-scrollbar { width: 8px; }
-    .option-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
-    .option-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 8px; }
-
-    @media (prefers-color-scheme: dark) {
-      .option-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); }
-      .option-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); }
-    }
-
-    .choice-btn {
-      width: 100%;
-      text-align: center;
-      font-weight: 700;
-      font-family: var(--pixel-font);
-      font-size: var(--button-font-size);
-      padding: clamp(0.85rem, 3vw, 1.25rem);
-      border-radius: clamp(12px, 3vw, 16px);
-      border: 2px solid #000;
-      background: linear-gradient(90deg, #f97316, #fbbf24);
-      color: #0f172a;
-      box-shadow: 0 5px 0 #000, 0 14px 22px rgba(0,0,0,0.25);
-      cursor: pointer;
-      transition: transform 0.08s ease, box-shadow 0.12s ease, filter 0.12s ease;
-    }
-
-    .choice-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 0 #000, 0 16px 24px rgba(0,0,0,0.28);
-    }
-
-    .choice-btn.active {
-      background: linear-gradient(90deg, #22c55e, #16a34a);
-      color: #031b0d;
-      box-shadow: 0 7px 0 #000, 0 16px 24px rgba(0,0,0,0.28);
-    }
-
-    .retro-btn {
-      font-family: var(--pixel-font);
-      font-size: var(--button-font-size);
-      letter-spacing: 0.04em;
-      border-radius: clamp(12px, 3vw, 16px);
-      padding: clamp(0.8rem, 3vw, 1.2rem);
-      border: 2px solid #000;
-      background: linear-gradient(90deg, #f97316, #fbbf24);
-      color: #0f172a;
-      width: 100%;
-      box-shadow: 0 5px 0 #000, 0 14px 22px rgba(0,0,0,0.25);
-      transition: transform 0.08s ease, box-shadow 0.12s ease, filter 0.12s ease;
-    }
-
-    .retro-btn.secondary {
-      background: linear-gradient(90deg, #22c55e, #16a34a);
-      color: #031b0d;
-    }
-
-    .retro-btn:active {
-      transform: translateY(2px);
-      box-shadow: 0 3px 0 #000, 0 6px 12px rgba(0,0,0,0.25);
-      filter: brightness(0.96);
-    }
-
-    .nav-btn {
-      width: clamp(42px, 11vw, 54px);
-      height: clamp(42px, 11vw, 54px);
-      border-radius: clamp(10px, 3vw, 14px);
-      border: 2px solid #000;
-      background: #0f172a;
-      color: #f8fafc;
-      box-shadow: 0 4px 0 #000;
-      font-size: var(--button-font-size);
-      cursor: pointer;
-    }
-
-    .action-row { display: flex; gap: 0.75rem; flex-wrap: wrap; width: 100%; }
-
-    .retro-field { display: flex; flex-direction: column; gap: 0.4rem; width: 100%; }
-    .retro-label { font-weight: 800; font-size: clamp(1rem, 2.4vw, 1.2rem); color: var(--text); text-align: left; }
-    .retro-select, .retro-range {
-      width: 100%;
-      border-radius: 14px;
-      border: 2px solid var(--surface-border);
-      background: rgba(255,255,255,0.9);
-      padding: 0.9rem 1rem;
-      font-size: 1rem;
-      font-family: var(--body-font);
-      box-shadow: inset 0 2px 6px rgba(0,0,0,0.08);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      .retro-select, .retro-range {
-        background: rgba(15,23,42,0.85);
-        color: var(--text);
-      }
-    }
-
-    .retro-range { accent-color: var(--accent); padding: 0.5rem 0; }
-    .range-value { font-family: var(--pixel-font); font-size: clamp(1.6rem, 4vw, 2.2rem); text-align: center; }
-
-    .reward-code {
-      font-family: var(--pixel-font);
-      font-size: clamp(1rem, 3.5vw, 1.4rem);
-      letter-spacing: 0.08em;
-      background: rgba(15, 23, 42, 0.08);
-      border: 2px dashed var(--surface-border);
-      border-radius: 12px;
-      padding: 0.5rem 0.9rem;
-    }
-
-    #status {
-      text-align: center;
-      margin: 8px;
-      font-weight: bold;
-      color: var(--muted);
-      min-height: 1.2em;
-    }
-  </style>
-
-  <script>
-    (() => {
-      const media = window.matchMedia('(prefers-color-scheme: dark)');
-      const applyTheme = () => document.documentElement.classList.toggle('dark', media.matches);
-      applyTheme();
-      media.addEventListener('change', applyTheme);
-    })();
-  </script>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.8.6/jsrsasign-all-min.js"></script>
-</head>
-
-<body>
-  <div id="app" class="h-full"></div>
-  <div id="status"></div>
-
-  <script>
-    function setStatus(text) {
-      const el = document.getElementById('status');
-      if (el) el.textContent = text || '';
-    }
-
-    (function () {
-      let clientIp = null;
-      let metaState = { stay: null, age: null };
-
-      function loadClientIp() {
-        try {
-          fetch('https://api.ipify.org?format=json')
-            .then(r => r.json())
-            .then(d => {
-              clientIp = d.ip;
-              console.log('clientIp =', clientIp);
-            })
-            .catch(err => {
-              console.warn('IP lookup failed', err);
-              clientIp = null;
-            });
-        } catch (err) {
-          console.warn('fetch not available', err);
-          clientIp = null;
-        }
-      }
-
-      loadClientIp();
-
-      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyHCDKhMagLW7tlHq3dZZ9tPQAZQmA0hMKMut9amF67dEPsoWV1X2RcmSKSFIujp7mD/exec';
-      const PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxWwSLTeQoGM5Gvb9yBBJ
-7Q4CFpNu3baUSEfm3NJb5LI59HdM66o3h0Sl2RTbwW2Q9zK1kDqLTf/J5kMnwtU9
-GKcEuKD1UYWvzZO9C/ekPoKhzMWccdFujIrTeLPJGjncSr0QZ9ZfAoSAYMamdtlR
-lfsNZjrUwEL9NsrPd4RMgaYHAI28TlceDhObgZPzjwBPOy0zEQiqW6NA+eQh88ES
-/CKvTjFt8E+jZzmFdqPFKHZ56scmThT7VK1IisRCnQFSRKqyKXBBg9C5Qmro7+3p
-KiZAS/mG2QMYEwpVeJ5GzvH3ENBgNBps84YivNU0P0OtJ1vz24meWgemkppqadr+
-ZwIDAQAB
------END PUBLIC KEY-----`;
-
-      async function encryptPayload(payload) {
-        const rsaPub = KEYUTIL.getKey(PUBLIC_KEY_PEM);
-        const plaintextJson = JSON.stringify(payload);
-
-        const aesKey = CryptoJS.lib.WordArray.random(32);
-        const iv = CryptoJS.lib.WordArray.random(16);
-
-        const encrypted = CryptoJS.AES.encrypt(plaintextJson, aesKey, {
-          iv: iv,
-          mode: CryptoJS.mode.CBC,
-          padding: CryptoJS.pad.Pkcs7
-        });
-
-        const ciphertextB64 = encrypted.ciphertext.toString(CryptoJS.enc.Base64);
-        const ivB64 = CryptoJS.enc.Base64.stringify(iv);
-        const aesKeyB64 = CryptoJS.enc.Base64.stringify(aesKey);
-
-        const hexCipher = rsaPub.encryptOAEP(aesKeyB64, 'sha256');
-        const wrappedKeyB64 = hextob64(hexCipher);
-
-        return {
-          key: wrappedKeyB64,
-          iv: ivB64,
-          ciphertext: ciphertextB64
-        };
-      }
-
-      async function sendEncryptedPayload(payload) {
-        try {
-          const envelope = await encryptPayload(payload);
-          await fetch(WEB_APP_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(envelope)
-          });
-          setStatus('Saved');
-        } catch (err) {
-          console.error('Failed to send encrypted payload', err);
-          setStatus('Error saving');
-        }
-      }
-
-      function getOrCreateSessionGiftCode() {
-        let code = sessionStorage.getItem('surveyGiftCode');
-        if (!code) {
-          code = String(Math.floor(1000000 + Math.random() * 9000000));
-          sessionStorage.setItem('surveyGiftCode', code);
-        }
-        return code;
-      }
-
-      const sessionGiftCode = getOrCreateSessionGiftCode();
-
-      let saveTimeout;
-      function getClientInfo() {
-        const colorScheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const href = window.location.href;
-        const referrer = document.referrer || '';
-        const urlParams = new URLSearchParams(window.location.search || '');
-        const utm = {
-          utm_source: urlParams.get('utm_source') || '',
-          utm_medium: urlParams.get('utm_medium') || '',
-          utm_campaign: urlParams.get('utm_campaign') || ''
-        };
-
-        return {
-          userAgent: navigator.userAgent,
-          language: navigator.language,
-          languages: navigator.languages,
-          platform: navigator.platform,
-          deviceMemory: navigator.deviceMemory ?? null,
-          hardwareConcurrency: navigator.hardwareConcurrency ?? null,
-          timezone: tz,
-          colorScheme,
-          screen: {
-            width: window.screen?.width ?? null,
-            height: window.screen?.height ?? null,
-            pixelDepth: window.screen?.pixelDepth ?? null
-          },
-          connection: navigator.connection ? {
-            effectiveType: navigator.connection.effectiveType,
-            downlink: navigator.connection.downlink,
-            rtt: navigator.connection.rtt
-          } : null,
-          clientIp: clientIp,
-          url: href,
-          referrer,
-          utm
-        };
-      }
-
-      function autoSave(isFinal = false) {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(() => {
-          const payload = {
-            meta: {
-              stay: metaState.stay,
-              age: metaState.age,
-              giftCode: sessionGiftCode,
-              client: getClientInfo()
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bored Survey | Premium Market Research</title>
+<meta content="We design personalized market research strategies that turn raw data into decisive action." name="description"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1a1a1a", 
+                        "secondary": "#4a4a4a",
+                        "accent": "#f4f4f5",
+                        "background-light": "#ffffff",
+                        "background-dark": "#ffffff", 
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0rem", "lg": "0rem", "xl": "0rem", "full": "9999px"},
+                },
             },
-            giftCode: sessionGiftCode,
-            answers: answers,
-            sequence: sequence.map(q => ({ type: 'starmaq', q: q.q, single: !!q.single })),
-            pointer: pointer,
-            completed: !!isFinal
-          };
-
-          const encryptedPayload = {
-            clientId,
-            timestamp: new Date().toISOString(),
-            ...payload
-          };
-
-          sendEncryptedPayload(encryptedPayload);
-        }, 800);
-      }
-
-      function esc(t) {
-        return String(t).replace(/[&<>"']/g, r => ({
-          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        }[r]));
-      }
-
-      function shuffle(a) {
-        return a.map(x => [Math.random(), x]).sort((x, y) => x[0] - y[0]).map(v => v[1]);
-      }
-
-      let clientId = localStorage.getItem('surveyClientId');
-      if (!clientId) {
-        clientId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-          const r = Math.random() * 16 | 0;
-          return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-        });
-        localStorage.setItem('surveyClientId', clientId);
-      }
-
-      const localBusinessStarMultiQuestions = [
-        {
-          type: "starmaq",
-          single: true,
-          q: "Em média, quanto gastas, no dia a dia, numa refeição simples fora de casa?",
-          options: ["5€ - 10€", "10€ - 15€", "15€ - 20€", "20€ + "]
-        },
-        {
-          type: "starmaq",
-          single: true,
-          q: "Em média, quanto te custa fazer uma refeição em casa?",
-          options: ["5€ - 10€", "10€ - 15€", "15€ - 20€", "20€ + "]
-        },
-        {
-          type: "starmaq",
-          single: true,
-          q: "Com que frequência compras comida Take-Away / Delivery?",
-          options: ["Quase todos os dias", "4-5 vezes por semana", "1-2 vezes por semana", "2-3 vezes por mês", "1 vez por mês", "Nunca"]
-        },
-        {
-          type: "starmaq",
-          single: true,
-          q: "Qual seria, na tua opinião, um preço justo para uma refeição completa em Take-Away?",
-          options: ["5€ - 8€", "9€ - 13€", "14€ - 18€", "19€ - 24€", "25€ + "]
-        },
-        {
-          type: "starmaq",
-          q: "O que valorizas mais na hora de escolher onde comprar comida Take-Away?",
-          options: ["Preço Baixo", "Velocidade", "Qualidade", "Quantidade", "Variedade", "Opções Saudáveis"]
-        },
-        {
-          type: "starmaq",
-          single: true,
-          q: "Se existisse um Take-Away com refeições acessíveis (5€-8€), de boa qualidade, variedade e doses generosas, comias lá?",
-          options: ["Quase todos os dias", "4-5 vezes por semana", "1-2 vezes por semana", "2-3 vezes por mês", "1 vez por mês", "Nunca"]
-        },
-        {
-          type: "starmaq",
-          q: "Escolhe os teus pratos favoritos:",
-          options: ["Lasanha", "Feijoada", "Bacalhau à Brás", "Bitoque", "Guisado", "Strogonoff", "Bolonhesa", "Pratos Vegan/ Vegetarianos"]
-        },
-        {
-          type: "starmaq",
-          q: "O que te faria escolher um novo Take-Away barato, em vez dos sítios que já frequentas?",
-          options: ["Preço", "Qualidade", "Doses maiores", "Variedade", "Opções Saudáveis", "Info Nutricional"]
-        },
-        {
-          type: "starmaq",
-          single: true,
-          requiresEmployment: true,
-          q: "O subsídio de alimentação cobre as tuas refeições diárias?",
-          options: ["Sim", "Não"]
-        },
-        {
-          type: "starmaq",
-          single: true,
-          requiresEmployment: true,
-          q: "Preferias que a tua entidade patronal te oferecesse uma refeição diária, à tua escolha, em vez do valor do subsídio de alimentação?",
-          options: ["Sim", "Não"]
-        },
-        {
-          type: "starmaq",
-          single: true,
-          q: "Se amanhã abrisse um Take-Away barato e de alta qualidade, terias interesse em experimentar?",
-          options: ["Sim, muito!", "Sim.", "Talvez.", "Não."]
         }
-      ];
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-white text-black antialiased">
+<nav class="fixed w-full z-50 bg-white/95 backdrop-blur-sm">
+<div class="max-w-screen-xl mx-auto px-6 h-24 flex items-center justify-between">
+<a class="text-lg font-semibold tracking-tight text-black flex items-center gap-2" href="#">
+            Bored Survey.
+        </a>
+<div class="hidden md:flex items-center gap-12 text-sm font-medium text-gray-500">
+<a class="hover:text-black transition-colors" href="#services">Services</a>
+<a class="hover:text-black transition-colors" href="#process">Process</a>
+<a class="text-black hover:opacity-70 transition-opacity" href="#contact">Contact</a>
+</div>
+<button class="md:hidden text-black">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+</nav>
+<header class="relative pt-48 pb-32 px-6">
+<div class="max-w-5xl mx-auto">
+<h1 class="text-5xl md:text-7xl lg:text-8xl font-medium text-black leading-[1.05] tracking-tight mb-12">
+            Want to know what your customers actually want? <br/>
+<span class="text-gray-400">We find out.</span>
+</h1>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-12">
+<p class="text-lg md:text-xl text-gray-600 max-w-xl leading-relaxed font-light">
+                We design personalized market research strategies that turn raw, unstructured data into decisive, profitable action for modern brands.
+            </p>
+<div class="flex flex-col sm:flex-row items-center gap-6 shrink-0">
+<a class="text-black border-b border-black pb-1 hover:opacity-60 transition-opacity text-lg" href="#contact">
+                    Let’s Talk
+                </a>
+<a class="text-gray-500 hover:text-black transition-colors text-lg" href="mailto:hello@boredsurvey.com">
+                    Email Us
+                </a>
+</div>
+</div>
+</div>
+</header>
+<section class="py-32 px-6 bg-white" id="services">
+<div class="max-w-5xl mx-auto">
+<div class="mb-20">
+<span class="text-xs font-semibold uppercase tracking-widest text-gray-400">01 — What We Do</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-16 lg:gap-24">
+<div class="group">
+<h3 class="text-xl font-medium text-black mb-6">Customer Insights</h3>
+<p class="text-gray-500 leading-relaxed font-light">
+                    We dig deeper than standard surveys to uncover the hidden needs, motivations, and friction points your customers won't tell you directly.
+                </p>
+</div>
+<div class="group">
+<h3 class="text-xl font-medium text-black mb-6">Strategy Design</h3>
+<p class="text-gray-500 leading-relaxed font-light">
+                    Data without direction is noise. We map the path forward, translating complex findings into a clear, actionable strategic blueprint.
+                </p>
+</div>
+<div class="group">
+<h3 class="text-xl font-medium text-black mb-6">Decision Support</h3>
+<p class="text-gray-500 leading-relaxed font-light">
+                    Move forward with data-backed confidence. We provide the evidence you need to justify budgets, pivots, and product launches.
+                </p>
+</div>
+</div>
+</div>
+</section>
+<section class="py-32 px-6" id="process">
+<div class="max-w-5xl mx-auto">
+<div class="mb-20">
+<span class="text-xs font-semibold uppercase tracking-widest text-gray-400">02 — How We Work</span>
+</div>
+<div class="space-y-24">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-100 pt-8">
+<div class="col-span-1 md:col-span-2 text-sm font-medium text-gray-300">01</div>
+<div class="col-span-1 md:col-span-4">
+<h3 class="text-2xl font-medium text-black">Diagnose</h3>
+</div>
+<div class="col-span-1 md:col-span-6">
+<p class="text-gray-500 font-light leading-relaxed">
+                        We start by ignoring the symptoms and identifying the core business problem. We frame the questions that actually matter.
+                    </p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-100 pt-8">
+<div class="col-span-1 md:col-span-2 text-sm font-medium text-gray-300">02</div>
+<div class="col-span-1 md:col-span-4">
+<h3 class="text-2xl font-medium text-black">Research</h3>
+</div>
+<div class="col-span-1 md:col-span-6">
+<p class="text-gray-500 font-light leading-relaxed">
+                        Deploying bespoke methodologies—from deep ethnography to large-scale quantitative studies—to gather unfiltered truth.
+                    </p>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-100 pt-8">
+<div class="col-span-1 md:col-span-2 text-sm font-medium text-gray-300">03</div>
+<div class="col-span-1 md:col-span-4">
+<h3 class="text-2xl font-medium text-black">Deliver</h3>
+</div>
+<div class="col-span-1 md:col-span-6">
+<p class="text-gray-500 font-light leading-relaxed">
+                        No 100-page decks that collect dust. We deliver concise, executive-level reporting with clear mandates for action.
+                    </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="py-32 px-6 bg-accent">
+<div class="max-w-5xl mx-auto">
+<div class="mb-20">
+<span class="text-xs font-semibold uppercase tracking-widest text-gray-400">03 — Impact</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-16">
+<div>
+<h2 class="text-3xl md:text-4xl font-medium leading-tight text-black">
+                    Built for serious <br/>decision-making.
+                </h2>
+</div>
+<div class="flex flex-col justify-end">
+<p class="text-gray-600 font-light text-lg leading-relaxed">
+                    We've conducted over 50 studies impacting $2B in client revenue. Our focus is 100% on actionable data that drives business forward.
+                </p>
+</div>
+</div>
+</div>
+</section>
+<section class="py-40 px-6 bg-white" id="contact">
+<div class="max-w-5xl mx-auto text-center">
+<h2 class="text-4xl md:text-6xl font-medium text-black mb-12 tracking-tight">
+            If your business decisions matter, <br class="hidden md:block"/>your research should too.
+        </h2>
+<div class="flex flex-col sm:flex-row justify-center gap-8 items-center">
+<a class="bg-black text-white px-10 py-4 hover:bg-gray-800 transition-colors text-lg" href="#">
+                Start a Project
+            </a>
+<a class="text-black hover:text-gray-600 transition-colors text-lg" href="#">
+                View Case Studies
+            </a>
+</div>
+</div>
+</section>
+<footer class="bg-white border-t border-gray-100 pt-16 pb-12 px-6">
+<div class="max-w-screen-xl mx-auto">
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-8">
+<a class="text-lg font-bold tracking-tight text-black" href="#">
+                Bored Survey.
+            </a>
+<div class="flex flex-col md:flex-row gap-8 md:gap-12 text-sm text-gray-500">
+<a class="hover:text-black transition-colors" href="#">LinkedIn</a>
+<a class="hover:text-black transition-colors" href="#">Twitter</a>
+<a class="hover:text-black transition-colors" href="mailto:hello@boredsurvey.com">hello@boredsurvey.com</a>
+</div>
+</div>
+<div class="flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 gap-4">
+<p>© 2023 Bored Survey Agency.</p>
+<div class="flex gap-6">
+<a class="hover:text-black" href="#">Privacy</a>
+<a class="hover:text-black" href="#">Terms</a>
+</div>
+</div>
+</div>
+</footer>
 
-      let answers = {};
-      let sequence = [];
-      let pointer = 0;
-
-      const app = document.getElementById('app');
-
-      function renderMeta() {
-        app.innerHTML = `
-          <div class="container app-surface">
-            <div class="app-shell">
-              <div class="question-card">
-                <h1 class="question-title">Está caro comer em Lisboa.</h1>
-                <p class="muted-note">Ajuda-nos a mudar isso. (em 2 minutos)</p>
-
-                <div class="retro-field">
-                  <label class="retro-label" for="stay">Qual é a tua situação atual?</label>
-                  <select id="stay" class="retro-select">
-                    <option value="empregado">Empregado(a)</option>
-                    <option value="estudante">Estudante</option>
-                    <option value="estudante-trabalhador">Estudante-Trabalhador</option>
-                    <option value="desempregado">Desempregado(a)</option>
-                  </select>
-                </div>
-
-                <div class="retro-field">
-                  <label class="retro-label" for="age">Qual é a tua idade?</label>
-                  <input id="age" type="range" min="18" max="90" value="20" class="retro-range">
-                  <div class="range-value"><span id="ageVal">20</span></div>
-                </div>
-
-                <div class="action-row">
-                  <button id="start" class="retro-btn secondary">Start</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-
-        const age = document.getElementById('age');
-        const stay = document.getElementById('stay');
-
-        metaState.stay = stay.value;
-        metaState.age = age.value;
-
-        age.oninput = (e) => {
-          document.getElementById('ageVal').textContent = e.target.value;
-          metaState.age = e.target.value;
-          autoSave();
-        };
-
-        stay.onchange = () => {
-          metaState.stay = stay.value;
-          autoSave();
-        };
-
-        document.getElementById('start').onclick = startSurvey;
-      }
-
-      function startSurvey() {
-        const includeEmploymentQuestions =
-          metaState.stay === 'empregado' || metaState.stay === 'estudante-trabalhador';
-
-        sequence = shuffle(
-          localBusinessStarMultiQuestions.filter(item => {
-            if (!item.requiresEmployment) return true;
-            return includeEmploymentQuestions;
-          })
-        ).map(item => ({
-          type: 'starmaq',
-          q: item.q,
-          options: [...item.options],
-          single: !!item.single
-        }));
-
-        pointer = 0;
-        answers = {};
-        setStatus('');
-        renderQuestion();
-        autoSave();
-      }
-
-      function renderQuestion() {
-        const q = sequence[pointer];
-        const progress = Math.round(((pointer + 1) / sequence.length) * 100);
-        const isSingle = !!q.single;
-
-        app.innerHTML = `
-          <div class="container app-surface">
-            <div class="app-shell">
-              <div class="app-header">
-                <button id="back" class="nav-btn" aria-label="Go back">←</button>
-                <div class="badge">STEP ${pointer + 1}/${sequence.length}</div>
-                <div class="app-progress"><div class="app-progress-bar" style="width:${progress}%"></div></div>
-                <div class="title-pill">SURVEY</div>
-              </div>
-
-              <div class="app-body">
-                <div class="question-card">
-                  <h2 class="question-title">${esc(q.q)}</h2>
-                  <p class="muted-note">${isSingle ? 'Podes escolher apenas uma opção.' : 'Podes escolher várias opções.'}</p>
-
-                  <div class="option-scroll">
-                    <div class="choice-grid">
-                      ${q.options.map((o, i) => `
-                        <button class="choice-btn starmaq-option" data-i="${i}">${esc(o)}</button>
-                      `).join('')}
-                    </div>
-                  </div>
-
-                  <div class="action-row">
-                    <button id="nextStarMaq" class="retro-btn secondary">Next</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-
-        const selected = new Set(answers[q.q]?.selectedOptions || []);
-        const optionButtons = document.querySelectorAll('.starmaq-option');
-
-        optionButtons.forEach(btn => {
-          const idx = Number(btn.dataset.i);
-          const val = q.options[idx];
-
-          if (selected.has(val)) btn.classList.add('active');
-
-          btn.onclick = () => {
-            setStatus('');
-
-            if (isSingle) {
-              optionButtons.forEach(b => b.classList.remove('active'));
-              selected.clear();
-              btn.classList.add('active');
-              selected.add(val);
-            } else {
-              if (btn.classList.toggle('active')) selected.add(val);
-              else selected.delete(val);
-            }
-          };
-        });
-
-        document.getElementById('nextStarMaq').onclick = () => {
-          const selection = Array.from(selected);
-
-          if (selection.length === 0) {
-            setStatus('Seleciona pelo menos uma opção para continuar.');
-            return;
-          }
-
-          answers[q.q] = {
-            answer: JSON.stringify(selection),
-            selectedOptions: selection
-          };
-          setStatus('');
-          autoSave();
-          next();
-        };
-
-        document.getElementById('back').onclick = () => {
-          if (pointer > 0) {
-            pointer--;
-            setStatus('');
-            renderQuestion();
-          }
-        };
-      }
-
-      function next() {
-        pointer++;
-        autoSave();
-        if (pointer >= sequence.length) finish();
-        else renderQuestion();
-      }
-
-      function finish() {
-        autoSave(true);
-
-        const recap = sequence.map(item => {
-          const arr = answers[item.q]?.selectedOptions || [];
-          const txt = arr.length ? arr.map(esc).join(', ') : 'Sem resposta';
-          return `
-            <div class="question-card" style="align-items:flex-start; text-align:left;">
-              <strong>${esc(item.q)}</strong>
-              <div>${txt}</div>
-            </div>
-          `;
-        }).join('');
-
-        app.innerHTML = `
-          <div class="container app-surface">
-            <div class="app-shell">
-              <div class="question-card">
-                <h1 class="question-title">Obrigado!</h1>
-                <p class="muted-note">As tuas respostas foram guardadas.</p>
-                <p class="muted-note">Guarda este código, para uma refeição grátis quando abrirmos!</p>
-                <p class="reward-code">${sessionGiftCode}</p>
-              </div>
-              <div class="app-body" style="padding-top:0;">
-                ${recap}
-                <div class="action-row">
-                  <button onclick="location.reload()" class="retro-btn secondary">Refazer o questionário</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      renderMeta();
-    })();
-  </script>
-</body>
-</html>
+</body></html>
