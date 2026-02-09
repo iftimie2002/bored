@@ -563,12 +563,14 @@ ZwIDAQAB
         {
           type: "starmaq",
           single: true,
+          onlyFor: ["empregado", "estudante-trabalhador"],
           q: "O subsídio de alimentação cobre as tuas refeições diárias?",
           options: ["Sim", "Não"]
         },
         {
           type: "starmaq",
           single: true,
+          onlyFor: ["empregado", "estudante-trabalhador"],
           q: "Preferias que a tua entidade patronal te oferecesse uma refeição diária, à tua escolha, em vez do valor do subsídio de alimentação?",
           options: ["Sim", "Não"]
         },
@@ -593,7 +595,6 @@ ZwIDAQAB
               <div class="question-card">
                 <h1 class="question-title">Está caro comer em Lisboa.</h1>
                 <p class="muted-note">Ajuda-nos a mudar isso. (em 2 minutos)</p>
-                <p class="muted-note">E recebe uma prendinha no final!</p>
 
                 <div class="retro-field">
                   <label class="retro-label" for="stay">Qual é a tua situação atual?</label>
@@ -640,7 +641,12 @@ ZwIDAQAB
       }
 
       function startSurvey() {
-        sequence = shuffle(localBusinessStarMultiQuestions).map(item => ({
+        const filteredQuestions = localBusinessStarMultiQuestions.filter(item => {
+          if (!item.onlyFor) return true;
+          return item.onlyFor.includes(metaState.stay);
+        });
+
+        sequence = shuffle(filteredQuestions).map(item => ({
           type: 'starmaq',
           q: item.q,
           options: [...item.options],
@@ -657,6 +663,7 @@ ZwIDAQAB
         const q = sequence[pointer];
         const progress = Math.round(((pointer + 1) / sequence.length) * 100);
         const isSingle = !!q.single;
+        setStatus('');
 
         app.innerHTML = `
           <div class="container app-surface">
@@ -702,6 +709,7 @@ ZwIDAQAB
           if (selected.has(val)) btn.classList.add('active');
 
           btn.onclick = () => {
+            setStatus('');
             if (isSingle) {
               optionButtons.forEach(b => b.classList.remove('active'));
               selected.clear();
@@ -716,6 +724,12 @@ ZwIDAQAB
 
         document.getElementById('nextStarMaq').onclick = () => {
           const selection = Array.from(selected);
+
+          if (selection.length === 0) {
+            setStatus('Seleciona pelo menos uma opção para continuar.');
+            return;
+          }
+
           answers[q.q] = {
             answer: JSON.stringify(selection),
             selectedOptions: selection
