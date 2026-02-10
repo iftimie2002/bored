@@ -304,560 +304,594 @@
   </div>
 
   <script>
-    // -------------------------
-    // Basic helpers
-    // -------------------------
-    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    const TAU = Math.PI * 2;
-    const cores = navigator.hardwareConcurrency || 4;
-    const mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const lowPower = mobile || cores <= 4 || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // -------------------------
+  // Helpers
+  // -------------------------
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  const TAU = Math.PI * 2;
+  const cores = navigator.hardwareConcurrency || 4;
+  const mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const lowPower = mobile || cores <= 4 || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    document.getElementById("year").textContent = new Date().getFullYear();
+  document.getElementById("year").textContent = new Date().getFullYear();
 
-    function easeInOut(t) {
-      return t * t * (3 - 2 * t);
+  function easeInOut(t) {
+    return t * t * (3 - 2 * t);
+  }
+
+  // Fast transition, subtle elastic character
+  function fastElastic(t) {
+    const s = easeInOut(clamp(t, 0, 1));
+    const amp = 0.028 * Math.sin(Math.PI * s);
+    const wobble = Math.sin((s * 2.2 - 0.07) * Math.PI * 2) * amp;
+    return clamp(s + wobble, 0, 1);
+  }
+
+  // -------------------------
+  // Density / performance config
+  // -------------------------
+  const CONFIG = {
+    denseMode: true,                     // force denser look
+    desktopDensity: 260,                 // lower = more particles
+    lowPowerDensity: 420,
+    minDesktop: 4200,
+    maxDesktop: 9000,
+    minLowPower: 1300,
+    maxLowPower: 3800,
+    ambientRatio: 0.08,
+    fpsHigh: 55,
+    fpsLow: 38
+  };
+
+  // -------------------------
+  // Canvas
+  // -------------------------
+  const canvas = document.getElementById("particle-canvas");
+  const ctx = canvas.getContext("2d", { alpha: true });
+
+  const shapeCanvas = document.createElement("canvas");
+  const sctx = shapeCanvas.getContext("2d", { willReadFrequently: true });
+
+  let W = 0, H = 0, DPR = 1;
+  let N = 0, Nambient = 0;
+  let maxScroll = 1;
+
+  // Main particles (typed arrays)
+  let pX, pY, pVX, pVY, pR, pA, pSeed;
+  // Ambient particles
+  let aX, aY, aVX, aVY, aR, aA;
+
+  // Shapes: each Float32Array(N*2)
+  let shapes = [];
+
+  let pointerX = 0, pointerY = 0;
+
+  function setupSizes() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    DPR = Math.min(window.devicePixelRatio || 1, lowPower ? 1.1 : 1.35);
+
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    shapeCanvas.width = Math.max(780, Math.floor(W * 1.0));
+    shapeCanvas.height = Math.max(580, Math.floor(H * 1.0));
+
+    // Particle count
+    const density = lowPower ? CONFIG.lowPowerDensity : CONFIG.desktopDensity;
+    let base = Math.floor((W * H) / density);
+
+    if (CONFIG.denseMode) base = Math.floor(base * 1.15);
+
+    if (lowPower) {
+      // extra safety for tiny screens
+      const minLP = W < 520 ? 1100 : CONFIG.minLowPower;
+      const maxLP = W < 520 ? 2400 : CONFIG.maxLowPower;
+      N = clamp(base, minLP, maxLP);
+    } else {
+      N = clamp(base, CONFIG.minDesktop, CONFIG.maxDesktop);
     }
 
-    // Faster transition with very subtle elastic feel
-    function fastElastic(t) {
-      const s = easeInOut(clamp(t, 0, 1));
-      const amp = 0.032 * Math.sin(Math.PI * s); // 0 at ends
-      const wobble = Math.sin((s * 2.3 - 0.08) * Math.PI * 2) * amp;
-      return clamp(s + wobble, 0, 1);
+    Nambient = clamp(Math.floor(N * CONFIG.ambientRatio), 120, 700);
+    maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  }
+
+  function allocParticles() {
+    pX = new Float32Array(N);
+    pY = new Float32Array(N);
+    pVX = new Float32Array(N);
+    pVY = new Float32Array(N);
+    pR = new Float32Array(N);
+    pA = new Float32Array(N);
+    pSeed = new Float32Array(N);
+
+    aX = new Float32Array(Nambient);
+    aY = new Float32Array(Nambient);
+    aVX = new Float32Array(Nambient);
+    aVY = new Float32Array(Nambient);
+    aR = new Float32Array(Nambient);
+    aA = new Float32Array(Nambient);
+
+    const cx = W * 0.5;
+    const cy = H * 0.52;
+
+    for (let i = 0; i < N; i++) {
+      pX[i] = cx + (Math.random() - 0.5) * 180;
+      pY[i] = cy + (Math.random() - 0.5) * 180;
+      pVX[i] = (Math.random() - 0.5) * 0.18;
+      pVY[i] = (Math.random() - 0.5) * 0.18;
+
+      // Slightly larger + higher opacity = better visibility
+      pR[i] = 0.62 + Math.random() * 1.18;
+      pA[i] = 0.62 + Math.random() * 0.34; // high contrast
+      pSeed[i] = Math.random() * 10000;
     }
 
-    // -------------------------
-    // Canvas
-    // -------------------------
-    const canvas = document.getElementById("particle-canvas");
-    const ctx = canvas.getContext("2d", { alpha: true });
-
-    const shapeCanvas = document.createElement("canvas");
-    const sctx = shapeCanvas.getContext("2d", { willReadFrequently: true });
-
-    let W = 0, H = 0, DPR = 1;
-    let N = 0, Nambient = 0;
-
-    let pX, pY, pVX, pVY, pR, pA, pSeed;
-    let aX, aY, aVX, aVY, aR, aA;
-
-    let shapes = []; // each shape: Float32Array(N*2)
-
-    let maxScroll = 1;
-    let pointerX = 0;
-    let pointerY = 0;
-
-    function setupSizes() {
-      W = window.innerWidth;
-      H = window.innerHeight;
-      DPR = Math.min(window.devicePixelRatio || 1, lowPower ? 1.1 : 1.35);
-
-      canvas.width = Math.floor(W * DPR);
-      canvas.height = Math.floor(H * DPR);
-      canvas.style.width = W + "px";
-      canvas.style.height = H + "px";
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-
-      shapeCanvas.width = Math.max(760, Math.floor(W * 1.0));
-      shapeCanvas.height = Math.max(560, Math.floor(H * 1.0));
-
-      const density = lowPower ? 1300 : 980;
-      N = clamp(Math.floor((W * H) / density), lowPower ? 850 : 1200, lowPower ? 1700 : 2400);
-      Nambient = clamp(Math.floor(N * 0.16), 140, 420);
-
-      maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    for (let i = 0; i < Nambient; i++) {
+      aX[i] = Math.random() * W;
+      aY[i] = Math.random() * H;
+      aVX[i] = (Math.random() - 0.5) * 0.045;
+      aVY[i] = (Math.random() - 0.5) * 0.045;
+      aR[i] = 0.35 + Math.random() * 0.85;
+      aA[i] = 0.02 + Math.random() * 0.07;
     }
+  }
 
-    function allocParticles() {
-      pX = new Float32Array(N);
-      pY = new Float32Array(N);
-      pVX = new Float32Array(N);
-      pVY = new Float32Array(N);
-      pR = new Float32Array(N);
-      pA = new Float32Array(N);
-      pSeed = new Float32Array(N);
+  // -------------------------
+  // Shape drawings (white on transparent)
+  // -------------------------
+  function drawBulb(c, w, h) {
+    const cx = w * 0.5;
+    const cy = h * 0.50;
+    const s = Math.min(w, h) * 0.40;
 
-      aX = new Float32Array(Nambient);
-      aY = new Float32Array(Nambient);
-      aVX = new Float32Array(Nambient);
-      aVY = new Float32Array(Nambient);
-      aR = new Float32Array(Nambient);
-      aA = new Float32Array(Nambient);
+    c.clearRect(0, 0, w, h);
+    c.save();
+    c.strokeStyle = "#fff";
+    c.fillStyle = "#fff";
+    c.lineCap = "round";
+    c.lineJoin = "round";
 
-      const cx = W * 0.5;
-      const cy = H * 0.52;
+    c.globalAlpha = 1;
+    c.lineWidth = s * 0.067;
+    c.beginPath();
+    c.moveTo(cx - s * 0.52, cy - s * 0.05);
+    c.bezierCurveTo(cx - s * 0.72, cy - s * 0.75, cx + s * 0.72, cy - s * 0.75, cx + s * 0.52, cy - s * 0.05);
+    c.bezierCurveTo(cx + s * 0.46, cy + s * 0.22, cx + s * 0.30, cy + s * 0.42, cx + s * 0.17, cy + s * 0.56);
+    c.lineTo(cx - s * 0.17, cy + s * 0.56);
+    c.bezierCurveTo(cx - s * 0.30, cy + s * 0.42, cx - s * 0.46, cy + s * 0.22, cx - s * 0.52, cy - s * 0.05);
+    c.closePath();
+    c.stroke();
 
-      for (let i = 0; i < N; i++) {
-        pX[i] = cx + (Math.random() - 0.5) * 220;
-        pY[i] = cy + (Math.random() - 0.5) * 220;
-        pVX[i] = (Math.random() - 0.5) * 0.25;
-        pVY[i] = (Math.random() - 0.5) * 0.25;
-        pR[i] = 0.42 + Math.random() * 1.05;
-        pA[i] = 0.24 + Math.random() * 0.56;
-        pSeed[i] = Math.random() * 10000;
-      }
+    c.globalAlpha = 0.20;
+    c.fill();
 
-      for (let i = 0; i < Nambient; i++) {
-        aX[i] = Math.random() * W;
-        aY[i] = Math.random() * H;
-        aVX[i] = (Math.random() - 0.5) * 0.05;
-        aVY[i] = (Math.random() - 0.5) * 0.05;
-        aR[i] = 0.35 + Math.random() * 0.9;
-        aA[i] = 0.02 + Math.random() * 0.08;
-      }
-    }
+    c.globalAlpha = 1;
+    c.lineWidth = s * 0.046;
+    c.beginPath();
+    c.rect(cx - s * 0.16, cy + s * 0.56, s * 0.32, s * 0.20);
+    c.stroke();
 
-    // -------------------------
-    // Shape drawings
-    // -------------------------
-    function drawBulb(c, w, h) {
-      const cx = w * 0.5;
-      const cy = h * 0.50;
-      const s = Math.min(w, h) * 0.40;
+    c.beginPath();
+    c.rect(cx - s * 0.24, cy + s * 0.76, s * 0.48, s * 0.26);
+    c.stroke();
 
-      c.clearRect(0, 0, w, h);
-      c.save();
-      c.strokeStyle = "#fff";
-      c.fillStyle = "#fff";
-      c.lineCap = "round";
-      c.lineJoin = "round";
-
-      c.globalAlpha = 1;
-      c.lineWidth = s * 0.065;
+    c.lineWidth = s * 0.02;
+    for (let i = 1; i <= 3; i++) {
+      const yy = cy + s * (0.76 + (i * 0.26) / 4);
       c.beginPath();
-      c.moveTo(cx - s * 0.52, cy - s * 0.05);
-      c.bezierCurveTo(cx - s * 0.72, cy - s * 0.75, cx + s * 0.72, cy - s * 0.75, cx + s * 0.52, cy - s * 0.05);
-      c.bezierCurveTo(cx + s * 0.46, cy + s * 0.22, cx + s * 0.30, cy + s * 0.42, cx + s * 0.17, cy + s * 0.56);
-      c.lineTo(cx - s * 0.17, cy + s * 0.56);
-      c.bezierCurveTo(cx - s * 0.30, cy + s * 0.42, cx - s * 0.46, cy + s * 0.22, cx - s * 0.52, cy - s * 0.05);
-      c.closePath();
+      c.moveTo(cx - s * 0.22, yy);
+      c.lineTo(cx + s * 0.22, yy);
       c.stroke();
+    }
 
-      c.globalAlpha = 0.19;
+    c.lineWidth = s * 0.03;
+    c.beginPath();
+    c.moveTo(cx - s * 0.22, cy + s * 0.14);
+    c.lineTo(cx - s * 0.08, cy - s * 0.02);
+    c.lineTo(cx + s * 0.08, cy - s * 0.02);
+    c.lineTo(cx + s * 0.22, cy + s * 0.14);
+    c.stroke();
+
+    c.lineWidth = s * 0.024;
+    c.beginPath();
+    c.arc(cx, cy + s * 0.01, s * 0.10, Math.PI, 0);
+    c.stroke();
+
+    c.restore();
+  }
+
+  function drawExplodedBulb(c, w, h) {
+    const cx = w * 0.5;
+    const cy = h * 0.50;
+    const s = Math.min(w, h) * 0.40;
+    let seed = 112233;
+    const rnd = () => {
+      seed = (1664525 * seed + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+
+    c.clearRect(0, 0, w, h);
+    c.save();
+    c.strokeStyle = "#fff";
+    c.fillStyle = "#fff";
+    c.lineCap = "round";
+    c.lineJoin = "round";
+
+    c.globalAlpha = 1;
+    c.lineWidth = s * 0.046;
+    c.beginPath();
+    c.rect(cx - s * 0.24, cy + s * 0.76, s * 0.48, s * 0.26);
+    c.stroke();
+
+    c.lineWidth = s * 0.02;
+    for (let i = 1; i <= 3; i++) {
+      const yy = cy + s * (0.76 + (i * 0.26) / 4);
+      c.beginPath();
+      c.moveTo(cx - s * 0.22, yy);
+      c.lineTo(cx + s * 0.22, yy);
+      c.stroke();
+    }
+
+    c.lineWidth = s * 0.034;
+    c.beginPath();
+    c.moveTo(cx - s * 0.18, cy + s * 0.62);
+    c.lineTo(cx - s * 0.08, cy + s * 0.54);
+    c.lineTo(cx, cy + s * 0.60);
+    c.lineTo(cx + s * 0.10, cy + s * 0.53);
+    c.lineTo(cx + s * 0.18, cy + s * 0.61);
+    c.stroke();
+
+    c.lineWidth = s * 0.028;
+    const fragArcs = [
+      { r: 0.64, a1: -2.62, a2: -2.00 },
+      { r: 0.67, a1: -1.84, a2: -1.28 },
+      { r: 0.66, a1: -1.05, a2: -0.45 },
+      { r: 0.62, a1: -0.18, a2: 0.28 }
+    ];
+    for (const fa of fragArcs) {
+      c.beginPath();
+      c.arc(cx, cy, s * fa.r, fa.a1, fa.a2);
+      c.stroke();
+    }
+
+    for (let i = 0; i < 460; i++) {
+      const ang = -Math.PI + rnd() * Math.PI * 1.9;
+      const dist = s * (0.28 + Math.pow(rnd(), 0.45) * 1.38);
+      const x = cx + Math.cos(ang) * dist * (0.95 + rnd() * 0.35);
+      const y = cy + Math.sin(ang) * dist * (0.70 + rnd() * 0.80) - s * 0.08;
+      const rr = s * (0.0023 + rnd() * 0.0048);
+      c.beginPath();
+      c.arc(x, y, rr, 0, TAU);
       c.fill();
-
-      c.globalAlpha = 1;
-      c.lineWidth = s * 0.046;
-      c.beginPath();
-      c.rect(cx - s * 0.16, cy + s * 0.56, s * 0.32, s * 0.20);
-      c.stroke();
-
-      c.beginPath();
-      c.rect(cx - s * 0.24, cy + s * 0.76, s * 0.48, s * 0.26);
-      c.stroke();
-
-      c.lineWidth = s * 0.02;
-      for (let i = 1; i <= 3; i++) {
-        const yy = cy + s * (0.76 + (i * 0.26) / 4);
-        c.beginPath();
-        c.moveTo(cx - s * 0.22, yy);
-        c.lineTo(cx + s * 0.22, yy);
-        c.stroke();
-      }
-
-      c.lineWidth = s * 0.03;
-      c.beginPath();
-      c.moveTo(cx - s * 0.22, cy + s * 0.14);
-      c.lineTo(cx - s * 0.08, cy - s * 0.02);
-      c.lineTo(cx + s * 0.08, cy - s * 0.02);
-      c.lineTo(cx + s * 0.22, cy + s * 0.14);
-      c.stroke();
-
-      c.lineWidth = s * 0.024;
-      c.beginPath();
-      c.arc(cx, cy + s * 0.01, s * 0.10, Math.PI, 0);
-      c.stroke();
-
-      c.restore();
     }
 
-    // Bulb explosion shape
-    function drawExplodedBulb(c, w, h) {
-      const cx = w * 0.5;
-      const cy = h * 0.50;
-      const s = Math.min(w, h) * 0.40;
-      const rnd = (function() {
-        let seed = 112233;
-        return () => {
-          seed = (1664525 * seed + 1013904223) >>> 0;
-          return seed / 4294967296;
+    c.restore();
+  }
+
+  function drawQuestion(c, w, h) {
+    const cx = w * 0.5;
+    const cy = h * 0.50;
+    const s = Math.min(w, h) * 0.42;
+
+    c.clearRect(0, 0, w, h);
+    c.save();
+    c.strokeStyle = "#fff";
+    c.fillStyle = "#fff";
+    c.lineCap = "round";
+    c.lineJoin = "round";
+
+    c.lineWidth = s * 0.108;
+    c.beginPath();
+    c.moveTo(cx - s * 0.40, cy - s * 0.43);
+    c.bezierCurveTo(cx - s * 0.10, cy - s * 0.72, cx + s * 0.43, cy - s * 0.60, cx + s * 0.43, cy - s * 0.17);
+    c.bezierCurveTo(cx + s * 0.43, cy + s * 0.08, cx + s * 0.19, cy + s * 0.17, cx + s * 0.02, cy + s * 0.26);
+    c.bezierCurveTo(cx - s * 0.08, cy + s * 0.31, cx - s * 0.08, cy + s * 0.35, cx - s * 0.04, cy + s * 0.43);
+    c.stroke();
+
+    c.lineWidth = s * 0.086;
+    c.beginPath();
+    c.moveTo(cx - s * 0.04, cy + s * 0.43);
+    c.lineTo(cx - s * 0.02, cy + s * 0.55);
+    c.stroke();
+
+    c.beginPath();
+    c.arc(cx - s * 0.02, cy + s * 0.83, s * 0.11, 0, TAU);
+    c.fill();
+
+    c.restore();
+  }
+
+  function drawGraph(c, w, h) {
+    const cx = w * 0.5;
+    const cy = h * 0.52;
+    const s = Math.min(w, h) * 0.42;
+
+    c.clearRect(0, 0, w, h);
+    c.save();
+    c.strokeStyle = "#fff";
+    c.fillStyle = "#fff";
+    c.lineCap = "round";
+    c.lineJoin = "round";
+
+    const xL = cx - s * 0.84;
+    const xR = cx + s * 0.95;
+    const yB = cy + s * 0.60;
+    const yT = cy - s * 0.60;
+
+    c.lineWidth = s * 0.062;
+    c.beginPath();
+    c.moveTo(xL, yB);
+    c.lineTo(xR, yB);
+    c.moveTo(xL, yB);
+    c.lineTo(xL, yT);
+    c.stroke();
+
+    c.lineWidth = s * 0.034;
+    c.beginPath();
+    c.moveTo(xR, yB);
+    c.lineTo(xR - s * 0.10, yB - s * 0.05);
+    c.moveTo(xR, yB);
+    c.lineTo(xR - s * 0.10, yB + s * 0.05);
+    c.moveTo(xL, yT);
+    c.lineTo(xL - s * 0.05, yT + s * 0.10);
+    c.moveTo(xL, yT);
+    c.lineTo(xL + s * 0.05, yT + s * 0.10);
+    c.stroke();
+
+    const pts = [
+      [xL + s * 0.12, yB - s * 0.12],
+      [xL + s * 0.33, yB - s * 0.26],
+      [xL + s * 0.53, yB - s * 0.23],
+      [xL + s * 0.80, yB - s * 0.47],
+      [xL + s * 1.08, yB - s * 0.57],
+      [xL + s * 1.40, yB - s * 0.90]
+    ];
+
+    c.lineWidth = s * 0.083;
+    c.beginPath();
+    c.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+    c.stroke();
+
+    for (let i = 0; i < pts.length; i++) {
+      c.beginPath();
+      c.arc(pts[i][0], pts[i][1], s * 0.053, 0, TAU);
+      c.fill();
+    }
+
+    c.globalAlpha = 0.34;
+    const bars = [0.15, 0.22, 0.18, 0.37, 0.50];
+    for (let i = 0; i < bars.length; i++) {
+      const bw = s * 0.11;
+      const bh = s * bars[i];
+      const bx = xL + s * (0.18 + i * 0.22);
+      const by = yB - bh;
+      c.fillRect(bx, by, bw, bh);
+    }
+
+    c.restore();
+  }
+
+  function sampleShape(drawFn, count) {
+    const w = shapeCanvas.width;
+    const h = shapeCanvas.height;
+    drawFn(sctx, w, h);
+
+    const img = sctx.getImageData(0, 0, w, h).data;
+    const alphaAt = (x, y) => img[(y * w + x) * 4 + 3];
+
+    // denser contour extraction
+    const step = lowPower ? 2 : 1;
+    const pool = [];
+
+    for (let y = step; y < h - step; y += step) {
+      for (let x = step; x < w - step; x += step) {
+        const a = alphaAt(x, y);
+        if (a <= 18) continue;
+
+        const edge =
+          alphaAt(x + step, y) <= 18 ||
+          alphaAt(x - step, y) <= 18 ||
+          alphaAt(x, y + step) <= 18 ||
+          alphaAt(x, y - step) <= 18;
+
+        const p = {
+          x: x + (W - w) * 0.5,
+          y: y + (H - h) * 0.5
         };
-      })();
 
-      c.clearRect(0, 0, w, h);
-      c.save();
-      c.strokeStyle = "#fff";
-      c.fillStyle = "#fff";
-      c.lineCap = "round";
-      c.lineJoin = "round";
-
-      // Base remains
-      c.globalAlpha = 1;
-      c.lineWidth = s * 0.046;
-      c.beginPath();
-      c.rect(cx - s * 0.24, cy + s * 0.76, s * 0.48, s * 0.26);
-      c.stroke();
-
-      c.lineWidth = s * 0.02;
-      for (let i = 1; i <= 3; i++) {
-        const yy = cy + s * (0.76 + (i * 0.26) / 4);
-        c.beginPath();
-        c.moveTo(cx - s * 0.22, yy);
-        c.lineTo(cx + s * 0.22, yy);
-        c.stroke();
-      }
-
-      // Broken neck
-      c.lineWidth = s * 0.034;
-      c.beginPath();
-      c.moveTo(cx - s * 0.18, cy + s * 0.62);
-      c.lineTo(cx - s * 0.08, cy + s * 0.54);
-      c.lineTo(cx, cy + s * 0.60);
-      c.lineTo(cx + s * 0.10, cy + s * 0.53);
-      c.lineTo(cx + s * 0.18, cy + s * 0.61);
-      c.stroke();
-
-      // Glass fragments
-      c.lineWidth = s * 0.028;
-      const fragArcs = [
-        { r: 0.64, a1: -2.62, a2: -2.00 },
-        { r: 0.67, a1: -1.84, a2: -1.28 },
-        { r: 0.66, a1: -1.05, a2: -0.45 },
-        { r: 0.62, a1: -0.18, a2: 0.28 }
-      ];
-      for (const fa of fragArcs) {
-        c.beginPath();
-        c.arc(cx, cy, s * fa.r, fa.a1, fa.a2);
-        c.stroke();
-      }
-
-      // Debris cloud
-      c.globalAlpha = 1;
-      for (let i = 0; i < 420; i++) {
-        const ang = -Math.PI + rnd() * Math.PI * 1.9;
-        const dist = s * (0.28 + Math.pow(rnd(), 0.45) * 1.38);
-        const x = cx + Math.cos(ang) * dist * (0.95 + rnd() * 0.35);
-        const y = cy + Math.sin(ang) * dist * (0.70 + rnd() * 0.80) - s * 0.08;
-        const rr = s * (0.0022 + rnd() * 0.0046);
-        c.beginPath();
-        c.arc(x, y, rr, 0, TAU);
-        c.fill();
-      }
-
-      c.restore();
-    }
-
-    function drawQuestion(c, w, h) {
-      const cx = w * 0.5;
-      const cy = h * 0.50;
-      const s = Math.min(w, h) * 0.42;
-
-      c.clearRect(0, 0, w, h);
-      c.save();
-      c.strokeStyle = "#fff";
-      c.fillStyle = "#fff";
-      c.lineCap = "round";
-      c.lineJoin = "round";
-
-      c.lineWidth = s * 0.108;
-      c.beginPath();
-      c.moveTo(cx - s * 0.40, cy - s * 0.43);
-      c.bezierCurveTo(cx - s * 0.10, cy - s * 0.72, cx + s * 0.43, cy - s * 0.60, cx + s * 0.43, cy - s * 0.17);
-      c.bezierCurveTo(cx + s * 0.43, cy + s * 0.08, cx + s * 0.19, cy + s * 0.17, cx + s * 0.02, cy + s * 0.26);
-      c.bezierCurveTo(cx - s * 0.08, cy + s * 0.31, cx - s * 0.08, cy + s * 0.35, cx - s * 0.04, cy + s * 0.43);
-      c.stroke();
-
-      c.lineWidth = s * 0.086;
-      c.beginPath();
-      c.moveTo(cx - s * 0.04, cy + s * 0.43);
-      c.lineTo(cx - s * 0.02, cy + s * 0.55);
-      c.stroke();
-
-      c.beginPath();
-      c.arc(cx - s * 0.02, cy + s * 0.83, s * 0.11, 0, TAU);
-      c.fill();
-
-      c.restore();
-    }
-
-    function drawGraph(c, w, h) {
-      const cx = w * 0.5;
-      const cy = h * 0.52;
-      const s = Math.min(w, h) * 0.42;
-
-      c.clearRect(0, 0, w, h);
-      c.save();
-      c.strokeStyle = "#fff";
-      c.fillStyle = "#fff";
-      c.lineCap = "round";
-      c.lineJoin = "round";
-
-      const xL = cx - s * 0.84;
-      const xR = cx + s * 0.95;
-      const yB = cy + s * 0.60;
-      const yT = cy - s * 0.60;
-
-      c.lineWidth = s * 0.062;
-      c.beginPath();
-      c.moveTo(xL, yB);
-      c.lineTo(xR, yB);
-      c.moveTo(xL, yB);
-      c.lineTo(xL, yT);
-      c.stroke();
-
-      c.lineWidth = s * 0.034;
-      c.beginPath();
-      c.moveTo(xR, yB);
-      c.lineTo(xR - s * 0.10, yB - s * 0.05);
-      c.moveTo(xR, yB);
-      c.lineTo(xR - s * 0.10, yB + s * 0.05);
-      c.moveTo(xL, yT);
-      c.lineTo(xL - s * 0.05, yT + s * 0.10);
-      c.moveTo(xL, yT);
-      c.lineTo(xL + s * 0.05, yT + s * 0.10);
-      c.stroke();
-
-      const pts = [
-        [xL + s * 0.12, yB - s * 0.12],
-        [xL + s * 0.33, yB - s * 0.26],
-        [xL + s * 0.53, yB - s * 0.23],
-        [xL + s * 0.80, yB - s * 0.47],
-        [xL + s * 1.08, yB - s * 0.57],
-        [xL + s * 1.40, yB - s * 0.90]
-      ];
-
-      c.lineWidth = s * 0.083;
-      c.beginPath();
-      c.moveTo(pts[0][0], pts[0][1]);
-      for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
-      c.stroke();
-
-      for (let i = 0; i < pts.length; i++) {
-        c.beginPath();
-        c.arc(pts[i][0], pts[i][1], s * 0.053, 0, TAU);
-        c.fill();
-      }
-
-      c.globalAlpha = 0.32;
-      const bars = [0.15, 0.22, 0.18, 0.37, 0.50];
-      for (let i = 0; i < bars.length; i++) {
-        const bw = s * 0.11;
-        const bh = s * bars[i];
-        const bx = xL + s * (0.18 + i * 0.22);
-        const by = yB - bh;
-        c.fillRect(bx, by, bw, bh);
-      }
-
-      c.restore();
-    }
-
-    function sampleShape(drawFn, count) {
-      const w = shapeCanvas.width;
-      const h = shapeCanvas.height;
-
-      drawFn(sctx, w, h);
-      const img = sctx.getImageData(0, 0, w, h).data;
-      const step = lowPower ? 3 : 2;
-
-      const pool = [];
-      const alphaAt = (x, y) => img[(y * w + x) * 4 + 3];
-
-      for (let y = step; y < h - step; y += step) {
-        for (let x = step; x < w - step; x += step) {
-          const a = alphaAt(x, y);
-          if (a <= 18) continue;
-
-          // edge weighting for sharper silhouette definition
-          const edge =
-            alphaAt(x + step, y) <= 18 ||
-            alphaAt(x - step, y) <= 18 ||
-            alphaAt(x, y + step) <= 18 ||
-            alphaAt(x, y - step) <= 18;
-
-          const p = {
-            x: x + (W - w) * 0.5,
-            y: y + (H - h) * 0.5
-          };
-
+        pool.push(p);
+        if (edge) {
           pool.push(p);
-          if (edge) pool.push(p); // duplicate edge points to define contours better
+          pool.push(p); // triple weight edges for sharper shapes
         }
       }
+    }
 
-      if (!pool.length) {
-        const out = new Float32Array(count * 2);
-        for (let i = 0; i < count; i++) {
-          out[i * 2] = Math.random() * W;
-          out[i * 2 + 1] = Math.random() * H;
-        }
-        return out;
-      }
-
-      // stable ordering for cleaner morphs
-      const cx = W * 0.5;
-      const cy = H * 0.52;
-      pool.sort((p1, p2) => {
-        const a1 = Math.atan2(p1.y - cy, p1.x - cx);
-        const a2 = Math.atan2(p2.y - cy, p2.x - cx);
-        if (a1 !== a2) return a1 - a2;
-        const r1 = (p1.x - cx) ** 2 + (p1.y - cy) ** 2;
-        const r2 = (p2.x - cx) ** 2 + (p2.y - cy) ** 2;
-        return r1 - r2;
-      });
-
+    if (!pool.length) {
       const out = new Float32Array(count * 2);
       for (let i = 0; i < count; i++) {
-        const idx = Math.floor((i / count) * pool.length);
-        const p = pool[idx];
-        out[i * 2] = p.x;
-        out[i * 2 + 1] = p.y;
+        out[i * 2] = Math.random() * W;
+        out[i * 2 + 1] = Math.random() * H;
       }
       return out;
     }
 
-    function buildShapes() {
-      // order: bulb -> exploded bulb -> question -> graph
-      shapes = [
-        sampleShape(drawBulb, N),
-        sampleShape(drawExplodedBulb, N),
-        sampleShape(drawQuestion, N),
-        sampleShape(drawGraph, N)
-      ];
-    }
+    // stable ordering = cleaner morph
+    const cx = W * 0.5;
+    const cy = H * 0.52;
+    pool.sort((p1, p2) => {
+      const a1 = Math.atan2(p1.y - cy, p1.x - cx);
+      const a2 = Math.atan2(p2.y - cy, p2.x - cx);
+      if (a1 !== a2) return a1 - a2;
+      const r1 = (p1.x - cx) ** 2 + (p1.y - cy) ** 2;
+      const r2 = (p2.x - cx) ** 2 + (p2.y - cy) ** 2;
+      return r1 - r2;
+    });
 
-    // timeline: quick transitions, longer holds
-    // [hold bulb, mix, hold explode, mix, hold question, mix, hold graph]
-    const timeline = [
-      { type: "hold", shape: 0, len: 0.22 },
-      { type: "mix", from: 0, to: 1, len: 0.05 },
-      { type: "hold", shape: 1, len: 0.23 },
-      { type: "mix", from: 1, to: 2, len: 0.05 },
-      { type: "hold", shape: 2, len: 0.23 },
-      { type: "mix", from: 2, to: 3, len: 0.05 },
-      { type: "hold", shape: 3, len: 0.17 }
+    const out = new Float32Array(count * 2);
+    for (let i = 0; i < count; i++) {
+      const idx = Math.floor((i / count) * pool.length);
+      out[i * 2] = pool[idx].x;
+      out[i * 2 + 1] = pool[idx].y;
+    }
+    return out;
+  }
+
+  function buildShapes() {
+    // Required order: bulb -> exploded bulb -> question -> graph
+    shapes = [
+      sampleShape(drawBulb, N),
+      sampleShape(drawExplodedBulb, N),
+      sampleShape(drawQuestion, N),
+      sampleShape(drawGraph, N)
     ];
+  }
 
-    function getMorphState(globalT) {
-      let t = clamp(globalT, 0, 1);
-      let acc = 0;
+  // Quick transitions + long holds
+  // [hold bulb, mix, hold exploded, mix, hold question, mix, hold graph] = 1.00
+  const timeline = [
+    { type: "hold", shape: 0, len: 0.24 },
+    { type: "mix", from: 0, to: 1, len: 0.04 },
+    { type: "hold", shape: 1, len: 0.24 },
+    { type: "mix", from: 1, to: 2, len: 0.04 },
+    { type: "hold", shape: 2, len: 0.24 },
+    { type: "mix", from: 2, to: 3, len: 0.04 },
+    { type: "hold", shape: 3, len: 0.16 }
+  ];
 
-      for (let i = 0; i < timeline.length; i++) {
-        const seg = timeline[i];
-        const next = acc + seg.len;
-        if (t <= next || i === timeline.length - 1) {
-          if (seg.type === "hold") {
-            return { from: seg.shape, to: seg.shape, f: 0 };
-          } else {
-            const local = (t - acc) / seg.len;
-            return { from: seg.from, to: seg.to, f: fastElastic(local) };
-          }
-        }
-        acc = next;
+  function getMorphState(globalT) {
+    let t = clamp(globalT, 0, 1);
+    let acc = 0;
+
+    for (let i = 0; i < timeline.length; i++) {
+      const seg = timeline[i];
+      const end = acc + seg.len;
+
+      if (t <= end || i === timeline.length - 1) {
+        if (seg.type === "hold") return { from: seg.shape, to: seg.shape, f: 0 };
+        const local = (t - acc) / seg.len;
+        return { from: seg.from, to: seg.to, f: fastElastic(local) };
       }
-
-      return { from: 3, to: 3, f: 0 };
+      acc = end;
     }
+    return { from: 3, to: 3, f: 0 };
+  }
 
-    function rebuildAll() {
-      setupSizes();
-      allocParticles();
-      buildShapes();
-      maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-    }
+  function rebuildAll() {
+    setupSizes();
+    allocParticles();
+    buildShapes();
+    maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  }
 
-    window.addEventListener("pointermove", (e) => {
-      pointerX = (e.clientX / W - 0.5) * 2;
-      pointerY = (e.clientY / H - 0.5) * 2;
-    }, { passive: true });
+  window.addEventListener("pointermove", (e) => {
+    pointerX = (e.clientX / W - 0.5) * 2;
+    pointerY = (e.clientY / H - 0.5) * 2;
+  }, { passive: true });
 
-    let lastTs = 0;
-    const minFrameMs = lowPower ? 1000 / 40 : 1000 / 60; // cap fps for weaker devices
+  let lastTs = 0;
+  const minFrameMs = 1000 / (lowPower ? CONFIG.fpsLow : CONFIG.fpsHigh);
 
-    function render(ts) {
-      if (ts - lastTs < minFrameMs) {
-        requestAnimationFrame(render);
-        return;
-      }
-
-      const dt = clamp((ts - lastTs) / 16.6667, 0.6, 1.8);
-      lastTs = ts;
-
-      ctx.clearRect(0, 0, W, H);
-
-      // Ambient particles
-      ctx.fillStyle = "#161616";
-      for (let i = 0; i < Nambient; i++) {
-        aVX[i] += Math.sin(ts * 0.00010 + i * 0.37) * 0.0010;
-        aVY[i] += Math.cos(ts * 0.00009 + i * 0.51) * 0.0010;
-        aVX[i] *= 0.996;
-        aVY[i] *= 0.996;
-
-        aX[i] += aVX[i] * dt;
-        aY[i] += aVY[i] * dt;
-
-        if (aX[i] < -8) aX[i] = W + 8;
-        if (aX[i] > W + 8) aX[i] = -8;
-        if (aY[i] < -8) aY[i] = H + 8;
-        if (aY[i] > H + 8) aY[i] = -8;
-
-        ctx.globalAlpha = aA[i];
-        const rr = aR[i];
-        ctx.fillRect(aX[i] - rr * 0.5, aY[i] - rr * 0.5, rr, rr);
-      }
-
-      // Morphing main shape
-      const scrollT = clamp(window.scrollY / maxScroll, 0, 1);
-      const { from, to, f } = getMorphState(scrollT);
-      const A = shapes[from];
-      const B = shapes[to];
-
-      const parX = pointerX * 12;
-      const parY = pointerY * 8;
-
-      const spring = lowPower ? 0.115 : 0.13;   // faster locking into shape
-      const damp = lowPower ? 0.74 : 0.76;      // less time unorganized
-      const jitterAmp = lowPower ? 0.16 : 0.22; // subtle only
-
-      ctx.fillStyle = "#111111";
-      for (let i = 0; i < N; i++) {
-        const idx = i * 2;
-        const tx = A[idx] + (B[idx] - A[idx]) * f + parX * 0.10;
-        const ty = A[idx + 1] + (B[idx + 1] - A[idx + 1]) * f + parY * 0.10;
-
-        const driftX = Math.sin(ts * 0.00042 + pSeed[i]) * jitterAmp;
-        const driftY = Math.cos(ts * 0.00038 + pSeed[i] * 1.37) * jitterAmp;
-
-        pVX[i] = (pVX[i] + (tx + driftX - pX[i]) * spring * dt) * damp;
-        pVY[i] = (pVY[i] + (ty + driftY - pY[i]) * spring * dt) * damp;
-
-        pX[i] += pVX[i] * dt;
-        pY[i] += pVY[i] * dt;
-
-        ctx.globalAlpha = pA[i] * 0.90;
-        const rr = pR[i];
-        ctx.fillRect(pX[i] - rr * 0.5, pY[i] - rr * 0.5, rr, rr);
-      }
-
-      // Cheap subtle glow pass (lighter + sparse)
-      ctx.globalCompositeOperation = "lighter";
-      ctx.fillStyle = "#ffffff";
-      for (let i = 0; i < N; i += 9) {
-        ctx.globalAlpha = 0.028;
-        const rr = pR[i] * 3.0;
-        ctx.fillRect(pX[i] - rr * 0.5, pY[i] - rr * 0.5, rr, rr);
-      }
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 1;
-
+  function render(ts) {
+    if (ts - lastTs < minFrameMs) {
       requestAnimationFrame(render);
+      return;
     }
 
-    rebuildAll();
-    requestAnimationFrame(render);
+    const dt = clamp((ts - lastTs) / 16.6667, 0.7, 1.8);
+    lastTs = ts;
 
-    window.addEventListener("resize", rebuildAll, { passive: true });
-    window.addEventListener("load", rebuildAll, { passive: true });
-  </script>
+    ctx.clearRect(0, 0, W, H);
+
+    // Ambient layer
+    ctx.fillStyle = "#1a1a1a";
+    for (let i = 0; i < Nambient; i++) {
+      aVX[i] += Math.sin(ts * 0.00009 + i * 0.41) * 0.0009;
+      aVY[i] += Math.cos(ts * 0.00008 + i * 0.53) * 0.0009;
+      aVX[i] *= 0.996;
+      aVY[i] *= 0.996;
+
+      aX[i] += aVX[i] * dt;
+      aY[i] += aVY[i] * dt;
+
+      if (aX[i] < -8) aX[i] = W + 8;
+      if (aX[i] > W + 8) aX[i] = -8;
+      if (aY[i] < -8) aY[i] = H + 8;
+      if (aY[i] > H + 8) aY[i] = -8;
+
+      const rr = aR[i];
+      ctx.globalAlpha = aA[i];
+      ctx.fillRect(aX[i] - rr * 0.5, aY[i] - rr * 0.5, rr, rr);
+    }
+
+    // Main morph
+    const scrollT = clamp(window.scrollY / maxScroll, 0, 1);
+    const { from, to, f } = getMorphState(scrollT);
+    const A = shapes[from];
+    const B = shapes[to];
+
+    const parX = pointerX * 10;
+    const parY = pointerY * 7;
+
+    // Strong lock to shape, very low random drift
+    const spring = lowPower ? 0.16 : 0.18;
+    const damp = lowPower ? 0.80 : 0.82;
+    const jitter = lowPower ? 0.05 : 0.08;
+
+    // pass 1: dark solid cores
+    ctx.fillStyle = "#0c0c0c";
+    for (let i = 0; i < N; i++) {
+      const idx = i * 2;
+      const tx = A[idx] + (B[idx] - A[idx]) * f + parX * 0.08;
+      const ty = A[idx + 1] + (B[idx + 1] - A[idx + 1]) * f + parY * 0.08;
+
+      const driftX = Math.sin(ts * 0.00036 + pSeed[i]) * jitter;
+      const driftY = Math.cos(ts * 0.00033 + pSeed[i] * 1.29) * jitter;
+
+      pVX[i] = (pVX[i] + (tx + driftX - pX[i]) * spring * dt) * damp;
+      pVY[i] = (pVY[i] + (ty + driftY - pY[i]) * spring * dt) * damp;
+
+      pX[i] += pVX[i] * dt;
+      pY[i] += pVY[i] * dt;
+
+      const rr = pR[i];
+      ctx.globalAlpha = pA[i];
+      ctx.fillRect(pX[i] - rr * 0.5, pY[i] - rr * 0.5, rr, rr);
+    }
+
+    // pass 2: sparse reinforcement for contrast + visibility
+    ctx.fillStyle = "#000000";
+    for (let i = 0; i < N; i += 2) {
+      const rr = pR[i] * 1.55;
+      ctx.globalAlpha = pA[i] * 0.30;
+      ctx.fillRect(pX[i] - rr * 0.5, pY[i] - rr * 0.5, rr, rr);
+    }
+
+    // tiny cheap glow (kept subtle)
+    ctx.globalCompositeOperation = "lighter";
+    ctx.fillStyle = "#ffffff";
+    for (let i = 0; i < N; i += 11) {
+      const rr = pR[i] * 2.7;
+      ctx.globalAlpha = 0.022;
+      ctx.fillRect(pX[i] - rr * 0.5, pY[i] - rr * 0.5, rr, rr);
+    }
+    ctx.globalCompositeOperation = "source-over";
+    ctx.globalAlpha = 1;
+
+    requestAnimationFrame(render);
+  }
+
+  rebuildAll();
+  requestAnimationFrame(render);
+
+  window.addEventListener("resize", rebuildAll, { passive: true });
+  window.addEventListener("load", rebuildAll, { passive: true });
+</script>
+
 </body>
 </html>
