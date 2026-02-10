@@ -18,19 +18,19 @@
           colors: {
             primary: "#1a1a1a",
             secondary: "#4a4a4a",
-            accent: "#f4f4f5",
+            accent: "#f4f4f5"
           },
           fontFamily: {
-            display: ["Manrope", "sans-serif"],
+            display: ["Manrope", "sans-serif"]
           },
           borderRadius: {
             DEFAULT: "0rem",
             lg: "0rem",
             xl: "0rem",
-            full: "9999px",
-          },
-        },
-      },
+            full: "9999px"
+          }
+        }
+      }
     };
   </script>
 
@@ -44,15 +44,15 @@
 
     html, body {
       overflow-x: hidden;
-      background: #ffffff;
+      background: #fff;
     }
 
     body {
       font-family: "Manrope", sans-serif;
-      color: #0f0f0f;
+      color: #111;
     }
 
-    /* Full background particles */
+    /* Fullscreen particles */
     .particle-layer {
       position: fixed;
       inset: 0;
@@ -66,14 +66,15 @@
       display: block;
     }
 
-    /* Keep text readable, without hiding particles */
+    /* Keep particles visible + text readable */
     .readability-veil {
       position: fixed;
       inset: 0;
       z-index: 5;
       pointer-events: none;
       background:
-        radial-gradient(circle at 50% 48%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.22) 52%, rgba(255,255,255,0.34) 100%);
+        radial-gradient(circle at 50% 48%, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.10) 58%, rgba(255,255,255,0.16) 100%),
+        linear-gradient(to bottom, rgba(255,255,255,0.03), rgba(255,255,255,0.08));
     }
 
     .site-layer {
@@ -82,7 +83,7 @@
     }
 
     nav {
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
       backdrop-filter: blur(6px);
     }
 
@@ -90,16 +91,28 @@
       scroll-margin-top: 130px;
     }
 
-    .content-card {
-      background: rgba(255, 255, 255, 0.74);
-      border: 1px solid rgba(0, 0, 0, 0.06);
-      backdrop-filter: blur(6px);
+    /* Fully transparent "blocks" */
+    .content-card,
+    .soft-card {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
     }
 
-    .soft-card {
-      background: rgba(255, 255, 255, 0.66);
-      border: 1px solid rgba(0, 0, 0, 0.05);
-      backdrop-filter: blur(4px);
+    /* Readability halo */
+    .readable-text h1,
+    .readable-text h2,
+    .readable-text h3,
+    .readable-text h4,
+    .readable-text p,
+    .readable-text li,
+    .readable-text span,
+    .readable-text a {
+      text-shadow:
+        0 1px 0 rgba(255,255,255,0.92),
+        0 0 14px rgba(255,255,255,0.72),
+        0 0 28px rgba(255,255,255,0.42);
     }
 
     @media (max-width: 900px) {
@@ -111,19 +124,18 @@
 </head>
 
 <body class="antialiased">
-  <!-- Background particles -->
   <div class="particle-layer" aria-hidden="true">
     <canvas id="particle-canvas"></canvas>
   </div>
   <div class="readability-veil" aria-hidden="true"></div>
 
-  <div class="site-layer">
-    <nav class="fixed w-full z-50 bg-white/70">
+  <div class="site-layer readable-text">
+    <nav class="fixed w-full z-50 bg-white/42">
       <div class="max-w-screen-xl mx-auto px-6 h-24 flex items-center justify-between">
         <a class="text-lg font-semibold tracking-tight text-black flex items-center gap-2" href="#">
           Bored Survey.
         </a>
-        <div class="hidden md:flex items-center gap-12 text-sm font-medium text-gray-600">
+        <div class="hidden md:flex items-center gap-12 text-sm font-medium text-gray-700">
           <a class="hover:text-black transition-colors" href="#services">Services</a>
           <a class="hover:text-black transition-colors" href="#process">Process</a>
           <a class="hover:text-black transition-colors" href="#impact">Why This Matters</a>
@@ -136,41 +148,39 @@
     </nav>
 
     <header class="px-6 pt-44 pb-24">
-      <div class="max-w-6xl mx-auto">
-        <div class="content-card p-8 md:p-12">
-          <h1 class="text-5xl md:text-7xl lg:text-8xl font-medium text-black leading-[1.04] tracking-tight mb-10">
-            No guesswork. Just real data.<br />
-            <span class="text-gray-600">Every failed business once started as a “genius idea” in a bubble.</span>
-          </h1>
+      <div class="max-w-6xl mx-auto content-card p-0">
+        <h1 class="text-5xl md:text-7xl lg:text-8xl font-medium text-black leading-[1.04] tracking-tight mb-10">
+          No guesswork. Just real data.<br />
+          <span class="text-gray-700">Every failed business once started as a “genius idea” in a bubble.</span>
+        </h1>
 
-          <div class="flex flex-col md:flex-row md:items-end justify-between gap-12">
-            <p class="text-lg md:text-xl text-gray-700 max-w-xl leading-relaxed font-light">
-              We test demand, pricing, positioning, and buyer intent.
-              For established companies and for founders who want to test a new business idea before deploying.
-            </p>
-            <div class="flex flex-col sm:flex-row items-center gap-6 shrink-0">
-              <a class="text-black border-b border-black pb-1 hover:opacity-60 transition-opacity text-lg" href="#contact">
-                Let’s Talk
-              </a>
-              <a class="text-gray-700 hover:text-black transition-colors text-lg" href="mailto:hello@boredsurvey.com?subject=Project%20Inquiry%20-%20Bored%20Survey">
-                Email Us
-              </a>
-            </div>
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-12">
+          <p class="text-lg md:text-xl text-gray-800 max-w-xl leading-relaxed font-light">
+            We test demand, pricing, positioning, and buyer intent.
+            For established companies and for founders who want to test a new business idea before deploying.
+          </p>
+          <div class="flex flex-col sm:flex-row items-center gap-6 shrink-0">
+            <a class="text-black border-b border-black pb-1 hover:opacity-60 transition-opacity text-lg" href="#contact">
+              Let’s Talk
+            </a>
+            <a class="text-gray-800 hover:text-black transition-colors text-lg" href="mailto:hello@boredsurvey.com?subject=Project%20Inquiry%20-%20Bored%20Survey">
+              Email Us
+            </a>
           </div>
         </div>
       </div>
     </header>
 
     <section class="relative px-6 py-20 md:py-28" id="services">
-      <div class="max-w-6xl mx-auto content-card p-8 md:p-12">
+      <div class="max-w-6xl mx-auto content-card p-0">
         <div class="mb-14">
-          <span class="text-xs font-semibold uppercase tracking-widest text-gray-500">01 — What We Do</span>
+          <span class="text-xs font-semibold uppercase tracking-widest text-gray-600">01 — What We Do</span>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
           <div>
             <h3 class="text-2xl font-medium text-black mb-5">Market Signal at Scale</h3>
-            <p class="text-gray-700 leading-relaxed font-light">
+            <p class="text-gray-800 leading-relaxed font-light">
               High-volume response collection, quality controls, and clean datasets.
               You get signal you can act on.
             </p>
@@ -178,14 +188,14 @@
 
           <div>
             <h3 class="text-2xl font-medium text-black mb-5">Commercial Decision Testing</h3>
-            <p class="text-gray-700 leading-relaxed font-light">
+            <p class="text-gray-800 leading-relaxed font-light">
               Test offer strength, pricing tolerance, message clarity, and segment fit before committing serious budget.
             </p>
           </div>
 
           <div>
             <h3 class="text-2xl font-medium text-black mb-5">New Idea Validation</h3>
-            <p class="text-gray-700 leading-relaxed font-light">
+            <p class="text-gray-800 leading-relaxed font-light">
               Thinking about launching a new business?
               Pressure-test the concept in the real market before you build.
             </p>
@@ -195,44 +205,44 @@
     </section>
 
     <section class="relative px-6 py-20 md:py-28" id="process">
-      <div class="max-w-6xl mx-auto content-card p-8 md:p-12">
+      <div class="max-w-6xl mx-auto content-card p-0">
         <div class="mb-14">
-          <span class="text-xs font-semibold uppercase tracking-widest text-gray-500">02 — How We Work</span>
+          <span class="text-xs font-semibold uppercase tracking-widest text-gray-600">02 — How We Work</span>
         </div>
 
         <div class="space-y-16">
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-200 pt-8">
-            <div class="col-span-1 md:col-span-2 text-sm font-semibold text-gray-400">01</div>
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-black/12 pt-8">
+            <div class="col-span-1 md:col-span-2 text-sm font-semibold text-gray-500">01</div>
             <div class="col-span-1 md:col-span-4">
               <h3 class="text-2xl font-medium text-black">Scope the decision</h3>
             </div>
             <div class="col-span-1 md:col-span-6">
-              <p class="text-gray-700 font-light leading-relaxed">
+              <p class="text-gray-800 font-light leading-relaxed">
                 We define the exact decision first.
                 If the decision is vague, the research is useless.
               </p>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-200 pt-8">
-            <div class="col-span-1 md:col-span-2 text-sm font-semibold text-gray-400">02</div>
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-black/12 pt-8">
+            <div class="col-span-1 md:col-span-2 text-sm font-semibold text-gray-500">02</div>
             <div class="col-span-1 md:col-span-4">
               <h3 class="text-2xl font-medium text-black">Run fieldwork at scale</h3>
             </div>
             <div class="col-span-1 md:col-span-6">
-              <p class="text-gray-700 font-light leading-relaxed">
+              <p class="text-gray-800 font-light leading-relaxed">
                 We launch, monitor, and filter responses to keep data quality high and noise low.
               </p>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-200 pt-8">
-            <div class="col-span-1 md:col-span-2 text-sm font-semibold text-gray-400">03</div>
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-black/12 pt-8">
+            <div class="col-span-1 md:col-span-2 text-sm font-semibold text-gray-500">03</div>
             <div class="col-span-1 md:col-span-4">
               <h3 class="text-2xl font-medium text-black">Deliver a hard readout</h3>
             </div>
             <div class="col-span-1 md:col-span-6">
-              <p class="text-gray-700 font-light leading-relaxed">
+              <p class="text-gray-800 font-light leading-relaxed">
                 Go, no-go, or rework.
                 Clear priorities, clear risks, clear next step.
               </p>
@@ -243,9 +253,9 @@
     </section>
 
     <section class="relative px-6 py-20 md:py-28" id="impact">
-      <div class="max-w-6xl mx-auto soft-card p-8 md:p-12">
+      <div class="max-w-6xl mx-auto soft-card p-0">
         <div class="mb-14">
-          <span class="text-xs font-semibold uppercase tracking-widest text-gray-500">03 — Why This Matters</span>
+          <span class="text-xs font-semibold uppercase tracking-widest text-gray-600">03 — Why This Matters</span>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-14">
@@ -256,7 +266,7 @@
             </h2>
           </div>
           <div class="flex flex-col justify-end">
-            <p class="text-gray-700 font-light text-lg leading-relaxed">
+            <p class="text-gray-800 font-light text-lg leading-relaxed">
               In 1985, Coca-Cola replaced its formula after strong blind taste-test feedback.
               Consumers rejected the change in the real market, and the original formula returned within months.
               The lesson is simple: research must reflect real behavior, not just controlled test conditions.
@@ -267,7 +277,7 @@
     </section>
 
     <section class="relative px-6 py-20 md:py-28" id="contact">
-      <div class="max-w-5xl mx-auto content-card p-8 md:p-14 text-center">
+      <div class="max-w-5xl mx-auto content-card p-0 text-center">
         <h2 class="text-4xl md:text-6xl font-medium text-black mb-10 tracking-tight">
           If the decision is expensive,<br class="hidden md:block" />
           test it first.
@@ -280,13 +290,13 @@
             Start a Project
           </a>
         </div>
-        <p class="text-gray-600 font-light mt-10 max-w-2xl mx-auto">
+        <p class="text-gray-700 font-light mt-10 max-w-2xl mx-auto">
           Send your decision context. We will reply with scope, sample direction, and execution path.
         </p>
       </div>
     </section>
 
-    <footer class="border-t border-gray-200 bg-white/70 backdrop-blur-sm pt-14 pb-10 px-6">
+    <footer class="pt-14 pb-10 px-6">
       <div class="max-w-screen-xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
           <a class="text-lg font-bold tracking-tight text-black" href="#">
@@ -294,7 +304,7 @@
           </a>
         </div>
 
-        <div class="flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-center text-xs text-gray-600 gap-4">
           <p>© <span id="year"></span> Bored Survey Agency.</p>
           <div class="flex gap-6">
             <a class="hover:text-black" href="#">Privacy</a>
@@ -306,9 +316,10 @@
   </div>
 
   <script>
-    // ---------- Utilities ----------
+    // -------------------------
+    // Core helpers
+    // -------------------------
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-    const smoothstep = (t) => t * t * (3 - 2 * t);
     const TAU = Math.PI * 2;
 
     function lcg(seed) {
@@ -319,33 +330,49 @@
       };
     }
 
+    // Smooth + subtle elastic wobble, reversible with scroll
+    function elasticMorph(t) {
+      t = clamp(t, 0, 1);
+      const s = t * t * (3 - 2 * t); // smoothstep base
+      const envelope = Math.sin(Math.PI * s); // 0 at ends, 1 near middle
+      const wobble = Math.sin((s * 2.35 - 0.10) * Math.PI * 2) * 0.055 * envelope;
+      return clamp(s + wobble, 0, 1);
+    }
+
+    function scrollProgress() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) return 0;
+      return clamp(window.scrollY / max, 0, 1);
+    }
+
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    // ---------- Particle System ----------
+    // -------------------------
+    // Canvas setup
+    // -------------------------
     const canvas = document.getElementById("particle-canvas");
     const ctx = canvas.getContext("2d", { alpha: true });
 
-    let W = window.innerWidth;
-    let H = window.innerHeight;
-    let DPR = Math.min(window.devicePixelRatio || 1, 2);
+    let W = 0;
+    let H = 0;
+    let DPR = 1;
 
-    let shapeParticles = [];
-    let ambientParticles = [];
     let N = 0;
-    let NAmbient = 0;
-
-    let shapes = [];      // 4 shape point arrays, each length N
-    let anchors = [0, 0.33, 0.66, 0.95];
+    let Nambient = 0;
+    let particles = [];
+    let ambient = [];
+    let shapes = [];
 
     const processEl = document.getElementById("process");
     const impactEl = document.getElementById("impact");
     const contactEl = document.getElementById("contact");
 
-    // Offscreen sampling canvas
+    let anchors = [0, 0.34, 0.68, 0.95];
+
     const shapeCanvas = document.createElement("canvas");
     const sctx = shapeCanvas.getContext("2d", { willReadFrequently: true });
 
-    function setCanvasSize() {
+    function sizeAll() {
       W = window.innerWidth;
       H = window.innerHeight;
       DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -356,88 +383,88 @@
       canvas.style.height = H + "px";
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-      shapeCanvas.width = Math.max(600, Math.floor(W * 0.98));
-      shapeCanvas.height = Math.max(420, Math.floor(H * 0.98));
+      shapeCanvas.width = Math.max(900, Math.floor(W * 1.05));
+      shapeCanvas.height = Math.max(680, Math.floor(H * 1.05));
 
-      N = clamp(Math.floor((W * H) / 440), 2200, 4600);   // large/high-quality
-      NAmbient = clamp(Math.floor(N * 0.22), 420, 1200);
+      N = clamp(Math.floor((W * H) / 470), 2400, 4400);
+      Nambient = clamp(Math.floor(N * 0.24), 500, 1200);
     }
 
-    function buildParticles() {
-      shapeParticles = [];
-      ambientParticles = [];
+    function initParticles() {
+      particles = [];
+      ambient = [];
 
       const cx = W * 0.5;
       const cy = H * 0.52;
 
       for (let i = 0; i < N; i++) {
-        shapeParticles.push({
-          x: cx + (Math.random() - 0.5) * 320,
-          y: cy + (Math.random() - 0.5) * 320,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
-          tx: cx,
-          ty: cy,
-          r: 0.38 + Math.random() * 1.18,    // super tiny
-          a: 0.18 + Math.random() * 0.65,
-          seed: Math.random() * 10000,
+        particles.push({
+          x: cx + (Math.random() - 0.5) * 340,
+          y: cy + (Math.random() - 0.5) * 340,
+          vx: (Math.random() - 0.5) * 0.28,
+          vy: (Math.random() - 0.5) * 0.28,
+          r: 0.38 + Math.random() * 1.16,
+          a: 0.20 + Math.random() * 0.62,
+          seed: Math.random() * 10000
         });
       }
 
-      for (let i = 0; i < NAmbient; i++) {
-        ambientParticles.push({
+      for (let i = 0; i < Nambient; i++) {
+        ambient.push({
           x: Math.random() * W,
           y: Math.random() * H,
-          vx: (Math.random() - 0.5) * 0.08,
-          vy: (Math.random() - 0.5) * 0.08,
+          vx: (Math.random() - 0.5) * 0.06,
+          vy: (Math.random() - 0.5) * 0.06,
           r: 0.35 + Math.random() * 1.0,
-          a: 0.03 + Math.random() * 0.12,
-          seed: Math.random() * 10000,
+          a: 0.025 + Math.random() * 0.11,
+          seed: Math.random() * 10000
         });
       }
     }
 
-    // ---------- Shape drawings ----------
+    // -------------------------
+    // Shape drawing
+    // -------------------------
     function drawBubble(c, w, h) {
       const cx = w * 0.5;
       const cy = h * 0.54;
-      const s = Math.min(w, h) * 0.36;
-      const rnd = lcg(91237);
+      const s = Math.min(w, h) * 0.43;
+      const rnd = lcg(845221);
 
       c.clearRect(0, 0, w, h);
       c.save();
       c.lineCap = "round";
       c.lineJoin = "round";
-      c.fillStyle = "#ffffff";
-      c.strokeStyle = "#ffffff";
+      c.fillStyle = "#fff";
+      c.strokeStyle = "#fff";
 
-      // Core bubble
-      c.globalAlpha = 0.26;
+      // Main bubble
+      c.globalAlpha = 0.22;
       c.beginPath();
-      c.arc(cx, cy, s * 0.58, 0, TAU);
+      c.arc(cx, cy, s * 0.55, 0, TAU);
       c.fill();
 
       c.globalAlpha = 1;
-      c.lineWidth = s * 0.043;
+      c.lineWidth = s * 0.04;
       c.beginPath();
-      c.arc(cx, cy, s * 0.64, 0, TAU);
+      c.arc(cx, cy, s * 0.62, 0, TAU);
       c.stroke();
 
-      // Inner contour rings
-      c.globalAlpha = 0.58;
-      c.lineWidth = s * 0.012;
-      for (let i = 0; i < 3; i++) {
+      // Inner rings
+      c.globalAlpha = 0.56;
+      c.lineWidth = s * 0.011;
+      for (let i = 0; i < 4; i++) {
         c.beginPath();
-        c.arc(cx + (i - 1) * s * 0.03, cy + (i - 1) * s * 0.02, s * (0.47 - i * 0.08), 0, TAU);
+        c.arc(cx + (i - 1.5) * s * 0.016, cy + (i - 1.5) * s * 0.012, s * (0.46 - i * 0.072), 0, TAU);
         c.stroke();
       }
 
-      // Explosion cluster (upper-right quadrant)
+      // Exploding fragments
       c.globalAlpha = 1;
-      for (let i = 0; i < 26; i++) {
-        const ang = -1.05 + (1.48 * i) / 25 + (rnd() - 0.5) * 0.10;
-        const dist = s * (0.92 + rnd() * 1.12);
-        const rr = s * (0.025 + rnd() * 0.07);
+      for (let i = 0; i < 34; i++) {
+        const ang = -1.10 + (1.58 * i) / 33 + (rnd() - 0.5) * 0.09;
+        const dist = s * (0.96 + rnd() * 1.34);
+        const rr = s * (0.016 + rnd() * 0.058);
 
         const x = cx + Math.cos(ang) * dist;
         const y = cy + Math.sin(ang) * dist;
@@ -446,24 +473,24 @@
         c.arc(x, y, rr, 0, TAU);
         c.fill();
 
-        c.globalAlpha = 0.55;
-        c.lineWidth = s * 0.006;
+        c.globalAlpha = 0.48;
+        c.lineWidth = s * 0.0055;
         c.beginPath();
-        c.moveTo(cx + Math.cos(ang) * s * 0.64, cy + Math.sin(ang) * s * 0.64);
+        c.moveTo(cx + Math.cos(ang) * s * 0.61, cy + Math.sin(ang) * s * 0.61);
         c.lineTo(x, y);
         c.stroke();
         c.globalAlpha = 1;
       }
 
-      // Dust halo
-      c.globalAlpha = 0.40;
-      for (let i = 0; i < 280; i++) {
+      // Dust
+      c.globalAlpha = 0.34;
+      for (let i = 0; i < 360; i++) {
         const a = rnd() * TAU;
-        const rr = s * (0.75 + rnd() * 1.35);
+        const rr = s * (0.70 + rnd() * 1.45);
         const x = cx + Math.cos(a) * rr;
         const y = cy + Math.sin(a) * rr;
         c.beginPath();
-        c.arc(x, y, s * (0.003 + rnd() * 0.004), 0, TAU);
+        c.arc(x, y, s * (0.0025 + rnd() * 0.0035), 0, TAU);
         c.fill();
       }
 
@@ -473,46 +500,44 @@
     function drawLightbulb(c, w, h) {
       const cx = w * 0.5;
       const cy = h * 0.50;
-      const s = Math.min(w, h) * 0.34;
+      const s = Math.min(w, h) * 0.41;
 
       c.clearRect(0, 0, w, h);
       c.save();
       c.lineCap = "round";
       c.lineJoin = "round";
-      c.strokeStyle = "#ffffff";
-      c.fillStyle = "#ffffff";
+      c.strokeStyle = "#fff";
+      c.fillStyle = "#fff";
 
-      // Bulb glass outline
+      // Outer contour
       c.globalAlpha = 1;
       c.lineWidth = s * 0.06;
       c.beginPath();
-      c.moveTo(cx - s * 0.52, cy - s * 0.05);
-      c.bezierCurveTo(cx - s * 0.72, cy - s * 0.74, cx + s * 0.72, cy - s * 0.74, cx + s * 0.52, cy - s * 0.05);
-      c.bezierCurveTo(cx + s * 0.46, cy + s * 0.22, cx + s * 0.30, cy + s * 0.42, cx + s * 0.17, cy + s * 0.56);
-      c.lineTo(cx - s * 0.17, cy + s * 0.56);
-      c.bezierCurveTo(cx - s * 0.30, cy + s * 0.42, cx - s * 0.46, cy + s * 0.22, cx - s * 0.52, cy - s * 0.05);
+      c.moveTo(cx - s * 0.52, cy - s * 0.06);
+      c.bezierCurveTo(cx - s * 0.73, cy - s * 0.76, cx + s * 0.73, cy - s * 0.76, cx + s * 0.52, cy - s * 0.06);
+      c.bezierCurveTo(cx + s * 0.46, cy + s * 0.22, cx + s * 0.29, cy + s * 0.43, cx + s * 0.17, cy + s * 0.57);
+      c.lineTo(cx - s * 0.17, cy + s * 0.57);
+      c.bezierCurveTo(cx - s * 0.29, cy + s * 0.43, cx - s * 0.46, cy + s * 0.22, cx - s * 0.52, cy - s * 0.06);
       c.closePath();
       c.stroke();
 
-      // Bulb interior soft fill
-      c.globalAlpha = 0.22;
+      c.globalAlpha = 0.20;
       c.fill();
 
-      // Neck
+      // Neck + base
       c.globalAlpha = 1;
-      c.lineWidth = s * 0.045;
+      c.lineWidth = s * 0.044;
       c.beginPath();
-      c.rect(cx - s * 0.16, cy + s * 0.56, s * 0.32, s * 0.19);
+      c.rect(cx - s * 0.16, cy + s * 0.57, s * 0.32, s * 0.20);
       c.stroke();
 
-      // Screw base
       c.beginPath();
-      c.rect(cx - s * 0.24, cy + s * 0.75, s * 0.48, s * 0.26);
+      c.rect(cx - s * 0.24, cy + s * 0.77, s * 0.48, s * 0.26);
       c.stroke();
 
       c.lineWidth = s * 0.02;
       for (let i = 1; i <= 3; i++) {
-        const yy = cy + s * (0.75 + (i * 0.26) / 4);
+        const yy = cy + s * (0.77 + (i * 0.26) / 4);
         c.beginPath();
         c.moveTo(cx - s * 0.22, yy);
         c.lineTo(cx + s * 0.22, yy);
@@ -522,10 +547,10 @@
       // Filament
       c.lineWidth = s * 0.028;
       c.beginPath();
-      c.moveTo(cx - s * 0.22, cy + s * 0.14);
+      c.moveTo(cx - s * 0.22, cy + s * 0.13);
       c.lineTo(cx - s * 0.08, cy - s * 0.03);
       c.lineTo(cx + s * 0.08, cy - s * 0.03);
-      c.lineTo(cx + s * 0.22, cy + s * 0.14);
+      c.lineTo(cx + s * 0.22, cy + s * 0.13);
       c.stroke();
 
       c.lineWidth = s * 0.024;
@@ -533,14 +558,14 @@
       c.arc(cx, cy + s * 0.01, s * 0.10, Math.PI, 0);
       c.stroke();
 
-      // Top rays (very subtle)
-      c.globalAlpha = 0.65;
-      c.lineWidth = s * 0.016;
-      for (let i = -2; i <= 2; i++) {
-        const a = -Math.PI / 2 + i * 0.24;
+      // Rays
+      c.globalAlpha = 0.60;
+      c.lineWidth = s * 0.013;
+      for (let i = -3; i <= 3; i++) {
+        const a = -Math.PI / 2 + i * 0.19;
         c.beginPath();
-        c.moveTo(cx + Math.cos(a) * s * 0.83, cy + Math.sin(a) * s * 0.83);
-        c.lineTo(cx + Math.cos(a) * s * 1.02, cy + Math.sin(a) * s * 1.02);
+        c.moveTo(cx + Math.cos(a) * s * 0.84, cy + Math.sin(a) * s * 0.84);
+        c.lineTo(cx + Math.cos(a) * s * 1.03, cy + Math.sin(a) * s * 1.03);
         c.stroke();
       }
 
@@ -550,34 +575,31 @@
     function drawQuestionMark(c, w, h) {
       const cx = w * 0.5;
       const cy = h * 0.50;
-      const s = Math.min(w, h) * 0.34;
+      const s = Math.min(w, h) * 0.42;
 
       c.clearRect(0, 0, w, h);
       c.save();
       c.lineCap = "round";
       c.lineJoin = "round";
-      c.strokeStyle = "#ffffff";
-      c.fillStyle = "#ffffff";
+      c.strokeStyle = "#fff";
+      c.fillStyle = "#fff";
 
-      // Main curved stroke
-      c.lineWidth = s * 0.11;
+      c.lineWidth = s * 0.108;
       c.beginPath();
-      c.moveTo(cx - s * 0.40, cy - s * 0.42);
-      c.bezierCurveTo(cx - s * 0.10, cy - s * 0.72, cx + s * 0.42, cy - s * 0.60, cx + s * 0.42, cy - s * 0.18);
-      c.bezierCurveTo(cx + s * 0.42, cy + s * 0.06, cx + s * 0.20, cy + s * 0.16, cx + s * 0.03, cy + s * 0.24);
-      c.bezierCurveTo(cx - s * 0.07, cy + s * 0.29, cx - s * 0.07, cy + s * 0.34, cx - s * 0.04, cy + s * 0.42);
+      c.moveTo(cx - s * 0.40, cy - s * 0.43);
+      c.bezierCurveTo(cx - s * 0.10, cy - s * 0.72, cx + s * 0.43, cy - s * 0.60, cx + s * 0.43, cy - s * 0.17);
+      c.bezierCurveTo(cx + s * 0.43, cy + s * 0.08, cx + s * 0.19, cy + s * 0.17, cx + s * 0.02, cy + s * 0.26);
+      c.bezierCurveTo(cx - s * 0.08, cy + s * 0.31, cx - s * 0.08, cy + s * 0.35, cx - s * 0.04, cy + s * 0.43);
       c.stroke();
 
-      // Short lower stroke
-      c.lineWidth = s * 0.09;
+      c.lineWidth = s * 0.086;
       c.beginPath();
-      c.moveTo(cx - s * 0.04, cy + s * 0.42);
-      c.lineTo(cx - s * 0.02, cy + s * 0.53);
+      c.moveTo(cx - s * 0.04, cy + s * 0.43);
+      c.lineTo(cx - s * 0.02, cy + s * 0.55);
       c.stroke();
 
-      // Dot
       c.beginPath();
-      c.arc(cx - s * 0.02, cy + s * 0.80, s * 0.11, 0, TAU);
+      c.arc(cx - s * 0.02, cy + s * 0.83, s * 0.11, 0, TAU);
       c.fill();
 
       c.restore();
@@ -586,21 +608,20 @@
     function drawGraph(c, w, h) {
       const cx = w * 0.5;
       const cy = h * 0.52;
-      const s = Math.min(w, h) * 0.34;
+      const s = Math.min(w, h) * 0.43;
 
       c.clearRect(0, 0, w, h);
       c.save();
       c.lineCap = "round";
       c.lineJoin = "round";
-      c.strokeStyle = "#ffffff";
-      c.fillStyle = "#ffffff";
+      c.strokeStyle = "#fff";
+      c.fillStyle = "#fff";
 
-      const xL = cx - s * 0.80;
-      const xR = cx + s * 0.90;
-      const yB = cy + s * 0.58;
-      const yT = cy - s * 0.58;
+      const xL = cx - s * 0.84;
+      const xR = cx + s * 0.95;
+      const yB = cy + s * 0.60;
+      const yT = cy - s * 0.60;
 
-      // Axes
       c.lineWidth = s * 0.06;
       c.beginPath();
       c.moveTo(xL, yB);
@@ -609,48 +630,43 @@
       c.lineTo(xL, yT);
       c.stroke();
 
-      // Arrow tips
-      c.lineWidth = s * 0.035;
+      c.lineWidth = s * 0.034;
       c.beginPath();
       c.moveTo(xR, yB);
       c.lineTo(xR - s * 0.10, yB - s * 0.05);
       c.moveTo(xR, yB);
       c.lineTo(xR - s * 0.10, yB + s * 0.05);
-
       c.moveTo(xL, yT);
       c.lineTo(xL - s * 0.05, yT + s * 0.10);
       c.moveTo(xL, yT);
       c.lineTo(xL + s * 0.05, yT + s * 0.10);
       c.stroke();
 
-      // Rising line
       const pts = [
-        [xL + s * 0.12, yB - s * 0.10],
-        [xL + s * 0.34, yB - s * 0.26],
-        [xL + s * 0.52, yB - s * 0.22],
-        [xL + s * 0.78, yB - s * 0.45],
-        [xL + s * 1.05, yB - s * 0.55],
-        [xL + s * 1.36, yB - s * 0.86]
+        [xL + s * 0.12, yB - s * 0.12],
+        [xL + s * 0.33, yB - s * 0.26],
+        [xL + s * 0.53, yB - s * 0.23],
+        [xL + s * 0.80, yB - s * 0.47],
+        [xL + s * 1.08, yB - s * 0.57],
+        [xL + s * 1.40, yB - s * 0.90]
       ];
 
-      c.lineWidth = s * 0.085;
+      c.lineWidth = s * 0.083;
       c.beginPath();
       c.moveTo(pts[0][0], pts[0][1]);
       for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
       c.stroke();
 
-      // Dots on line
       for (let i = 0; i < pts.length; i++) {
         c.beginPath();
-        c.arc(pts[i][0], pts[i][1], s * 0.055, 0, TAU);
+        c.arc(pts[i][0], pts[i][1], s * 0.053, 0, TAU);
         c.fill();
       }
 
-      // Soft bars in background
-      c.globalAlpha = 0.35;
-      const bars = [0.16, 0.24, 0.18, 0.39, 0.50];
+      c.globalAlpha = 0.33;
+      const bars = [0.15, 0.22, 0.18, 0.37, 0.50];
       for (let i = 0; i < bars.length; i++) {
-        const bw = s * 0.12;
+        const bw = s * 0.11;
         const bh = s * bars[i];
         const bx = xL + s * (0.18 + i * 0.22);
         const by = yB - bh;
@@ -660,23 +676,22 @@
       c.restore();
     }
 
-    function sampleShapePoints(drawFn, count) {
+    function sampleShape(drawFn, count) {
       const w = shapeCanvas.width;
       const h = shapeCanvas.height;
-
       drawFn(sctx, w, h);
 
-      const data = sctx.getImageData(0, 0, w, h).data;
+      const img = sctx.getImageData(0, 0, w, h).data;
       const pool = [];
-      const step = 2;
+      const step = 2; // good quality + performance
 
       for (let y = 0; y < h; y += step) {
         for (let x = 0; x < w; x += step) {
-          const idx = (y * w + x) * 4 + 3;
-          if (data[idx] > 15) {
+          const a = img[(y * w + x) * 4 + 3];
+          if (a > 14) {
             pool.push({
               x: x + (W - w) * 0.5,
-              y: y + (H - h) * 0.5,
+              y: y + (H - h) * 0.5
             });
           }
         }
@@ -684,55 +699,44 @@
 
       if (!pool.length) {
         const fallback = [];
-        for (let i = 0; i < count; i++) {
-          fallback.push({ x: Math.random() * W, y: Math.random() * H });
-        }
+        for (let i = 0; i < count; i++) fallback.push({ x: Math.random() * W, y: Math.random() * H });
         return fallback;
       }
 
-      // Sort for stable morph correspondence
+      // stable ordering for cleaner morphing
       const cx = W * 0.5;
       const cy = H * 0.52;
-      pool.sort((a, b) => {
-        const aa = Math.atan2(a.y - cy, a.x - cx);
-        const bb = Math.atan2(b.y - cy, b.x - cx);
-        if (aa !== bb) return aa - bb;
-        const ra = (a.x - cx) * (a.x - cx) + (a.y - cy) * (a.y - cy);
-        const rb = (b.x - cx) * (b.x - cx) + (b.y - cy) * (b.y - cy);
-        return ra - rb;
+      pool.sort((p1, p2) => {
+        const a1 = Math.atan2(p1.y - cy, p1.x - cx);
+        const a2 = Math.atan2(p2.y - cy, p2.x - cx);
+        if (a1 !== a2) return a1 - a2;
+        const r1 = (p1.x - cx) ** 2 + (p1.y - cy) ** 2;
+        const r2 = (p2.x - cx) ** 2 + (p2.y - cy) ** 2;
+        return r1 - r2;
       });
 
       const out = new Array(count);
       for (let i = 0; i < count; i++) {
         const idx = Math.floor((i / count) * pool.length);
-        const p = pool[idx];
-        out[i] = { x: p.x, y: p.y };
+        out[i] = pool[idx];
       }
       return out;
     }
 
     function rebuildShapes() {
       shapes = [
-        sampleShapePoints(drawBubble, N),
-        sampleShapePoints(drawLightbulb, N),
-        sampleShapePoints(drawQuestionMark, N),
-        sampleShapePoints(drawGraph, N),
+        sampleShape(drawBubble, N),
+        sampleShape(drawLightbulb, N),
+        sampleShape(drawQuestionMark, N),
+        sampleShape(drawGraph, N)
       ];
     }
 
-    function getScrollProgress() {
-      const doc = document.documentElement;
-      const max = doc.scrollHeight - window.innerHeight;
-      if (max <= 0) return 0;
-      return clamp(window.scrollY / max, 0, 1);
-    }
-
     function recomputeAnchors() {
-      const doc = document.documentElement;
-      const max = Math.max(1, doc.scrollHeight - window.innerHeight);
+      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
 
-      const p1 = clamp((processEl.offsetTop - window.innerHeight * 0.45) / max, 0.15, 0.70);
-      const p2 = clamp((impactEl.offsetTop - window.innerHeight * 0.45) / max, p1 + 0.12, 0.88);
+      const p1 = clamp((processEl.offsetTop - window.innerHeight * 0.45) / max, 0.18, 0.72);
+      const p2 = clamp((impactEl.offsetTop - window.innerHeight * 0.45) / max, p1 + 0.12, 0.90);
       const p3 = clamp((contactEl.offsetTop - window.innerHeight * 0.45) / max, p2 + 0.08, 0.98);
 
       anchors = [0, p1, p2, p3];
@@ -742,39 +746,41 @@
       const [a0, a1, a2, a3] = anchors;
 
       if (t <= a1) {
-        const f = smoothstep(clamp((t - a0) / Math.max(0.0001, a1 - a0), 0, 1));
-        return { from: 0, to: 1, f };
+        const raw = clamp((t - a0) / Math.max(0.0001, a1 - a0), 0, 1);
+        return { from: 0, to: 1, f: elasticMorph(raw) };
       }
       if (t <= a2) {
-        const f = smoothstep(clamp((t - a1) / Math.max(0.0001, a2 - a1), 0, 1));
-        return { from: 1, to: 2, f };
+        const raw = clamp((t - a1) / Math.max(0.0001, a2 - a1), 0, 1);
+        return { from: 1, to: 2, f: elasticMorph(raw) };
       }
       if (t <= a3) {
-        const f = smoothstep(clamp((t - a2) / Math.max(0.0001, a3 - a2), 0, 1));
-        return { from: 2, to: 3, f };
+        const raw = clamp((t - a2) / Math.max(0.0001, a3 - a2), 0, 1);
+        return { from: 2, to: 3, f: elasticMorph(raw) };
       }
       return { from: 3, to: 3, f: 0 };
     }
 
-    // Subtle pointer parallax
-    let pointerX = 0;
-    let pointerY = 0;
+    // pointer parallax
+    let px = 0, py = 0;
     window.addEventListener("pointermove", (e) => {
-      pointerX = (e.clientX / W - 0.5) * 2;
-      pointerY = (e.clientY / H - 0.5) * 2;
+      px = (e.clientX / W - 0.5) * 2;
+      py = (e.clientY / H - 0.5) * 2;
     }, { passive: true });
 
-    function animate(time) {
+    // -------------------------
+    // Render loop
+    // -------------------------
+    function render(time) {
       ctx.clearRect(0, 0, W, H);
 
-      // Ambient full-screen particles (keeps whole background alive)
-      for (let i = 0; i < ambientParticles.length; i++) {
-        const p = ambientParticles[i];
+      // ambient layer across entire screen
+      for (let i = 0; i < ambient.length; i++) {
+        const p = ambient[i];
 
-        p.vx += Math.sin(time * 0.00012 + p.seed) * 0.0016;
-        p.vy += Math.cos(time * 0.00011 + p.seed * 1.3) * 0.0016;
-        p.vx *= 0.995;
-        p.vy *= 0.995;
+        p.vx += Math.sin(time * 0.00011 + p.seed) * 0.0013;
+        p.vy += Math.cos(time * 0.00010 + p.seed * 1.3) * 0.0013;
+        p.vx *= 0.996;
+        p.vy *= 0.996;
 
         p.x += p.vx;
         p.y += p.vy;
@@ -784,77 +790,81 @@
         if (p.y < -10) p.y = H + 10;
         if (p.y > H + 10) p.y = -10;
 
-        ctx.fillStyle = `rgba(22,22,22,${p.a})`;
+        ctx.fillStyle = `rgba(18,18,18,${p.a})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, TAU);
         ctx.fill();
       }
 
-      // Morphing shape particles
-      const t = getScrollProgress();
+      const t = scrollProgress();
       const { from, to, f } = getMorphState(t);
 
-      const shapeA = shapes[from];
-      const shapeB = shapes[to];
+      const A = shapes[from];
+      const B = shapes[to];
 
-      const parallaxX = pointerX * 14;
-      const parallaxY = pointerY * 10;
+      const parX = px * 16;
+      const parY = py * 10;
 
-      for (let i = 0; i < shapeParticles.length; i++) {
-        const p = shapeParticles[i];
-        const a = shapeA[i];
-        const b = shapeB[i];
+      // base shape pass
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const a = A[i];
+        const b = B[i];
 
-        const tx = a.x + (b.x - a.x) * f + parallaxX * 0.12;
-        const ty = a.y + (b.y - a.y) * f + parallaxY * 0.12;
+        const tx = a.x + (b.x - a.x) * f + parX * 0.10;
+        const ty = a.y + (b.y - a.y) * f + parY * 0.10;
 
-        // Premium micro-float
-        const driftX = Math.sin(time * 0.00055 + p.seed) * 1.25;
-        const driftY = Math.cos(time * 0.00048 + p.seed * 1.7) * 1.25;
+        // spring + micro movement
+        const driftX = Math.sin(time * 0.00052 + p.seed) * 1.15;
+        const driftY = Math.cos(time * 0.00047 + p.seed * 1.7) * 1.15;
 
-        p.vx += (tx + driftX - p.x) * 0.060;
-        p.vy += (ty + driftY - p.y) * 0.060;
+        p.vx += (tx + driftX - p.x) * 0.058;
+        p.vy += (ty + driftY - p.y) * 0.058;
 
-        p.vx *= 0.835;
-        p.vy *= 0.835;
+        p.vx *= 0.84;
+        p.vy *= 0.84;
 
         p.x += p.vx;
         p.y += p.vy;
 
-        const alpha = p.a * 0.86;
-        ctx.fillStyle = `rgba(18,18,18,${alpha})`;
+        ctx.fillStyle = `rgba(12,12,12,${p.a * 0.86})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, TAU);
         ctx.fill();
       }
 
-      requestAnimationFrame(animate);
+      // subtle glow pass (premium feel)
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < particles.length; i += 5) {
+        const p = particles[i];
+        const gr = p.r * 3.6;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, gr);
+        g.addColorStop(0, "rgba(255,255,255,0.05)");
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, gr, 0, TAU);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = "source-over";
+
+      requestAnimationFrame(render);
     }
 
     function rebuildAll() {
-      setCanvasSize();
-      buildParticles();
+      sizeAll();
+      initParticles();
       rebuildShapes();
       recomputeAnchors();
     }
 
-    // init
+    // boot
     rebuildAll();
-    requestAnimationFrame(animate);
+    requestAnimationFrame(render);
 
-    window.addEventListener("resize", () => {
-      rebuildAll();
-    });
-
-    window.addEventListener("scroll", () => {
-      // progress is read each frame; just keep anchors fresh in case layout shifts
-      // (cheap enough, but throttled by browser)
-      recomputeAnchors();
-    }, { passive: true });
-
-    window.addEventListener("load", () => {
-      rebuildAll();
-    });
+    window.addEventListener("resize", rebuildAll);
+    window.addEventListener("load", rebuildAll);
+    window.addEventListener("scroll", recomputeAnchors, { passive: true });
   </script>
 </body>
 </html>
