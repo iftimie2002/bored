@@ -39,7 +39,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 
-  <!-- Three.js for background silhouette -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
 
   <style>
@@ -57,7 +56,6 @@
       background: #fff;
     }
 
-    /* Background 3D layer */
     .bg-3d-wrap {
       position: fixed;
       inset: 0;
@@ -70,18 +68,17 @@
       width: 100%;
       height: 100%;
       display: block;
-      opacity: 0.92;
+      opacity: 0.96;
     }
 
     .bg-vignette {
       position: absolute;
       inset: 0;
       background:
-        radial-gradient(circle at 50% 45%, rgba(255,255,255,0.0) 0%, rgba(255,255,255,0.34) 52%, rgba(255,255,255,0.72) 100%);
+        radial-gradient(circle at 50% 45%, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.30) 55%, rgba(255,255,255,0.72) 100%);
       pointer-events: none;
     }
 
-    /* Foreground */
     .site-layer {
       position: relative;
       z-index: 20;
@@ -91,7 +88,6 @@
       border-bottom: 1px solid rgba(0,0,0,0.04);
     }
 
-    /* Stacked parallax flow */
     .stack-flow {
       position: relative;
       padding-bottom: 16vh;
@@ -142,7 +138,6 @@
       background: transparent;
     }
 
-    /* subtle text follow motion */
     [data-sync] {
       will-change: transform;
       transition: transform 80ms linear;
@@ -164,7 +159,6 @@
     }
 
     @media (max-width: 768px) {
-      /* On smaller screens keep stacking but allow more natural height */
       .stack-card {
         height: calc(100vh - var(--nav-h) - var(--stack-top-gap));
       }
@@ -173,7 +167,6 @@
 </head>
 
 <body class="text-black antialiased">
-  <!-- 3D background -->
   <div class="bg-3d-wrap" aria-hidden="true">
     <canvas id="silhouette-canvas"></canvas>
     <div class="bg-vignette"></div>
@@ -254,7 +247,6 @@
                 </div>
               </div>
 
-              <!-- extra content so section can be scrolled itself -->
               <div class="mt-20 grid grid-cols-1 md:grid-cols-2 gap-12 border-t border-gray-100 pt-12">
                 <div>
                   <h4 class="text-lg font-medium mb-3 text-black">Use cases</h4>
@@ -328,7 +320,6 @@
                 </div>
               </div>
 
-              <!-- extra content so section can be scrolled itself -->
               <div class="mt-20 border-t border-gray-100 pt-12">
                 <h4 class="text-lg font-medium mb-4 text-black">What gets filtered out</h4>
                 <p class="text-gray-600 font-light leading-relaxed max-w-3xl">
@@ -341,7 +332,7 @@
         </div>
       </section>
 
-      <section class="stack-panel z-[23]">
+      <section class="stack-panel z-[23]" id="impact">
         <div class="stack-card accent">
           <div class="stack-scroll py-24 md:py-32 px-6">
             <div class="max-w-5xl mx-auto">
@@ -420,11 +411,14 @@
   </div>
 
   <script>
-    // year
+    // ---------------------------
+    // base UI + stacked behavior
+    // ---------------------------
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    // dynamic nav height
     const nav = document.querySelector("nav");
+    const panels = [...document.querySelectorAll(".stack-panel")];
+
     function updateNavHeightVar() {
       const h = nav ? nav.offsetHeight : 96;
       document.documentElement.style.setProperty("--nav-h", `${h}px`);
@@ -432,18 +426,15 @@
     updateNavHeightVar();
     window.addEventListener("resize", updateNavHeightVar);
 
-    // stacked parallax transform
-    const panels = [...document.querySelectorAll(".stack-panel")];
     function updatePanelParallax() {
       const navH = nav ? nav.offsetHeight : 96;
       const stickyTop = navH + 12;
 
-      panels.forEach((panel, i) => {
+      panels.forEach((panel) => {
         const card = panel.querySelector(".stack-card");
         const rect = panel.getBoundingClientRect();
-
-        // progress as panel reaches sticky anchor
         const progress = Math.max(0, Math.min(1, (stickyTop - rect.top) / (window.innerHeight * 0.9)));
+
         const scale = 1 - progress * 0.035;
         const y = progress * 16;
         const shadowY = 18 + progress * 14;
@@ -459,7 +450,6 @@
     window.addEventListener("scroll", updatePanelParallax, { passive: true });
     window.addEventListener("resize", updatePanelParallax);
 
-    // active panel internal scroll routing (wheel goes to active section first)
     function getActiveScrollBox() {
       const navH = nav ? nav.offsetHeight : 96;
       const line = navH + 18;
@@ -496,9 +486,41 @@
       { passive: false }
     );
 
-    // -------------------------
-    // 3D background silhouette
-    // -------------------------
+    function getActivePanelIndex() {
+      const navH = nav ? nav.offsetHeight : 96;
+      const line = navH + 22;
+
+      let activeIdx = -1;
+      let bestTop = -Infinity;
+
+      panels.forEach((panel, idx) => {
+        const r = panel.getBoundingClientRect();
+        if (r.top <= line && r.bottom > line) {
+          if (r.top > bestTop) {
+            bestTop = r.top;
+            activeIdx = idx;
+          }
+        }
+      });
+
+      if (activeIdx >= 0) return activeIdx;
+
+      let nearest = 0;
+      let minDist = Infinity;
+      panels.forEach((panel, idx) => {
+        const r = panel.getBoundingClientRect();
+        const d = Math.abs(r.top - line);
+        if (d < minDist) {
+          minDist = d;
+          nearest = idx;
+        }
+      });
+      return nearest;
+    }
+
+    // ---------------------------
+    // 3D Vitruvian-style figure
+    // ---------------------------
     const canvas = document.getElementById("silhouette-canvas");
     const renderer = new THREE.WebGLRenderer({
       canvas,
@@ -509,67 +531,160 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     const scene = new THREE.Scene();
-
     const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.set(0, 0.35, 6.2);
+    camera.position.set(0, 0.25, 6.5);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.92);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambient);
 
-    const key = new THREE.DirectionalLight(0xffffff, 0.65);
-    key.position.set(2.2, 3.8, 4.5);
+    const key = new THREE.DirectionalLight(0xffffff, 0.7);
+    key.position.set(3, 4, 5);
     scene.add(key);
 
-    const rim = new THREE.DirectionalLight(0xffffff, 0.35);
-    rim.position.set(-3, 1.2, -2.5);
-    scene.add(rim);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.36);
+    fill.position.set(-3, 2, -2);
+    scene.add(fill);
 
-    const human = new THREE.Group();
-    scene.add(human);
+    const pivot = new THREE.Group();
+    scene.add(pivot);
 
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x6e6e6e,
-      roughness: 0.9,
-      metalness: 0.05
-    });
-
-    function addPart(geometry, x, y, z, rx = 0, ry = 0, rz = 0) {
-      const mesh = new THREE.Mesh(geometry, mat);
-      mesh.position.set(x, y, z);
-      mesh.rotation.set(rx, ry, rz);
-      human.add(mesh);
-      return mesh;
+    function addCapsule(group, mat, radius, length, x, y, z, rx = 0, ry = 0, rz = 0) {
+      const m = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length, 10, 20), mat);
+      m.position.set(x, y, z);
+      m.rotation.set(rx, ry, rz);
+      group.add(m);
+      return m;
     }
 
-    // torso + head
-    addPart(new THREE.CylinderGeometry(0.46, 0.56, 1.8, 28), 0, 0.0, 0);
-    addPart(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 18), 0, 1.02, 0);
-    addPart(new THREE.SphereGeometry(0.36, 28, 28), 0, 1.45, 0);
+    function addSphere(group, mat, r, x, y, z) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 24), mat);
+      m.position.set(x, y, z);
+      group.add(m);
+      return m;
+    }
 
-    // hips
-    addPart(new THREE.SphereGeometry(0.34, 24, 24), 0, -1.02, 0);
+    function addTorus(group, mat, radius, tube, x, y, z, rx = 0, ry = 0, rz = 0) {
+      const m = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 20, 120), mat);
+      m.position.set(x, y, z);
+      m.rotation.set(rx, ry, rz);
+      group.add(m);
+      return m;
+    }
 
-    // arms open
-    addPart(new THREE.CylinderGeometry(0.11, 0.12, 1.0, 18), -0.86, 0.52, 0, 0, 0, Math.PI / 2.35);
-    addPart(new THREE.CylinderGeometry(0.10, 0.10, 1.0, 18), -1.6, 0.7, 0, 0, 0, Math.PI / 2.08);
+    const frontBodyMat = new THREE.MeshStandardMaterial({
+      color: 0x666666,
+      roughness: 0.92,
+      metalness: 0.03,
+      transparent: true,
+      opacity: 1
+    });
 
-    addPart(new THREE.CylinderGeometry(0.11, 0.12, 1.0, 18), 0.86, 0.52, 0, 0, 0, -Math.PI / 2.35);
-    addPart(new THREE.CylinderGeometry(0.10, 0.10, 1.0, 18), 1.6, 0.7, 0, 0, 0, -Math.PI / 2.08);
+    const frontFrameMat = new THREE.MeshBasicMaterial({
+      color: 0x8f8f8f,
+      transparent: true,
+      opacity: 0.52
+    });
 
-    // legs
-    addPart(new THREE.CylinderGeometry(0.14, 0.16, 1.45, 18), -0.24, -1.95, 0, 0.08, 0, 0.06);
-    addPart(new THREE.CylinderGeometry(0.14, 0.16, 1.45, 18), 0.24, -1.95, 0, 0.08, 0, -0.06);
+    const sideBodyMat = new THREE.MeshStandardMaterial({
+      color: 0x606060,
+      roughness: 0.94,
+      metalness: 0.02,
+      transparent: true,
+      opacity: 0
+    });
 
-    // subtle floor shadow
+    const frontGroup = new THREE.Group();
+    const sideGroup = new THREE.Group();
+    pivot.add(frontGroup);
+    pivot.add(sideGroup);
+
+    // ---- Front Vitruvian figure (double limbs + circle + square) ----
+    addCapsule(frontGroup, frontBodyMat, 0.22, 1.45, 0, 0.05, 0);          // torso
+    addSphere(frontGroup, frontBodyMat, 0.25, 0, -0.95, 0);                 // pelvis
+    addCapsule(frontGroup, frontBodyMat, 0.08, 0.20, 0, 0.95, 0);           // neck
+    addSphere(frontGroup, frontBodyMat, 0.30, 0, 1.30, 0);                  // head
+    addCapsule(frontGroup, frontBodyMat, 0.09, 0.62, 0, 0.68, 0, 0, 0, Math.PI/2); // shoulder span
+
+    // Arms pose A (horizontal)
+    addCapsule(frontGroup, frontBodyMat, 0.08, 0.60, -0.60, 0.63, 0, 0, 0,  Math.PI/2);
+    addCapsule(frontGroup, frontBodyMat, 0.07, 0.62, -1.17, 0.63, 0, 0, 0,  Math.PI/2);
+    addCapsule(frontGroup, frontBodyMat, 0.08, 0.60,  0.60, 0.63, 0, 0, 0, -Math.PI/2);
+    addCapsule(frontGroup, frontBodyMat, 0.07, 0.62,  1.17, 0.63, 0, 0, 0, -Math.PI/2);
+
+    // Arms pose B (raised)
+    addCapsule(frontGroup, frontBodyMat, 0.075, 0.60, -0.50, 0.72, 0, 0, 0,  1.05);
+    addCapsule(frontGroup, frontBodyMat, 0.065, 0.62, -0.98, 1.03, 0, 0, 0,  0.78);
+    addCapsule(frontGroup, frontBodyMat, 0.075, 0.60,  0.50, 0.72, 0, 0, 0, -1.05);
+    addCapsule(frontGroup, frontBodyMat, 0.065, 0.62,  0.98, 1.03, 0, 0, 0, -0.78);
+
+    // Legs pose A (straight)
+    addCapsule(frontGroup, frontBodyMat, 0.09, 0.70, -0.18, -1.46, 0, 0.03, 0, 0.03);
+    addCapsule(frontGroup, frontBodyMat, 0.08, 0.72, -0.18, -2.15, 0, 0.01, 0, 0.02);
+    addCapsule(frontGroup, frontBodyMat, 0.09, 0.70,  0.18, -1.46, 0, 0.03, 0, -0.03);
+    addCapsule(frontGroup, frontBodyMat, 0.08, 0.72,  0.18, -2.15, 0, 0.01, 0, -0.02);
+
+    // Legs pose B (spread)
+    addCapsule(frontGroup, frontBodyMat, 0.085, 0.72, -0.34, -1.38, 0, 0.03, 0, 0.38);
+    addCapsule(frontGroup, frontBodyMat, 0.075, 0.72, -0.58, -2.03, 0, 0.02, 0, 0.25);
+    addCapsule(frontGroup, frontBodyMat, 0.085, 0.72,  0.34, -1.38, 0, 0.03, 0, -0.38);
+    addCapsule(frontGroup, frontBodyMat, 0.075, 0.72,  0.58, -2.03, 0, 0.02, 0, -0.25);
+
+    // hands/feet hints
+    addSphere(frontGroup, frontBodyMat, 0.07, -1.49, 0.63, 0);
+    addSphere(frontGroup, frontBodyMat, 0.07,  1.49, 0.63, 0);
+    addSphere(frontGroup, frontBodyMat, 0.07, -1.22, 1.23, 0);
+    addSphere(frontGroup, frontBodyMat, 0.07,  1.22, 1.23, 0);
+
+    // Vitruvian circle + square
+    addTorus(frontGroup, frontFrameMat, 2.28, 0.013, 0, -0.37, 0, Math.PI / 2, 0, 0);
+
+    const squareGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(3.62, 4.45));
+    const square = new THREE.LineSegments(squareGeo, new THREE.LineBasicMaterial({
+      color: 0x8f8f8f,
+      transparent: true,
+      opacity: 0.52
+    }));
+    square.position.set(0, -0.37, 0);
+    frontGroup.add(square);
+
+    // ---- Side profile human ----
+    addCapsule(sideGroup, sideBodyMat, 0.23, 1.52, 0.02, 0.06, 0);
+    addSphere(sideGroup, sideBodyMat, 0.26, 0.02, -0.95, 0);
+    addCapsule(sideGroup, sideBodyMat, 0.08, 0.20, 0.03, 0.95, 0);
+    addSphere(sideGroup, sideBodyMat, 0.29, 0.04, 1.30, 0);
+    addSphere(sideGroup, sideBodyMat, 0.06, 0.29, 1.24, 0); // nose hint
+
+    // one visible arm pair in profile
+    addCapsule(sideGroup, sideBodyMat, 0.085, 0.64, 0.22, 0.62, 0.06, 0, 0, -0.34);
+    addCapsule(sideGroup, sideBodyMat, 0.075, 0.64, 0.44, 0.27, 0.12, 0, 0, -0.12);
+
+    addCapsule(sideGroup, sideBodyMat, 0.082, 0.60, -0.07, 0.58, -0.08, 0, 0, -0.22);
+    addCapsule(sideGroup, sideBodyMat, 0.072, 0.60, 0.06, 0.22, -0.14, 0, 0, 0.03);
+
+    // legs profile
+    addCapsule(sideGroup, sideBodyMat, 0.095, 0.75, 0.05, -1.42, 0.08, 0.07, 0, -0.06);
+    addCapsule(sideGroup, sideBodyMat, 0.082, 0.74, 0.12, -2.06, 0.16, 0.03, 0, -0.02);
+
+    addCapsule(sideGroup, sideBodyMat, 0.09, 0.72, -0.03, -1.42, -0.08, 0.06, 0, 0.05);
+    addCapsule(sideGroup, sideBodyMat, 0.078, 0.72, -0.08, -2.05, -0.14, 0.03, 0, 0.02);
+
+    // subtle ground shadow
     const shadow = new THREE.Mesh(
-      new THREE.CircleGeometry(1.95, 48),
-      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.08 })
+      new THREE.CircleGeometry(1.8, 48),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.09 })
     );
     shadow.rotation.x = -Math.PI / 2;
-    shadow.position.y = -2.75;
-    human.add(shadow);
+    shadow.position.y = -2.82;
+    pivot.add(shadow);
 
-    human.scale.set(1.05, 1.05, 1.05);
+    pivot.scale.set(1.06, 1.06, 1.06);
+    pivot.position.set(0, -0.08, 0);
+
+    function setOpacity(mat, v) {
+      mat.opacity = Math.max(0, Math.min(1, v));
+      mat.transparent = mat.opacity < 0.999;
+      mat.needsUpdate = true;
+    }
 
     function scrollProgress() {
       const max = document.documentElement.scrollHeight - window.innerHeight;
@@ -583,23 +698,45 @@
         const depth = parseFloat(el.getAttribute("data-sync") || "1");
         const r = el.getBoundingClientRect();
         const center = r.top + r.height / 2;
-        const local = (window.innerHeight * 0.5 - center) / window.innerHeight; // -1..1
-        const y = local * (26 * depth) + Math.sin(t * Math.PI * 3.2) * (2.2 * depth);
-        const x = Math.sin(t * Math.PI * 2.4) * (1.4 * depth);
+        const local = (window.innerHeight * 0.5 - center) / window.innerHeight;
+        const y = local * (24 * depth) + Math.sin(t * Math.PI * 3.2) * (1.6 * depth);
+        const x = Math.sin(t * Math.PI * 2.3) * (1.1 * depth);
         el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       });
     }
+
+    // Section-based view states: front -> transition -> side
+    const sectionStates = [
+      { yaw: 0.00, blend: 0.00 },             // services (front)
+      { yaw: Math.PI * 0.26, blend: 0.35 },   // process (turning)
+      { yaw: Math.PI * 0.52, blend: 1.00 },   // impact (side)
+      { yaw: Math.PI * 0.62, blend: 1.00 }    // contact (side)
+    ];
+
+    let currentYaw = 0;
+    let currentBlend = 0;
 
     function animate() {
       requestAnimationFrame(animate);
 
       const t = scrollProgress();
+      const idx = getActivePanelIndex();
+      const state = sectionStates[idx] || sectionStates[0];
 
-      // rotate + slight drift tied to scroll
-      human.rotation.y = t * Math.PI * 4.2;
-      human.rotation.x = Math.sin(t * Math.PI * 2.0) * 0.045;
-      human.position.y = -0.05 + Math.sin(t * Math.PI * 3.0) * 0.08;
-      human.position.x = Math.sin(t * Math.PI * 2.0) * 0.26;
+      currentYaw += (state.yaw - currentYaw) * 0.07;
+      currentBlend += (state.blend - currentBlend) * 0.07;
+
+      // front/side crossfade
+      setOpacity(frontBodyMat, 1 - currentBlend);
+      square.material.opacity = 0.52 * (1 - currentBlend);
+      frontFrameMat.opacity = 0.52 * (1 - currentBlend);
+      setOpacity(sideBodyMat, currentBlend);
+
+      // movement
+      pivot.rotation.y = currentYaw + Math.sin(t * Math.PI * 2.1) * 0.06;
+      pivot.rotation.x = Math.sin(t * Math.PI * 1.7) * 0.03;
+      pivot.position.x = Math.sin(t * Math.PI * 2.0) * 0.22;
+      pivot.position.y = -0.08 + Math.sin(t * Math.PI * 2.8) * 0.06;
 
       syncTextWithFigure(t);
       renderer.render(scene, camera);
