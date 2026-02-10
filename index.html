@@ -305,6 +305,7 @@
   <script>
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
     const TAU = Math.PI * 2;
+    const SCROLL_START_PX = 28; // hard 0-line: animation starts only after this
 
     const cores = navigator.hardwareConcurrency || 4;
     const mobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -373,26 +374,37 @@
       c.height = size;
       const g = c.getContext("2d");
       g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = "high";
 
       const r = size * 0.5;
       const grad = g.createRadialGradient(r, r, 0, r, r, r);
-      grad.addColorStop(0.0, rgbaCore);
-      grad.addColorStop(0.45, rgbaMid);
-      grad.addColorStop(1.0, rgbaEdge);
+      grad.addColorStop(0.00, rgbaCore);
+      grad.addColorStop(0.26, rgbaCore);
+      grad.addColorStop(0.62, rgbaMid);
+      grad.addColorStop(1.00, rgbaEdge);
 
       g.fillStyle = grad;
       g.beginPath();
       g.arc(r, r, r, 0, TAU);
       g.fill();
+
+      // subtle edge for extra definition
+      g.globalAlpha = 0.22;
+      g.lineWidth = Math.max(1, size * 0.015);
+      g.strokeStyle = "rgba(255,255,255,0.18)";
+      g.beginPath();
+      g.arc(r, r, r - g.lineWidth * 0.7, 0, TAU);
+      g.stroke();
+
       return c;
     }
 
     function buildSprites() {
-      // Larger sprites = smoother anti-aliased particles
-      mainSprite = makeParticleSprite(128, "rgba(8,8,8,1)", "rgba(10,10,10,0.82)");
-      coreSprite = makeParticleSprite(74, "rgba(0,0,0,1)", "rgba(0,0,0,0.70)");
-      ambientSprite = makeParticleSprite(86, "rgba(18,18,18,0.72)", "rgba(18,18,18,0.18)");
-      glowSprite = makeParticleSprite(152, "rgba(255,255,255,0.22)", "rgba(255,255,255,0.06)");
+      // bigger source textures = less pixelation
+      mainSprite = makeParticleSprite(196, "rgba(8,8,8,1)", "rgba(10,10,10,0.90)");
+      coreSprite = makeParticleSprite(112, "rgba(0,0,0,1)", "rgba(0,0,0,0.76)");
+      ambientSprite = makeParticleSprite(132, "rgba(16,16,16,0.78)", "rgba(16,16,16,0.22)");
+      glowSprite = makeParticleSprite(220, "rgba(255,255,255,0.22)", "rgba(255,255,255,0.05)");
     }
 
     function setupSizes() {
@@ -403,44 +415,57 @@
       const isTablet = W >= 768 && W < 1100;
 
       if (lowPower) {
-        DPR = Math.min(window.devicePixelRatio || 1, isPhone ? 1.35 : 1.5);
+        DPR = Math.min(window.devicePixelRatio || 1, isPhone ? 1.60 : 1.75);
       } else {
-        DPR = Math.min(window.devicePixelRatio || 1, isPhone ? 1.75 : 2.0);
+        DPR = Math.min(window.devicePixelRatio || 1, isPhone ? 2.00 : 2.20);
       }
 
       canvas.width = Math.floor(W * DPR);
       canvas.height = Math.floor(H * DPR);
       canvas.style.width = W + "px";
       canvas.style.height = H + "px";
+
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
 
-      shapeCanvas.width = Math.max(860, Math.floor(W * 1.08));
-      shapeCanvas.height = Math.max(620, Math.floor(H * 1.08));
+      shapeCanvas.width = Math.max(920, Math.floor(W * 1.12));
+      shapeCanvas.height = Math.max(680, Math.floor(H * 1.12));
 
       let density, minN, maxN;
       if (isPhone) {
-        density = 95;      // intentionally denser on phones
-        minN = 3600;
-        maxN = 6600;
+        density = 92;
+        minN = 3900;
+        maxN = 7000;
       } else if (isTablet) {
-        density = 155;
-        minN = 3800;
-        maxN = 7400;
+        density = 145;
+        minN = 4200;
+        maxN = 8200;
       } else {
-        density = 235;
-        minN = 5000;
-        maxN = 10500;
+        density = 220;
+        minN = 5600;
+        maxN = 11000;
       }
 
       let base = Math.floor((W * H) / density);
-      if (lowPower && isPhone) base = Math.floor(base * 0.86);
+      if (lowPower && isPhone) base = Math.floor(base * 0.84);
       if (lowPower && !isPhone) base = Math.floor(base * 0.90);
 
       N = clamp(base, minN, maxN);
-      NLost = clamp(Math.floor(N * 0.24), 450, 1800);
+      NLost = clamp(Math.floor(N * 0.26), 520, 2200);
 
       maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    }
+
+    function randomOutsideCircle(cx, cy, r) {
+      let x = 0, y = 0, tries = 0;
+      do {
+        x = Math.random() * W;
+        y = Math.random() * H;
+        tries++;
+        if (tries > 50) break;
+      } while (Math.hypot(x - cx, y - cy) < r);
+      return { x, y };
     }
 
     function allocParticles() {
@@ -460,22 +485,24 @@
 
       const cx = W * 0.5;
       const cy = H * 0.52;
+      const exclusionInit = Math.min(W, H) * 0.42;
 
       for (let i = 0; i < N; i++) {
-        pX[i] = cx + (Math.random() - 0.5) * 180;
-        pY[i] = cy + (Math.random() - 0.5) * 180;
-        pR[i] = 0.72 + Math.random() * 1.22;
+        pX[i] = cx + (Math.random() - 0.5) * 190;
+        pY[i] = cy + (Math.random() - 0.5) * 190;
+        pR[i] = 1.06 + Math.random() * 1.74; // bigger shaped particles
         pA[i] = 0.70 + Math.random() * 0.27;
         pSeed[i] = Math.random() * 10000;
       }
 
       for (let i = 0; i < NLost; i++) {
-        lX[i] = Math.random() * W;
-        lY[i] = Math.random() * H;
-        lVX[i] = (Math.random() - 0.5) * 0.08;
-        lVY[i] = (Math.random() - 0.5) * 0.08;
-        lR[i] = 0.38 + Math.random() * 0.95;
-        lA[i] = 0.04 + Math.random() * 0.12;
+        const pt = randomOutsideCircle(cx, cy, exclusionInit);
+        lX[i] = pt.x;
+        lY[i] = pt.y;
+        lVX[i] = (Math.random() - 0.5) * 0.10;
+        lVY[i] = (Math.random() - 0.5) * 0.10;
+        lR[i] = 0.68 + Math.random() * 1.55; // bigger lost particles
+        lA[i] = 0.05 + Math.random() * 0.13;
         lSeed[i] = Math.random() * 10000;
       }
     }
@@ -492,7 +519,7 @@
       c.lineCap = "round";
       c.lineJoin = "round";
 
-      // Glass outline
+      // glass
       c.globalAlpha = 1;
       c.lineWidth = s * 0.064;
       c.beginPath();
@@ -509,7 +536,7 @@
 
       c.globalAlpha = 1;
 
-      // Neck and base
+      // neck + base
       c.lineWidth = s * 0.042;
       roundedRectPath(c, cx - s * 0.18, cy + s * 0.55, s * 0.36, s * 0.20, s * 0.08);
       c.stroke();
@@ -530,7 +557,7 @@
         c.stroke();
       }
 
-      // Filament supports
+      // supports
       c.lineWidth = s * 0.022;
       c.beginPath();
       c.moveTo(cx - s * 0.12, cy + s * 0.24);
@@ -539,21 +566,20 @@
       c.lineTo(cx + s * 0.12, cy + s * 0.05);
       c.stroke();
 
-      // Filament coil (explicit tungsten look)
-      c.lineWidth = s * 0.027;
+      // tungsten filament coil
+      c.lineWidth = s * 0.029;
       c.beginPath();
       c.moveTo(cx - s * 0.12, cy + s * 0.05);
       const segments = 9;
       const width = s * 0.24;
       for (let i = 1; i <= segments; i++) {
         const x = cx - s * 0.12 + (width / segments) * i;
-        const y = cy + s * 0.05 + (i % 2 === 0 ? -s * 0.032 : s * 0.032);
+        const y = cy + s * 0.05 + (i % 2 === 0 ? -s * 0.034 : s * 0.034);
         c.lineTo(x, y);
       }
       c.lineTo(cx + s * 0.12, cy + s * 0.05);
       c.stroke();
 
-      // tiny caps
       c.beginPath();
       c.arc(cx - s * 0.12, cy + s * 0.05, s * 0.018, 0, TAU);
       c.arc(cx + s * 0.12, cy + s * 0.05, s * 0.018, 0, TAU);
@@ -692,7 +718,6 @@
           const py = y + (H - h) * 0.5;
           pool.push({ x: px, y: py });
 
-          // bias for sharp boundaries (shape definition)
           if (edge) {
             pool.push({ x: px, y: py });
             pool.push({ x: px, y: py });
@@ -730,7 +755,7 @@
       return out;
     }
 
-    // Explosion keeps filament region readable
+    // Explosion keeps filament region readable in exploded stage
     function explodeFromBulb(src) {
       const out = new Float32Array(src.length);
       const cx = W * 0.5;
@@ -754,7 +779,7 @@
         const inFilamentBand =
           y > cy - s * 0.01 &&
           y < cy + s * 0.12 &&
-          Math.abs(x - cx) < s * 0.18;
+          Math.abs(x - cx) < s * 0.19;
 
         const inSupportBand =
           y > cy + s * 0.02 &&
@@ -765,16 +790,14 @@
         const inGlassTop = y < cy + s * 0.08;
 
         let push;
-
         if (inFilamentBand || inSupportBand) {
-          // keep tungsten structure visible in exploded phase
-          push = s * (0.012 + rnd1 * 0.020);
+          push = s * (0.012 + rnd1 * 0.022);  // preserve filament silhouette
         } else if (inBase) {
           push = s * (0.010 + rnd1 * 0.018);
         } else if (inGlassTop) {
-          push = s * (0.11 + rnd1 * 0.15);
+          push = s * (0.12 + rnd1 * 0.16);
         } else {
-          push = s * (0.048 + rnd1 * 0.080);
+          push = s * (0.050 + rnd1 * 0.082);
         }
 
         let ox = x + nx * push + (rnd2 - 0.5) * s * 0.013;
@@ -782,7 +805,6 @@
 
         if (inGlassTop) oy -= s * (0.020 + rnd2 * 0.055);
 
-        // subtle outward "spark" shards on top only
         if (inGlassTop && rnd1 > 0.80) {
           ox += nx * s * 0.050;
           oy += ny * s * 0.032 - s * 0.020;
@@ -804,15 +826,13 @@
     }
 
     function getMorphState(progress) {
-      // STRICTLY consistent with scroll distance:
-      // 0..1 maps linearly across:
-      // bulb -> exploded -> question -> graph
-      const stageCount = shapes.length - 1; // 3
+      // strict linear mapping with scroll distance: no loops/restarts
+      const stageCount = shapes.length - 1; // 3 transitions
       const pos = clamp(progress, 0, 1) * stageCount;
       const from = Math.floor(pos);
       const to = Math.min(from + 1, stageCount);
-      const local = smoothstep(pos - from);
-      return { from, to, mix: local };
+      const mix = smoothstep(pos - from);
+      return { from, to, mix };
     }
 
     function rebuildAll() {
@@ -821,6 +841,7 @@
       allocParticles();
       buildShapes();
       maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      prevProgress = 0;
     }
 
     window.addEventListener("pointermove", (e) => {
@@ -854,90 +875,111 @@
       }
 
       const dtMs = ts - lastTs;
-      const dt = clamp(dtMs / 16.6667, 0.7, 1.8);
+      const dt = clamp(dtMs / 16.6667, 0.7, 1.9);
       const dtSec = Math.max(dtMs / 1000, 0.001);
       lastTs = ts;
 
       ctx.clearRect(0, 0, W, H);
 
-      const progress = clamp(window.scrollY / maxScroll, 0, 1);
+      // robust top dead-zone line to remove top glitch
+      const rawScrollY = Math.max(
+        0,
+        window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+      );
+
+      let progress = 0;
+      let lockedTop = false;
+
+      if (rawScrollY <= SCROLL_START_PX) {
+        progress = 0;
+        lockedTop = true;
+      } else {
+        const usable = Math.max(1, maxScroll - SCROLL_START_PX);
+        progress = clamp((rawScrollY - SCROLL_START_PX) / usable, 0, 1);
+      }
+
+      let scrollVel = 0;
+      if (lockedTop) {
+        prevProgress = 0;
+      } else {
+        scrollVel = (progress - prevProgress) / dtSec;
+        scrollVel = clamp(scrollVel, -2.4, 2.4);
+        prevProgress = progress;
+      }
+
       const { from, to, mix } = getMorphState(progress);
-
-      // scroll velocity for reactive motion
-      let scrollVel = (progress - prevProgress) / dtSec;
-      scrollVel = clamp(scrollVel, -2.2, 2.2);
-      prevProgress = progress;
-
       const A = shapes[from];
       const B = shapes[to];
 
-      const centerX = W * 0.5 + pointerX * 2.0;
-      const centerY = H * 0.52 + pointerY * 1.6;
+      const centerX = W * 0.5 + pointerX * 1.8;
+      const centerY = H * 0.52 + pointerY * 1.4;
 
-      // More visible per-particle motion amplitude
-      const motionBoost = 1 + Math.min(Math.abs(scrollVel) * 0.55, 0.9);
-      const microAmpBase = 0.12 * motionBoost;
+      const minDim = Math.min(W, H);
+      const baseRadii = [minDim * 0.30, minDim * 0.44, minDim * 0.35, minDim * 0.48];
+      const targetR = baseRadii[from] + (baseRadii[to] - baseRadii[from]) * mix;
 
-      // ---- Lost particles (away from shapes, reactive to scroll)
-      const exclusion = Math.min(W, H) * 0.28;
+      // Lost particles far away from shape
+      const exclusion = targetR + minDim * 0.24;
+
       for (let i = 0; i < NLost; i++) {
         const s = lSeed[i];
-        const phase = ts * 0.00022 + s * 6.3;
-        const scrollPhase = progress * TAU * 1.7;
+        const phase = ts * 0.00024 + s * 6.3;
+        const scrollPhase = progress * TAU * 1.9;
 
-        // drift reacts to scroll phase and speed
-        lVX[i] += Math.cos(phase + scrollPhase) * 0.0019;
-        lVY[i] += Math.sin(phase * 1.06 - scrollPhase) * 0.0019;
+        lVX[i] += Math.cos(phase + scrollPhase) * 0.0022;
+        lVY[i] += Math.sin(phase * 1.05 - scrollPhase) * 0.0022;
 
-        lVX[i] += scrollVel * (hash01(i * 0.77) - 0.5) * 0.0035;
-        lVY[i] -= scrollVel * (hash01(i * 1.41) - 0.5) * 0.0015;
+        lVX[i] += scrollVel * (hash01(i * 0.77) - 0.5) * 0.0040;
+        lVY[i] -= scrollVel * (hash01(i * 1.41) - 0.5) * 0.0019;
 
-        // keep them generally away from central shape
         const dx = lX[i] - centerX;
         const dy = lY[i] - centerY;
         const d = Math.hypot(dx, dy) + 0.0001;
         if (d < exclusion) {
-          const push = (exclusion - d) * 0.0009;
-          lVX[i] += (dx / d) * push;
-          lVY[i] += (dy / d) * push;
+          const force = (exclusion - d) * 0.0038;
+          lVX[i] += (dx / d) * force;
+          lVY[i] += (dy / d) * force;
         }
 
-        lVX[i] *= 0.988;
-        lVY[i] *= 0.988;
+        lVX[i] *= 0.987;
+        lVY[i] *= 0.987;
 
-        lX[i] += lVX[i] * dt * 14.0;
-        lY[i] += lVY[i] * dt * 14.0;
+        lX[i] += lVX[i] * dt * 14.5;
+        lY[i] += lVY[i] * dt * 14.5;
 
-        if (lX[i] < -20) lX[i] = W + 20;
-        if (lX[i] > W + 20) lX[i] = -20;
-        if (lY[i] < -20) lY[i] = H + 20;
-        if (lY[i] > H + 20) lY[i] = -20;
+        if (lX[i] < -28) lX[i] = W + 28;
+        if (lX[i] > W + 28) lX[i] = -28;
+        if (lY[i] < -28) lY[i] = H + 28;
+        if (lY[i] > H + 28) lY[i] = -28;
 
-        const aPulse = 0.90 + 0.10 * Math.sin(ts * 0.0009 + s * 4.0 + progress * 6.0);
-        drawSprite(ambientSprite, lX[i], lY[i], lR[i], lA[i] * aPulse);
+        const pulse = 0.88 + 0.12 * Math.sin(ts * 0.001 + s * 4.1 + progress * 6.0);
+        drawSprite(ambientSprite, lX[i], lY[i], lR[i], lA[i] * pulse);
       }
 
-      // ---- Main shaped particles
-      const parX = pointerX * 1.5;
-      const parY = pointerY * 1.2;
+      const parX = pointerX * 1.2;
+      const parY = pointerY * 1.0;
+
+      // Higher individual amplitude
+      const motionBoost = 1 + Math.min(Math.abs(scrollVel) * 0.58, 1.0);
+      const microAmpBase = 0.26 * motionBoost;
 
       for (let i = 0; i < N; i++) {
         const idx = i * 2;
         const seed = pSeed[i];
 
-        // STRICT scroll-controlled morph, no spring/no bounce
+        // direct shape position: no spring, no bounce
         const tx = A[idx] + (B[idx] - A[idx]) * mix + parX;
         const ty = A[idx + 1] + (B[idx + 1] - A[idx + 1]) * mix + parY;
 
-        // always-moving atomic jitter (now more visible)
-        const amp = microAmpBase * (0.78 + hash01(seed * 1.3) * 0.55);
+        const amp = microAmpBase * (0.80 + hash01(seed * 1.3) * 0.60);
+
         const jx =
-          Math.sin(ts * (0.00062 + hash01(seed * 0.91) * 0.00030) + seed * 6.1) * amp +
-          Math.cos(ts * (0.00035 + hash01(seed * 1.41) * 0.00022) + seed * 4.7) * amp * 0.52;
+          Math.sin(ts * (0.00064 + hash01(seed * 0.91) * 0.00030) + seed * 6.1) * amp +
+          Math.cos(ts * (0.00037 + hash01(seed * 1.41) * 0.00022) + seed * 4.7) * amp * 0.56;
 
         const jy =
-          Math.cos(ts * (0.00058 + hash01(seed * 1.73) * 0.00028) + seed * 5.4) * amp +
-          Math.sin(ts * (0.00033 + hash01(seed * 2.07) * 0.00019) + seed * 3.6) * amp * 0.52;
+          Math.cos(ts * (0.00060 + hash01(seed * 1.73) * 0.00028) + seed * 5.4) * amp +
+          Math.sin(ts * (0.00035 + hash01(seed * 2.07) * 0.00019) + seed * 3.6) * amp * 0.56;
 
         pX[i] = tx + jx;
         pY[i] = ty + jy;
@@ -947,14 +989,14 @@
 
         drawSprite(mainSprite, pX[i], pY[i], r, a);
         if ((i & 2) === 0) {
-          drawSprite(coreSprite, pX[i], pY[i], r * 0.61, a * 0.34);
+          drawSprite(coreSprite, pX[i], pY[i], r * 0.63, a * 0.36);
         }
       }
 
-      // Subtle glow pass
+      // subtle glow pass
       ctx.globalCompositeOperation = "lighter";
-      for (let i = 0; i < N; i += 18) {
-        drawSprite(glowSprite, pX[i], pY[i], pR[i] * 2.0, 0.018);
+      for (let i = 0; i < N; i += 16) {
+        drawSprite(glowSprite, pX[i], pY[i], pR[i] * 2.05, 0.020);
       }
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 1;
