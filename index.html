@@ -59,6 +59,7 @@
       width: 100%;
       height: 100%;
       display: block;
+      image-rendering: auto;
     }
 
     .readability-veil {
@@ -309,8 +310,7 @@
     const mobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Keep mobile-specific optimization but still rich visuals
-    const lowPower = reducedMotion || (mobileUA && cores <= 6);
+    const lowPower = reducedMotion || (mobileUA && cores <= 4);
 
     document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -318,12 +318,9 @@
       return t * t * (3 - 2 * t);
     }
 
-    // Reduced bounce to ~10-20% feel
+    // NO bounce overshoot, strictly monotonic easing
     function morphEase(t) {
-      const s = easeInOut(clamp(t, 0, 1));
-      const envelope = Math.sin(Math.PI * s);
-      const wobble = Math.sin((s * 2.1 - 0.08) * TAU) * 0.003 * envelope;
-      return clamp(s + wobble, 0, 1);
+      return easeInOut(clamp(t, 0, 1));
     }
 
     function hash01(n) {
@@ -341,7 +338,7 @@
     let N = 0, Nambient = 0;
     let maxScroll = 1;
 
-    let pX, pY, pVX, pVY, pR, pA, pSeed;
+    let pX, pY, pR, pA, pSeed;
     let aX, aY, aVX, aVY, aR, aA, aSeed;
 
     let shapes = [];
@@ -379,7 +376,7 @@
 
       const grad = g.createRadialGradient(r, r, 0, r, r, r);
       grad.addColorStop(0.0, rgbaCore);
-      grad.addColorStop(0.45, rgbaMid);
+      grad.addColorStop(0.42, rgbaMid);
       grad.addColorStop(1.0, rgbaEdge);
 
       g.fillStyle = grad;
@@ -391,10 +388,11 @@
     }
 
     function buildSprites() {
-      mainSprite = makeParticleSprite(56, "rgba(8,8,8,1)", "rgba(10,10,10,0.78)");
-      coreSprite = makeParticleSprite(30, "rgba(0,0,0,1)", "rgba(0,0,0,0.70)");
-      ambientSprite = makeParticleSprite(38, "rgba(20,20,20,0.70)", "rgba(20,20,20,0.20)");
-      glowSprite = makeParticleSprite(64, "rgba(255,255,255,0.25)", "rgba(255,255,255,0.08)");
+      // Larger source sprites = smoother particles
+      mainSprite = makeParticleSprite(128, "rgba(8,8,8,1)", "rgba(10,10,10,0.82)");
+      coreSprite = makeParticleSprite(72, "rgba(0,0,0,1)", "rgba(0,0,0,0.72)");
+      ambientSprite = makeParticleSprite(84, "rgba(20,20,20,0.72)", "rgba(20,20,20,0.20)");
+      glowSprite = makeParticleSprite(148, "rgba(255,255,255,0.22)", "rgba(255,255,255,0.07)");
     }
 
     function setupSizes() {
@@ -404,8 +402,11 @@
       const isSmall = W < 768;
       const isTablet = W >= 768 && W < 1100;
 
-      // Slightly higher DPR for smoother particles
-      DPR = Math.min(window.devicePixelRatio || 1, lowPower ? 1.3 : 1.8);
+      if (lowPower) {
+        DPR = Math.min(window.devicePixelRatio || 1, isSmall ? 1.35 : 1.5);
+      } else {
+        DPR = Math.min(window.devicePixelRatio || 1, isSmall ? 1.7 : 2.0);
+      }
 
       canvas.width = Math.floor(W * DPR);
       canvas.height = Math.floor(H * DPR);
@@ -417,31 +418,30 @@
       shapeCanvas.width = Math.max(760, Math.floor(W * 1.02));
       shapeCanvas.height = Math.max(560, Math.floor(H * 1.02));
 
-      // More particles on small screens than before
       let density, minN, maxN;
       if (isSmall) {
-        density = 105;
-        minN = 3000;
-        maxN = 5600;
-      } else if (isTablet) {
-        density = 170;
+        density = 105;       // higher particle density on phone
         minN = 3200;
-        maxN = 6200;
+        maxN = 5800;
+      } else if (isTablet) {
+        density = 165;
+        minN = 3400;
+        maxN = 6400;
       } else {
-        density = 260;
-        minN = 4300;
-        maxN = 9200;
+        density = 250;
+        minN = 4400;
+        maxN = 9400;
       }
 
       let base = Math.floor((W * H) / density);
 
-      if (lowPower && isSmall) base = Math.floor(base * 0.94);
-      if (lowPower && !isSmall) base = Math.floor(base * 0.90);
+      if (lowPower && isSmall) base = Math.floor(base * 0.90);
+      if (lowPower && !isSmall) base = Math.floor(base * 0.88);
 
       N = clamp(base, minN, maxN);
 
-      // More non-shape hovering particles
-      Nambient = clamp(Math.floor(N * 0.17), 300, 1200);
+      // More free-floating particles
+      Nambient = clamp(Math.floor(N * 0.18), 340, 1400);
 
       maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
     }
@@ -449,8 +449,6 @@
     function allocParticles() {
       pX = new Float32Array(N);
       pY = new Float32Array(N);
-      pVX = new Float32Array(N);
-      pVY = new Float32Array(N);
       pR = new Float32Array(N);
       pA = new Float32Array(N);
       pSeed = new Float32Array(N);
@@ -469,9 +467,7 @@
       for (let i = 0; i < N; i++) {
         pX[i] = cx + (Math.random() - 0.5) * 160;
         pY[i] = cy + (Math.random() - 0.5) * 160;
-        pVX[i] = (Math.random() - 0.5) * 0.15;
-        pVY[i] = (Math.random() - 0.5) * 0.15;
-        pR[i] = 0.72 + Math.random() * 1.22;
+        pR[i] = 0.74 + Math.random() * 1.20;
         pA[i] = 0.72 + Math.random() * 0.24;
         pSeed[i] = Math.random() * 10000;
       }
@@ -499,7 +495,6 @@
       c.lineCap = "round";
       c.lineJoin = "round";
 
-      // Bulb glass outline
       c.globalAlpha = 1;
       c.lineWidth = s * 0.064;
       c.beginPath();
@@ -514,17 +509,14 @@
       c.globalAlpha = 0.18;
       c.fill();
 
-      // Neck connector (rounded)
       c.globalAlpha = 1;
       c.lineWidth = s * 0.044;
       roundedRectPath(c, cx - s * 0.18, cy + s * 0.55, s * 0.36, s * 0.20, s * 0.08);
       c.stroke();
 
-      // Screw base (more rounded)
       roundedRectPath(c, cx - s * 0.28, cy + s * 0.74, s * 0.56, s * 0.32, s * 0.12);
       c.stroke();
 
-      // Curved thread lines (rounded look)
       c.lineWidth = s * 0.018;
       for (let i = 0; i < 4; i++) {
         const yy = cy + s * (0.79 + i * 0.072);
@@ -547,7 +539,7 @@
       c.lineTo(cx + s * 0.12, cy + s * 0.05);
       c.stroke();
 
-      // Filament coil (clearly visible)
+      // Filament coil, clearly visible
       c.lineWidth = s * 0.026;
       c.beginPath();
       c.moveTo(cx - s * 0.12, cy + s * 0.05);
@@ -733,7 +725,6 @@
       return out;
     }
 
-    // Coherent bulb explosion: push points outward from center
     function explodeFromBulb(src) {
       const out = new Float32Array(src.length);
       const cx = W * 0.5;
@@ -759,9 +750,9 @@
 
         let push;
         if (isBase) {
-          push = m * (0.010 + rnd1 * 0.018); // base mostly stable
+          push = m * (0.010 + rnd1 * 0.018);
         } else if (isTop) {
-          push = m * (0.10 + rnd1 * 0.15);   // glass shards explode more
+          push = m * (0.10 + rnd1 * 0.15);
         } else {
           push = m * (0.045 + rnd1 * 0.075);
         }
@@ -788,11 +779,9 @@
       const exploded = explodeFromBulb(bulb);
       const question = sampleShape(drawQuestion, N);
       const graph = sampleShape(drawGraph, N);
-
       shapes = [bulb, exploded, question, graph];
     }
 
-    // Quick transitions, long holds
     const timeline = [
       { type: "hold", shape: 0, len: 0.245 },
       { type: "mix", from: 0, to: 1, len: 0.035 },
@@ -839,8 +828,8 @@
 
     function frameCap() {
       if (lowPower && W < 768) return 34;
-      if (lowPower) return 38;
-      return 55;
+      if (lowPower) return 40;
+      return 60;
     }
 
     function drawSprite(sprite, x, y, r, alpha) {
@@ -864,20 +853,19 @@
       const scrollT = clamp(window.scrollY / maxScroll, 0, 1);
       const { from, to, f } = getMorphState(scrollT);
 
-      const centerX = W * 0.5 + pointerX * 4.5;
-      const centerY = H * 0.52 + pointerY * 3.8;
+      const centerX = W * 0.5 + pointerX * 3.0;
+      const centerY = H * 0.52 + pointerY * 2.5;
 
-      // Hovering non-shape particles react to active formation
       const minDim = Math.min(W, H);
       const baseRadii = [minDim * 0.30, minDim * 0.43, minDim * 0.34, minDim * 0.47];
       const targetR = baseRadii[from] + (baseRadii[to] - baseRadii[from]) * f;
 
+      // Ambient particles: always moving
       for (let i = 0; i < Nambient; i++) {
         const s = aSeed[i];
         const orbit = ts * (0.00008 + (s % 1) * 0.00008) + s * 6.283;
         const ring = targetR * (0.72 + ((s * 7.1) % 1) * 0.58);
 
-        // Always moving like tiny atoms
         const tx = centerX + Math.cos(orbit) * ring + Math.sin(ts * 0.00042 + s * 2.1) * 6.0;
         const ty = centerY + Math.sin(orbit * 1.03) * ring * 0.86 + Math.cos(ts * 0.00037 + s * 1.9) * 6.0;
 
@@ -901,49 +889,46 @@
       const A = shapes[from];
       const B = shapes[to];
 
-      const parX = pointerX * 8.0;
-      const parY = pointerY * 6.0;
+      // Very light parallax so it does not induce oscillation feel
+      const parX = pointerX * 2.2;
+      const parY = pointerY * 1.8;
 
-      // Lower bounce, stable convergence
-      const spring = W < 768 ? 0.17 : 0.16;
-      const drag = W < 768 ? 0.855 : 0.848;
-      const microAmp = W < 768 ? 0.075 : 0.090;
+      // Stable no-overshoot tracking
+      const follow = W < 768 ? 0.20 : 0.18;
 
       for (let i = 0; i < N; i++) {
         const idx = i * 2;
+        const seed = pSeed[i];
 
-        const tx = A[idx] + (B[idx] - A[idx]) * f + parX * 0.07;
-        const ty = A[idx + 1] + (B[idx + 1] - A[idx + 1]) * f + parY * 0.07;
+        const tx = A[idx] + (B[idx] - A[idx]) * f + parX;
+        const ty = A[idx + 1] + (B[idx + 1] - A[idx + 1]) * f + parY;
 
-        // Constant tiny motion, always alive
+        // Tiny perpetual atomic motion
         const microX =
-          Math.sin(ts * 0.00060 + pSeed[i] * 1.3) * microAmp +
-          Math.cos(ts * 0.00027 + pSeed[i] * 0.7) * microAmp * 0.45;
+          Math.sin(ts * 0.00058 + seed * 1.31) * 0.055 +
+          Math.cos(ts * 0.00027 + seed * 0.71) * 0.028;
         const microY =
-          Math.cos(ts * 0.00057 + pSeed[i] * 1.1) * microAmp +
-          Math.sin(ts * 0.00029 + pSeed[i] * 0.9) * microAmp * 0.45;
+          Math.cos(ts * 0.00055 + seed * 1.13) * 0.055 +
+          Math.sin(ts * 0.00029 + seed * 0.93) * 0.028;
 
-        pVX[i] = (pVX[i] + (tx + microX - pX[i]) * spring * dt) * drag;
-        pVY[i] = (pVY[i] + (ty + microY - pY[i]) * spring * dt) * drag;
-
-        pX[i] += pVX[i] * dt;
-        pY[i] += pVY[i] * dt;
+        // NO velocity integration -> no bounce
+        pX[i] += (tx + microX - pX[i]) * follow * dt;
+        pY[i] += (ty + microY - pY[i]) * follow * dt;
 
         const r = pR[i];
         const a = pA[i];
 
         drawSprite(mainSprite, pX[i], pY[i], r, a);
 
-        // Extra dark core for contrast
         if ((i & 2) === 0) {
-          drawSprite(coreSprite, pX[i], pY[i], r * 0.62, a * 0.35);
+          drawSprite(coreSprite, pX[i], pY[i], r * 0.60, a * 0.34);
         }
       }
 
-      // Subtle glow pass
+      // subtle glow pass
       ctx.globalCompositeOperation = "lighter";
-      for (let i = 0; i < N; i += 14) {
-        drawSprite(glowSprite, pX[i], pY[i], pR[i] * 1.95, 0.018);
+      for (let i = 0; i < N; i += 16) {
+        drawSprite(glowSprite, pX[i], pY[i], pR[i] * 1.9, 0.016);
       }
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 1;
