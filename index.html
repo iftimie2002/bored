@@ -39,254 +39,581 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 
+  <!-- Three.js for background silhouette -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js"></script>
+
   <style>
     :root {
       --nav-h: 96px;
-      --stack-offset: 14px;
+      --stack-top-gap: 12px;
+    }
+
+    html, body {
+      overflow-x: hidden;
     }
 
     body {
       font-family: "Manrope", sans-serif;
-    }
-
-    /* Stacked flow */
-    .stack-flow {
-      position: relative;
-    }
-
-    .stack-section {
-      position: sticky;
-      top: calc(var(--nav-h) + var(--stack-offset));
-      min-height: calc(100vh - var(--nav-h) - var(--stack-offset) - 8px);
-      display: flex;
-      align-items: stretch;
-    }
-
-    .stack-surface {
-      width: 100%;
-      border: 1px solid #f1f1f1;
-      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.06);
       background: #fff;
     }
 
-    .stack-surface.accent {
-      background: #f4f4f5;
+    /* Background 3D layer */
+    .bg-3d-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
     }
 
-    .stack-section + .stack-section {
-      margin-top: 8vh;
+    #silhouette-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      opacity: 0.92;
+    }
+
+    .bg-vignette {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255,255,255,0.0) 0%, rgba(255,255,255,0.34) 52%, rgba(255,255,255,0.72) 100%);
+      pointer-events: none;
+    }
+
+    /* Foreground */
+    .site-layer {
+      position: relative;
+      z-index: 20;
+    }
+
+    nav {
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+    }
+
+    /* Stacked parallax flow */
+    .stack-flow {
+      position: relative;
+      padding-bottom: 16vh;
+    }
+
+    .stack-panel {
+      position: sticky;
+      top: calc(var(--nav-h) + var(--stack-top-gap));
+      min-height: calc(100vh - var(--nav-h) - var(--stack-top-gap) - 4px);
+      margin-bottom: 12vh;
+      pointer-events: none;
+    }
+
+    .stack-card {
+      pointer-events: auto;
+      height: calc(100vh - var(--nav-h) - var(--stack-top-gap) - 4px);
+      border: 1px solid #f0f0f0;
+      background: rgba(255,255,255,0.90);
+      backdrop-filter: blur(2px);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.07);
+      transform-origin: center top;
+      transition: transform 140ms linear, box-shadow 160ms linear, opacity 160ms linear;
+      overflow: hidden;
+    }
+
+    .stack-card.accent {
+      background: rgba(244,244,245,0.92);
+    }
+
+    .stack-scroll {
+      height: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: #cfcfcf transparent;
+    }
+
+    .stack-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .stack-scroll::-webkit-scrollbar-thumb {
+      background: #cfcfcf;
+      border-radius: 999px;
+    }
+
+    .stack-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    /* subtle text follow motion */
+    [data-sync] {
+      will-change: transform;
+      transition: transform 80ms linear;
+    }
+
+    @media (max-width: 900px) {
+      :root {
+        --nav-h: 88px;
+        --stack-top-gap: 8px;
+      }
+
+      .stack-panel {
+        margin-bottom: 8vh;
+      }
+
+      .stack-card {
+        height: calc(100vh - var(--nav-h) - var(--stack-top-gap) - 2px);
+      }
     }
 
     @media (max-width: 768px) {
-      :root {
-        --nav-h: 88px;
-        --stack-offset: 10px;
-      }
-
-      .stack-section {
-        min-height: auto;
-      }
-
-      .stack-section + .stack-section {
-        margin-top: 5vh;
+      /* On smaller screens keep stacking but allow more natural height */
+      .stack-card {
+        height: calc(100vh - var(--nav-h) - var(--stack-top-gap));
       }
     }
   </style>
 </head>
 
-<body class="bg-white text-black antialiased">
-  <nav class="fixed w-full z-50 bg-white/95 backdrop-blur-sm">
-    <div class="max-w-screen-xl mx-auto px-6 h-24 flex items-center justify-between">
-      <a class="text-lg font-semibold tracking-tight text-black flex items-center gap-2" href="#">
-        Bored Survey.
-      </a>
-      <div class="hidden md:flex items-center gap-12 text-sm font-medium text-gray-500">
-        <a class="hover:text-black transition-colors" href="#services">Services</a>
-        <a class="hover:text-black transition-colors" href="#process">Process</a>
-        <a class="text-black hover:opacity-70 transition-opacity" href="#contact">Contact</a>
-      </div>
-      <button class="md:hidden text-black" aria-label="Open menu">
-        <span class="material-symbols-outlined">menu</span>
-      </button>
-    </div>
-  </nav>
+<body class="text-black antialiased">
+  <!-- 3D background -->
+  <div class="bg-3d-wrap" aria-hidden="true">
+    <canvas id="silhouette-canvas"></canvas>
+    <div class="bg-vignette"></div>
+  </div>
 
-  <header class="relative pt-48 pb-32 px-6">
-    <div class="max-w-5xl mx-auto">
-      <h1 class="text-5xl md:text-7xl lg:text-8xl font-medium text-black leading-[1.05] tracking-tight mb-12">
-        No guesswork. Just real Data.<br />
-        <span class="text-gray-400">Every failed business once started as a “genius idea” in a bubble.</span>
-      </h1>
-
-      <div class="flex flex-col md:flex-row md:items-end justify-between gap-12">
-        <p class="text-lg md:text-xl text-gray-600 max-w-xl leading-relaxed font-light">
-          We test demand, pricing, positioning, and buyer intent.
-          For established companies and for founders who want to test a new business idea before deploying.
-        </p>
-        <div class="flex flex-col sm:flex-row items-center gap-6 shrink-0">
-          <a class="text-black border-b border-black pb-1 hover:opacity-60 transition-opacity text-lg" href="#contact">
-            Let’s Talk
-          </a>
-          <a class="text-gray-500 hover:text-black transition-colors text-lg" href="mailto:hello@boredsurvey.com?subject=Project%20Inquiry%20-%20Bored%20Survey">
-            Email Us
-          </a>
+  <div class="site-layer">
+    <nav class="fixed w-full z-50 bg-white/80 backdrop-blur-sm">
+      <div class="max-w-screen-xl mx-auto px-6 h-24 flex items-center justify-between">
+        <a class="text-lg font-semibold tracking-tight text-black flex items-center gap-2" href="#">
+          Bored Survey.
+        </a>
+        <div class="hidden md:flex items-center gap-12 text-sm font-medium text-gray-500">
+          <a class="hover:text-black transition-colors" href="#services">Services</a>
+          <a class="hover:text-black transition-colors" href="#process">Process</a>
+          <a class="text-black hover:opacity-70 transition-opacity" href="#contact">Contact</a>
         </div>
+        <button class="md:hidden text-black" aria-label="Open menu">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
       </div>
-    </div>
-  </header>
+    </nav>
 
-  <main class="stack-flow">
-    <section class="stack-section z-10" id="services">
-      <div class="stack-surface py-32 px-6">
-        <div class="max-w-5xl mx-auto">
-          <div class="mb-20">
-            <span class="text-xs font-semibold uppercase tracking-widest text-gray-400">01 — What We Do</span>
-          </div>
+    <header class="relative pt-48 pb-24 px-6">
+      <div class="max-w-5xl mx-auto">
+        <h1 class="text-5xl md:text-7xl lg:text-8xl font-medium text-black leading-[1.05] tracking-tight mb-12" data-sync="1.15">
+          No guesswork. Just real Data.<br />
+          <span class="text-gray-500">Every failed business once started as a “genius idea” in a bubble.</span>
+        </h1>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-16 lg:gap-24">
-            <div class="group">
-              <h3 class="text-xl font-medium text-black mb-6">Market Signal at Scale</h3>
-              <p class="text-gray-500 leading-relaxed font-light">
-                High-volume response collection, quality controls, and clean datasets.
-                You get signal you can act on.
-              </p>
-            </div>
-
-            <div class="group">
-              <h3 class="text-xl font-medium text-black mb-6">Commercial Decision Testing</h3>
-              <p class="text-gray-500 leading-relaxed font-light">
-                Test offer strength, pricing tolerance, message clarity, and segment fit before committing serious budget.
-              </p>
-            </div>
-
-            <div class="group">
-              <h3 class="text-xl font-medium text-black mb-6">New Idea Validation</h3>
-              <p class="text-gray-500 leading-relaxed font-light">
-                Thinking about launching a new business?
-                Pressure-test the concept in the real market before you build.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="stack-section z-20" id="process">
-      <div class="stack-surface py-32 px-6">
-        <div class="max-w-5xl mx-auto">
-          <div class="mb-20">
-            <span class="text-xs font-semibold uppercase tracking-widest text-gray-400">02 — How We Work</span>
-          </div>
-
-          <div class="space-y-24">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-100 pt-8">
-              <div class="col-span-1 md:col-span-2 text-sm font-medium text-gray-300">01</div>
-              <div class="col-span-1 md:col-span-4">
-                <h3 class="text-2xl font-medium text-black">Scope the decision</h3>
-              </div>
-              <div class="col-span-1 md:col-span-6">
-                <p class="text-gray-500 font-light leading-relaxed">
-                  We define the exact decision first.
-                  If the decision is vague, the research is useless.
-                </p>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-100 pt-8">
-              <div class="col-span-1 md:col-span-2 text-sm font-medium text-gray-300">02</div>
-              <div class="col-span-1 md:col-span-4">
-                <h3 class="text-2xl font-medium text-black">Run fieldwork at scale</h3>
-              </div>
-              <div class="col-span-1 md:col-span-6">
-                <p class="text-gray-500 font-light leading-relaxed">
-                  We launch, monitor, and filter responses to keep data quality high and noise low.
-                </p>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-100 pt-8">
-              <div class="col-span-1 md:col-span-2 text-sm font-medium text-gray-300">03</div>
-              <div class="col-span-1 md:col-span-4">
-                <h3 class="text-2xl font-medium text-black">Deliver a hard readout</h3>
-              </div>
-              <div class="col-span-1 md:col-span-6">
-                <p class="text-gray-500 font-light leading-relaxed">
-                  Go, no-go, or rework.
-                  Clear priorities, clear risks, clear next step.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="stack-section z-30">
-      <div class="stack-surface accent py-32 px-6">
-        <div class="max-w-5xl mx-auto">
-          <div class="mb-20">
-            <span class="text-xs font-semibold uppercase tracking-widest text-gray-400">03 — Why This Matters</span>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-16">
-            <div>
-              <h2 class="text-3xl md:text-4xl font-medium leading-tight text-black">
-                If you can’t prove demand,<br />
-                you’re funding a belief.
-              </h2>
-            </div>
-            <div class="flex flex-col justify-end">
-              <p class="text-gray-600 font-light text-lg leading-relaxed">
-                In 1985, Coca-Cola replaced its formula after strong blind taste-test feedback.
-                Consumers rejected the change in the real market, and the original formula returned within months.
-                The lesson is simple: research must reflect real behavior, not just controlled test conditions.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="stack-section z-40" id="contact">
-      <div class="stack-surface py-40 px-6">
-        <div class="max-w-5xl mx-auto text-center">
-          <h2 class="text-4xl md:text-6xl font-medium text-black mb-12 tracking-tight">
-            If the decision is expensive,<br class="hidden md:block" />
-            test it first.
-          </h2>
-          <div class="flex flex-col sm:flex-row justify-center gap-8 items-center">
-            <a
-              class="bg-black text-white px-10 py-4 hover:bg-gray-800 transition-colors text-lg"
-              href="mailto:hello@boredsurvey.com?subject=Project%20Inquiry%20-%20Bored%20Survey"
-            >
-              Start a Project
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-12">
+          <p class="text-lg md:text-xl text-gray-700 max-w-xl leading-relaxed font-light" data-sync="0.65">
+            We test demand, pricing, positioning, and buyer intent.
+            For established companies and for founders who want to test a new business idea before deploying.
+          </p>
+          <div class="flex flex-col sm:flex-row items-center gap-6 shrink-0">
+            <a class="text-black border-b border-black pb-1 hover:opacity-60 transition-opacity text-lg" href="#contact">
+              Let’s Talk
+            </a>
+            <a class="text-gray-600 hover:text-black transition-colors text-lg" href="mailto:hello@boredsurvey.com?subject=Project%20Inquiry%20-%20Bored%20Survey">
+              Email Us
             </a>
           </div>
         </div>
       </div>
-    </section>
-  </main>
+    </header>
 
-  <footer class="bg-white border-t border-gray-100 pt-16 pb-12 px-6 relative z-50">
-    <div class="max-w-screen-xl mx-auto">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-8">
-        <a class="text-lg font-bold tracking-tight text-black" href="#">
-          Bored Survey.
-        </a>
-      </div>
+    <main class="stack-flow">
+      <section class="stack-panel z-[21]" id="services">
+        <div class="stack-card">
+          <div class="stack-scroll py-24 md:py-32 px-6">
+            <div class="max-w-5xl mx-auto">
+              <div class="mb-20">
+                <span class="text-xs font-semibold uppercase tracking-widest text-gray-400">01 — What We Do</span>
+              </div>
 
-      <div class="flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 gap-4">
-        <p>© <span id="year"></span> Bored Survey Agency.</p>
-        <div class="flex gap-6">
-          <a class="hover:text-black" href="#">Privacy</a>
-          <a class="hover:text-black" href="#">Terms</a>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-16 lg:gap-24">
+                <div class="group">
+                  <h3 class="text-xl font-medium text-black mb-6" data-sync="0.55">Market Signal at Scale</h3>
+                  <p class="text-gray-600 leading-relaxed font-light">
+                    High-volume response collection, quality controls, and clean datasets.
+                    You get signal you can act on.
+                  </p>
+                </div>
+
+                <div class="group">
+                  <h3 class="text-xl font-medium text-black mb-6" data-sync="0.55">Commercial Decision Testing</h3>
+                  <p class="text-gray-600 leading-relaxed font-light">
+                    Test offer strength, pricing tolerance, message clarity, and segment fit before committing serious budget.
+                  </p>
+                </div>
+
+                <div class="group">
+                  <h3 class="text-xl font-medium text-black mb-6" data-sync="0.55">New Idea Validation</h3>
+                  <p class="text-gray-600 leading-relaxed font-light">
+                    Thinking about launching a new business?
+                    Pressure-test the concept in the real market before you build.
+                  </p>
+                </div>
+              </div>
+
+              <!-- extra content so section can be scrolled itself -->
+              <div class="mt-20 grid grid-cols-1 md:grid-cols-2 gap-12 border-t border-gray-100 pt-12">
+                <div>
+                  <h4 class="text-lg font-medium mb-3 text-black">Use cases</h4>
+                  <ul class="text-gray-600 font-light leading-relaxed space-y-2">
+                    <li>• Launching a new product</li>
+                    <li>• Deciding price bands</li>
+                    <li>• Testing message before ad spend</li>
+                    <li>• Validating a fresh business concept</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="text-lg font-medium mb-3 text-black">Output style</h4>
+                  <ul class="text-gray-600 font-light leading-relaxed space-y-2">
+                    <li>• Direct summary</li>
+                    <li>• Signal vs noise breakdown</li>
+                    <li>• Go / no-go recommendation</li>
+                    <li>• Next-step decision map</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack-panel z-[22]" id="process">
+        <div class="stack-card">
+          <div class="stack-scroll py-24 md:py-32 px-6">
+            <div class="max-w-5xl mx-auto">
+              <div class="mb-20">
+                <span class="text-xs font-semibold uppercase tracking-widest text-gray-400">02 — How We Work</span>
+              </div>
+
+              <div class="space-y-24">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-100 pt-8">
+                  <div class="col-span-1 md:col-span-2 text-sm font-medium text-gray-300">01</div>
+                  <div class="col-span-1 md:col-span-4">
+                    <h3 class="text-2xl font-medium text-black" data-sync="0.45">Scope the decision</h3>
+                  </div>
+                  <div class="col-span-1 md:col-span-6">
+                    <p class="text-gray-600 font-light leading-relaxed">
+                      We define the exact decision first.
+                      If the decision is vague, the research is useless.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-100 pt-8">
+                  <div class="col-span-1 md:col-span-2 text-sm font-medium text-gray-300">02</div>
+                  <div class="col-span-1 md:col-span-4">
+                    <h3 class="text-2xl font-medium text-black" data-sync="0.45">Run fieldwork at scale</h3>
+                  </div>
+                  <div class="col-span-1 md:col-span-6">
+                    <p class="text-gray-600 font-light leading-relaxed">
+                      We launch, monitor, and filter responses to keep data quality high and noise low.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start border-t border-gray-100 pt-8">
+                  <div class="col-span-1 md:col-span-2 text-sm font-medium text-gray-300">03</div>
+                  <div class="col-span-1 md:col-span-4">
+                    <h3 class="text-2xl font-medium text-black" data-sync="0.45">Deliver a hard readout</h3>
+                  </div>
+                  <div class="col-span-1 md:col-span-6">
+                    <p class="text-gray-600 font-light leading-relaxed">
+                      Go, no-go, or rework.
+                      Clear priorities, clear risks, clear next step.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- extra content so section can be scrolled itself -->
+              <div class="mt-20 border-t border-gray-100 pt-12">
+                <h4 class="text-lg font-medium mb-4 text-black">What gets filtered out</h4>
+                <p class="text-gray-600 font-light leading-relaxed max-w-3xl">
+                  Straight-line answers, contradictory responses, duplicated patterns, and low-effort submissions.
+                  Better fewer valid records than inflated noise.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack-panel z-[23]">
+        <div class="stack-card accent">
+          <div class="stack-scroll py-24 md:py-32 px-6">
+            <div class="max-w-5xl mx-auto">
+              <div class="mb-20">
+                <span class="text-xs font-semibold uppercase tracking-widest text-gray-500">03 — Why This Matters</span>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-16">
+                <div>
+                  <h2 class="text-3xl md:text-4xl font-medium leading-tight text-black" data-sync="0.9">
+                    If you can’t prove demand,<br />
+                    you’re funding a belief.
+                  </h2>
+                </div>
+                <div class="flex flex-col justify-end">
+                  <p class="text-gray-700 font-light text-lg leading-relaxed">
+                    In 1985, Coca-Cola replaced its formula after strong blind taste-test feedback.
+                    Consumers rejected the change in the real market, and the original formula returned within months.
+                    The lesson is simple: research must reflect real behavior, not just controlled test conditions.
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-20 border-t border-gray-300/40 pt-12">
+                <p class="text-gray-700 font-light text-lg max-w-3xl leading-relaxed">
+                  Strong opinions close meetings. Market proof closes risk.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="stack-panel z-[24]" id="contact">
+        <div class="stack-card">
+          <div class="stack-scroll py-24 md:py-40 px-6">
+            <div class="max-w-5xl mx-auto text-center">
+              <h2 class="text-4xl md:text-6xl font-medium text-black mb-12 tracking-tight" data-sync="1.05">
+                If the decision is expensive,<br class="hidden md:block" />
+                test it first.
+              </h2>
+              <div class="flex flex-col sm:flex-row justify-center gap-8 items-center">
+                <a
+                  class="bg-black text-white px-10 py-4 hover:bg-gray-800 transition-colors text-lg"
+                  href="mailto:hello@boredsurvey.com?subject=Project%20Inquiry%20-%20Bored%20Survey"
+                >
+                  Start a Project
+                </a>
+              </div>
+              <p class="text-gray-500 font-light mt-12 max-w-2xl mx-auto">
+                Send your decision context. We will reply with scope, sample direction, and execution path.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-white/92 backdrop-blur-sm border-t border-gray-100 pt-16 pb-12 px-6 relative z-50">
+      <div class="max-w-screen-xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-8">
+          <a class="text-lg font-bold tracking-tight text-black" href="#">
+            Bored Survey.
+          </a>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-between items-center text-xs text-gray-400 gap-4">
+          <p>© <span id="year"></span> Bored Survey Agency.</p>
+          <div class="flex gap-6">
+            <a class="hover:text-black" href="#">Privacy</a>
+            <a class="hover:text-black" href="#">Terms</a>
+          </div>
         </div>
       </div>
-    </div>
-  </footer>
+    </footer>
+  </div>
 
   <script>
+    // year
     document.getElementById("year").textContent = new Date().getFullYear();
+
+    // dynamic nav height
+    const nav = document.querySelector("nav");
+    function updateNavHeightVar() {
+      const h = nav ? nav.offsetHeight : 96;
+      document.documentElement.style.setProperty("--nav-h", `${h}px`);
+    }
+    updateNavHeightVar();
+    window.addEventListener("resize", updateNavHeightVar);
+
+    // stacked parallax transform
+    const panels = [...document.querySelectorAll(".stack-panel")];
+    function updatePanelParallax() {
+      const navH = nav ? nav.offsetHeight : 96;
+      const stickyTop = navH + 12;
+
+      panels.forEach((panel, i) => {
+        const card = panel.querySelector(".stack-card");
+        const rect = panel.getBoundingClientRect();
+
+        // progress as panel reaches sticky anchor
+        const progress = Math.max(0, Math.min(1, (stickyTop - rect.top) / (window.innerHeight * 0.9)));
+        const scale = 1 - progress * 0.035;
+        const y = progress * 16;
+        const shadowY = 18 + progress * 14;
+        const shadowBlur = 48 + progress * 18;
+        const shadowAlpha = 0.07 + progress * 0.06;
+
+        card.style.transform = `translate3d(0, ${y}px, 0) scale(${scale})`;
+        card.style.boxShadow = `0 ${shadowY}px ${shadowBlur}px rgba(0,0,0,${shadowAlpha})`;
+        card.style.opacity = `${1 - progress * 0.02}`;
+      });
+    }
+    updatePanelParallax();
+    window.addEventListener("scroll", updatePanelParallax, { passive: true });
+    window.addEventListener("resize", updatePanelParallax);
+
+    // active panel internal scroll routing (wheel goes to active section first)
+    function getActiveScrollBox() {
+      const navH = nav ? nav.offsetHeight : 96;
+      const line = navH + 18;
+      let activePanel = null;
+      let bestTop = -Infinity;
+
+      for (const panel of panels) {
+        const r = panel.getBoundingClientRect();
+        if (r.top <= line && r.bottom > line) {
+          if (r.top > bestTop) {
+            bestTop = r.top;
+            activePanel = panel;
+          }
+        }
+      }
+
+      return activePanel ? activePanel.querySelector(".stack-scroll") : null;
+    }
+
+    window.addEventListener(
+      "wheel",
+      (e) => {
+        const box = getActiveScrollBox();
+        if (!box) return;
+
+        const canScrollDown = e.deltaY > 0 && box.scrollTop + box.clientHeight < box.scrollHeight - 1;
+        const canScrollUp = e.deltaY < 0 && box.scrollTop > 0;
+
+        if (canScrollDown || canScrollUp) {
+          box.scrollTop += e.deltaY;
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+
+    // -------------------------
+    // 3D background silhouette
+    // -------------------------
+    const canvas = document.getElementById("silhouette-canvas");
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0.35, 6.2);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.92);
+    scene.add(ambient);
+
+    const key = new THREE.DirectionalLight(0xffffff, 0.65);
+    key.position.set(2.2, 3.8, 4.5);
+    scene.add(key);
+
+    const rim = new THREE.DirectionalLight(0xffffff, 0.35);
+    rim.position.set(-3, 1.2, -2.5);
+    scene.add(rim);
+
+    const human = new THREE.Group();
+    scene.add(human);
+
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x6e6e6e,
+      roughness: 0.9,
+      metalness: 0.05
+    });
+
+    function addPart(geometry, x, y, z, rx = 0, ry = 0, rz = 0) {
+      const mesh = new THREE.Mesh(geometry, mat);
+      mesh.position.set(x, y, z);
+      mesh.rotation.set(rx, ry, rz);
+      human.add(mesh);
+      return mesh;
+    }
+
+    // torso + head
+    addPart(new THREE.CylinderGeometry(0.46, 0.56, 1.8, 28), 0, 0.0, 0);
+    addPart(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 18), 0, 1.02, 0);
+    addPart(new THREE.SphereGeometry(0.36, 28, 28), 0, 1.45, 0);
+
+    // hips
+    addPart(new THREE.SphereGeometry(0.34, 24, 24), 0, -1.02, 0);
+
+    // arms open
+    addPart(new THREE.CylinderGeometry(0.11, 0.12, 1.0, 18), -0.86, 0.52, 0, 0, 0, Math.PI / 2.35);
+    addPart(new THREE.CylinderGeometry(0.10, 0.10, 1.0, 18), -1.6, 0.7, 0, 0, 0, Math.PI / 2.08);
+
+    addPart(new THREE.CylinderGeometry(0.11, 0.12, 1.0, 18), 0.86, 0.52, 0, 0, 0, -Math.PI / 2.35);
+    addPart(new THREE.CylinderGeometry(0.10, 0.10, 1.0, 18), 1.6, 0.7, 0, 0, 0, -Math.PI / 2.08);
+
+    // legs
+    addPart(new THREE.CylinderGeometry(0.14, 0.16, 1.45, 18), -0.24, -1.95, 0, 0.08, 0, 0.06);
+    addPart(new THREE.CylinderGeometry(0.14, 0.16, 1.45, 18), 0.24, -1.95, 0, 0.08, 0, -0.06);
+
+    // subtle floor shadow
+    const shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(1.95, 48),
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.08 })
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = -2.75;
+    human.add(shadow);
+
+    human.scale.set(1.05, 1.05, 1.05);
+
+    function scrollProgress() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) return 0;
+      return window.scrollY / max;
+    }
+
+    const syncNodes = [...document.querySelectorAll("[data-sync]")];
+    function syncTextWithFigure(t) {
+      syncNodes.forEach((el) => {
+        const depth = parseFloat(el.getAttribute("data-sync") || "1");
+        const r = el.getBoundingClientRect();
+        const center = r.top + r.height / 2;
+        const local = (window.innerHeight * 0.5 - center) / window.innerHeight; // -1..1
+        const y = local * (26 * depth) + Math.sin(t * Math.PI * 3.2) * (2.2 * depth);
+        const x = Math.sin(t * Math.PI * 2.4) * (1.4 * depth);
+        el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      });
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const t = scrollProgress();
+
+      // rotate + slight drift tied to scroll
+      human.rotation.y = t * Math.PI * 4.2;
+      human.rotation.x = Math.sin(t * Math.PI * 2.0) * 0.045;
+      human.position.y = -0.05 + Math.sin(t * Math.PI * 3.0) * 0.08;
+      human.position.x = Math.sin(t * Math.PI * 2.0) * 0.26;
+
+      syncTextWithFigure(t);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener("resize", () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      updateNavHeightVar();
+      updatePanelParallax();
+    });
   </script>
 </body>
 </html>
