@@ -41,6 +41,7 @@
     html, body {
       overflow-x: hidden;
       background: #fff;
+      overscroll-behavior-y: none;
     }
 
     body {
@@ -305,7 +306,7 @@
   <script>
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
     const TAU = Math.PI * 2;
-    const SCROLL_START_PX = 28; // hard 0-line: animation starts only after this
+    const SCROLL_START_PX = 28;
 
     const cores = navigator.hardwareConcurrency || 4;
     const mobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -314,44 +315,10 @@
 
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    function smoothstep(t) {
-      t = clamp(t, 0, 1);
-      return t * t * (3 - 2 * t);
-    }
-
     function hash01(n) {
       const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453123;
       return x - Math.floor(x);
     }
-
-    const canvas = document.getElementById("particle-canvas");
-    const ctx = canvas.getContext("2d", { alpha: true });
-
-    const shapeCanvas = document.createElement("canvas");
-    const sctx = shapeCanvas.getContext("2d", { willReadFrequently: true });
-
-    let W = 0, H = 0, DPR = 1, maxScroll = 1;
-
-    // Shape particles
-    let N = 0;
-    let pX, pY, pR, pA, pSeed;
-
-    // Lost particles
-    let NLost = 0;
-    let lX, lY, lVX, lVY, lR, lA, lSeed;
-
-    let shapes = [];
-
-    let mainSprite = null;
-    let coreSprite = null;
-    let ambientSprite = null;
-    let glowSprite = null;
-
-    let pointerX = 0;
-    let pointerY = 0;
-
-    let lastTs = 0;
-    let prevProgress = 0;
 
     function roundedRectPath(c, x, y, w, h, r) {
       const rr = Math.min(r, w * 0.5, h * 0.5);
@@ -368,6 +335,44 @@
       c.closePath();
     }
 
+    function catmullRom(p0, p1, p2, p3, t) {
+      const t2 = t * t;
+      const t3 = t2 * t;
+      return 0.5 * (
+        (2 * p1) +
+        (-p0 + p2) * t +
+        (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+        (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+      );
+    }
+
+    const canvas = document.getElementById("particle-canvas");
+    const ctx = canvas.getContext("2d", { alpha: true });
+
+    const shapeCanvas = document.createElement("canvas");
+    const sctx = shapeCanvas.getContext("2d", { willReadFrequently: true });
+
+    let W = 0, H = 0, DPR = 1, maxScroll = 1;
+
+    let N = 0;
+    let pX, pY, pR, pA, pSeed;
+
+    let NLost = 0;
+    let lX, lY, lR, lA, lSeed;
+
+    let shapes = [];
+
+    let mainSprite = null;
+    let coreSprite = null;
+    let ambientSprite = null;
+    let glowSprite = null;
+
+    let pointerX = 0;
+    let pointerY = 0;
+
+    let lastTs = 0;
+    let prevProgress = 0;
+
     function makeParticleSprite(size, rgbaCore, rgbaMid, rgbaEdge = "rgba(0,0,0,0)") {
       const c = document.createElement("canvas");
       c.width = size;
@@ -379,8 +384,8 @@
       const r = size * 0.5;
       const grad = g.createRadialGradient(r, r, 0, r, r, r);
       grad.addColorStop(0.00, rgbaCore);
-      grad.addColorStop(0.26, rgbaCore);
-      grad.addColorStop(0.62, rgbaMid);
+      grad.addColorStop(0.30, rgbaCore);
+      grad.addColorStop(0.65, rgbaMid);
       grad.addColorStop(1.00, rgbaEdge);
 
       g.fillStyle = grad;
@@ -388,23 +393,22 @@
       g.arc(r, r, r, 0, TAU);
       g.fill();
 
-      // subtle edge for extra definition
-      g.globalAlpha = 0.22;
-      g.lineWidth = Math.max(1, size * 0.015);
-      g.strokeStyle = "rgba(255,255,255,0.18)";
+      g.globalAlpha = 0.08;
+      g.lineWidth = Math.max(1, size * 0.012);
+      g.strokeStyle = "rgba(255,255,255,0.14)";
       g.beginPath();
-      g.arc(r, r, r - g.lineWidth * 0.7, 0, TAU);
+      g.arc(r, r, r - g.lineWidth * 0.8, 0, TAU);
       g.stroke();
 
       return c;
     }
 
     function buildSprites() {
-      // bigger source textures = less pixelation
-      mainSprite = makeParticleSprite(196, "rgba(8,8,8,1)", "rgba(10,10,10,0.90)");
-      coreSprite = makeParticleSprite(112, "rgba(0,0,0,1)", "rgba(0,0,0,0.76)");
-      ambientSprite = makeParticleSprite(132, "rgba(16,16,16,0.78)", "rgba(16,16,16,0.22)");
-      glowSprite = makeParticleSprite(220, "rgba(255,255,255,0.22)", "rgba(255,255,255,0.05)");
+      // softer contrast
+      mainSprite = makeParticleSprite(168, "rgba(28,28,28,0.74)", "rgba(54,54,54,0.28)");
+      coreSprite = makeParticleSprite(104, "rgba(22,22,22,0.40)", "rgba(22,22,22,0.12)");
+      ambientSprite = makeParticleSprite(124, "rgba(40,40,40,0.28)", "rgba(40,40,40,0.08)");
+      glowSprite = makeParticleSprite(210, "rgba(255,255,255,0.14)", "rgba(255,255,255,0.03)");
     }
 
     function setupSizes() {
@@ -415,9 +419,9 @@
       const isTablet = W >= 768 && W < 1100;
 
       if (lowPower) {
-        DPR = Math.min(window.devicePixelRatio || 1, isPhone ? 1.60 : 1.75);
+        DPR = Math.min(window.devicePixelRatio || 1, isPhone ? 1.45 : 1.65);
       } else {
-        DPR = Math.min(window.devicePixelRatio || 1, isPhone ? 2.00 : 2.20);
+        DPR = Math.min(window.devicePixelRatio || 1, isPhone ? 1.85 : 2.0);
       }
 
       canvas.width = Math.floor(W * DPR);
@@ -434,25 +438,25 @@
 
       let density, minN, maxN;
       if (isPhone) {
-        density = 92;
-        minN = 3900;
-        maxN = 7000;
+        density = 130;
+        minN = 2600;
+        maxN = 5000;
       } else if (isTablet) {
-        density = 145;
-        minN = 4200;
-        maxN = 8200;
+        density = 200;
+        minN = 3000;
+        maxN = 5800;
       } else {
-        density = 220;
-        minN = 5600;
-        maxN = 11000;
+        density = 290;
+        minN = 3600;
+        maxN = 7600;
       }
 
       let base = Math.floor((W * H) / density);
-      if (lowPower && isPhone) base = Math.floor(base * 0.84);
+      if (lowPower && isPhone) base = Math.floor(base * 0.86);
       if (lowPower && !isPhone) base = Math.floor(base * 0.90);
 
       N = clamp(base, minN, maxN);
-      NLost = clamp(Math.floor(N * 0.26), 520, 2200);
+      NLost = clamp(Math.floor(N * 0.20), 350, 1400);
 
       maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
     }
@@ -463,7 +467,7 @@
         x = Math.random() * W;
         y = Math.random() * H;
         tries++;
-        if (tries > 50) break;
+        if (tries > 60) break;
       } while (Math.hypot(x - cx, y - cy) < r);
       return { x, y };
     }
@@ -477,21 +481,19 @@
 
       lX = new Float32Array(NLost);
       lY = new Float32Array(NLost);
-      lVX = new Float32Array(NLost);
-      lVY = new Float32Array(NLost);
       lR = new Float32Array(NLost);
       lA = new Float32Array(NLost);
       lSeed = new Float32Array(NLost);
 
       const cx = W * 0.5;
       const cy = H * 0.52;
-      const exclusionInit = Math.min(W, H) * 0.42;
+      const exclusionInit = Math.min(W, H) * 0.46;
 
       for (let i = 0; i < N; i++) {
-        pX[i] = cx + (Math.random() - 0.5) * 190;
-        pY[i] = cy + (Math.random() - 0.5) * 190;
-        pR[i] = 1.06 + Math.random() * 1.74; // bigger shaped particles
-        pA[i] = 0.70 + Math.random() * 0.27;
+        pX[i] = cx + (Math.random() - 0.5) * 180;
+        pY[i] = cy + (Math.random() - 0.5) * 180;
+        pR[i] = 1.20 + Math.random() * 1.95; // slightly bigger
+        pA[i] = 0.45 + Math.random() * 0.23; // less contrast
         pSeed[i] = Math.random() * 10000;
       }
 
@@ -499,10 +501,8 @@
         const pt = randomOutsideCircle(cx, cy, exclusionInit);
         lX[i] = pt.x;
         lY[i] = pt.y;
-        lVX[i] = (Math.random() - 0.5) * 0.10;
-        lVY[i] = (Math.random() - 0.5) * 0.10;
-        lR[i] = 0.68 + Math.random() * 1.55; // bigger lost particles
-        lA[i] = 0.05 + Math.random() * 0.13;
+        lR[i] = 0.75 + Math.random() * 1.55;
+        lA[i] = 0.035 + Math.random() * 0.09;
         lSeed[i] = Math.random() * 10000;
       }
     }
@@ -519,7 +519,6 @@
       c.lineCap = "round";
       c.lineJoin = "round";
 
-      // glass
       c.globalAlpha = 1;
       c.lineWidth = s * 0.064;
       c.beginPath();
@@ -533,10 +532,8 @@
 
       c.globalAlpha = 0.18;
       c.fill();
-
       c.globalAlpha = 1;
 
-      // neck + base
       c.lineWidth = s * 0.042;
       roundedRectPath(c, cx - s * 0.18, cy + s * 0.55, s * 0.36, s * 0.20, s * 0.08);
       c.stroke();
@@ -557,7 +554,6 @@
         c.stroke();
       }
 
-      // supports
       c.lineWidth = s * 0.022;
       c.beginPath();
       c.moveTo(cx - s * 0.12, cy + s * 0.24);
@@ -566,7 +562,6 @@
       c.lineTo(cx + s * 0.12, cy + s * 0.05);
       c.stroke();
 
-      // tungsten filament coil
       c.lineWidth = s * 0.029;
       c.beginPath();
       c.moveTo(cx - s * 0.12, cy + s * 0.05);
@@ -751,11 +746,9 @@
         out[i * 2] = pool[idx].x;
         out[i * 2 + 1] = pool[idx].y;
       }
-
       return out;
     }
 
-    // Explosion keeps filament region readable in exploded stage
     function explodeFromBulb(src) {
       const out = new Float32Array(src.length);
       const cx = W * 0.5;
@@ -791,7 +784,7 @@
 
         let push;
         if (inFilamentBand || inSupportBand) {
-          push = s * (0.012 + rnd1 * 0.022);  // preserve filament silhouette
+          push = s * (0.012 + rnd1 * 0.022);
         } else if (inBase) {
           push = s * (0.010 + rnd1 * 0.018);
         } else if (inGlassTop) {
@@ -825,16 +818,6 @@
       shapes = [bulb, exploded, question, graph];
     }
 
-    function getMorphState(progress) {
-      // strict linear mapping with scroll distance: no loops/restarts
-      const stageCount = shapes.length - 1; // 3 transitions
-      const pos = clamp(progress, 0, 1) * stageCount;
-      const from = Math.floor(pos);
-      const to = Math.min(from + 1, stageCount);
-      const mix = smoothstep(pos - from);
-      return { from, to, mix };
-    }
-
     function rebuildAll() {
       setupSizes();
       buildSprites();
@@ -844,14 +827,9 @@
       prevProgress = 0;
     }
 
-    window.addEventListener("pointermove", (e) => {
-      pointerX = (e.clientX / W - 0.5) * 2;
-      pointerY = (e.clientY / H - 0.5) * 2;
-    }, { passive: true });
-
     function frameCap() {
       if (lowPower && W < 768) return 34;
-      if (lowPower) return 40;
+      if (lowPower) return 42;
       return 60;
     }
 
@@ -860,6 +838,11 @@
       ctx.globalAlpha = alpha;
       ctx.drawImage(sprite, x - r, y - r, d, d);
     }
+
+    window.addEventListener("pointermove", (e) => {
+      pointerX = (e.clientX / W - 0.5) * 2;
+      pointerY = (e.clientY / H - 0.5) * 2;
+    }, { passive: true });
 
     function render(ts) {
       if (!lastTs) {
@@ -875,111 +858,138 @@
       }
 
       const dtMs = ts - lastTs;
-      const dt = clamp(dtMs / 16.6667, 0.7, 1.9);
       const dtSec = Math.max(dtMs / 1000, 0.001);
       lastTs = ts;
 
       ctx.clearRect(0, 0, W, H);
 
-      // robust top dead-zone line to remove top glitch
       const rawScrollY = Math.max(
         0,
         window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
       );
 
       let progress = 0;
-      let lockedTop = false;
+      const topLocked = rawScrollY <= SCROLL_START_PX;
 
-      if (rawScrollY <= SCROLL_START_PX) {
+      if (topLocked) {
         progress = 0;
-        lockedTop = true;
       } else {
         const usable = Math.max(1, maxScroll - SCROLL_START_PX);
         progress = clamp((rawScrollY - SCROLL_START_PX) / usable, 0, 1);
       }
 
       let scrollVel = 0;
-      if (lockedTop) {
+      if (topLocked) {
         prevProgress = 0;
       } else {
         scrollVel = (progress - prevProgress) / dtSec;
-        scrollVel = clamp(scrollVel, -2.4, 2.4);
+        scrollVel = clamp(scrollVel, -2.0, 2.0);
         prevProgress = progress;
       }
 
-      const { from, to, mix } = getMorphState(progress);
-      const A = shapes[from];
-      const B = shapes[to];
+      const stageCount = shapes.length - 1;
+      let pos = progress * stageCount;
+      let seg = Math.floor(pos);
+      let t = pos - seg;
 
-      const centerX = W * 0.5 + pointerX * 1.8;
-      const centerY = H * 0.52 + pointerY * 1.4;
+      if (seg >= stageCount) {
+        seg = stageCount - 1;
+        t = 1;
+      }
+      if (seg < 0) {
+        seg = 0;
+        t = 0;
+      }
+
+      const s0 = Math.max(0, seg - 1);
+      const s1 = seg;
+      const s2 = Math.min(stageCount, seg + 1);
+      const s3 = Math.min(stageCount, seg + 2);
+
+      const A0 = shapes[s0];
+      const A1 = shapes[s1];
+      const A2 = shapes[s2];
+      const A3 = shapes[s3];
+
+      const centerX = W * 0.5 + pointerX * 1.2;
+      const centerY = H * 0.52 + pointerY * 0.95;
 
       const minDim = Math.min(W, H);
-      const baseRadii = [minDim * 0.30, minDim * 0.44, minDim * 0.35, minDim * 0.48];
-      const targetR = baseRadii[from] + (baseRadii[to] - baseRadii[from]) * mix;
+      const baseR = [minDim * 0.30, minDim * 0.44, minDim * 0.35, minDim * 0.48];
+      const targetR = catmullRom(
+        baseR[Math.max(0, seg - 1)],
+        baseR[seg],
+        baseR[Math.min(stageCount, seg + 1)],
+        baseR[Math.min(stageCount, seg + 2)],
+        t
+      );
 
-      // Lost particles far away from shape
-      const exclusion = targetR + minDim * 0.24;
+      // keep lost particles very far from shapes
+      const exclusion = targetR + minDim * 0.30;
 
       for (let i = 0; i < NLost; i++) {
         const s = lSeed[i];
-        const phase = ts * 0.00024 + s * 6.3;
-        const scrollPhase = progress * TAU * 1.9;
 
-        lVX[i] += Math.cos(phase + scrollPhase) * 0.0022;
-        lVY[i] += Math.sin(phase * 1.05 - scrollPhase) * 0.0022;
+        // almost stationary
+        const amp = 0.08 + hash01(s * 2.1) * 0.55;
+        const freq = 0.00017 + hash01(s * 1.7) * 0.00010;
 
-        lVX[i] += scrollVel * (hash01(i * 0.77) - 0.5) * 0.0040;
-        lVY[i] -= scrollVel * (hash01(i * 1.41) - 0.5) * 0.0019;
+        let lx = lX[i] + Math.sin(ts * freq + s * 5.2) * amp + pointerX * 0.10;
+        let ly = lY[i] + Math.cos(ts * (freq * 1.06) + s * 3.8) * amp + pointerY * 0.08;
 
-        const dx = lX[i] - centerX;
-        const dy = lY[i] - centerY;
+        // tiny scroll reaction, no drifting
+        lx += progress * (hash01(i * 0.51) - 0.5) * 1.0;
+        ly -= progress * (hash01(i * 0.73) - 0.5) * 0.7;
+
+        const dx = lx - centerX;
+        const dy = ly - centerY;
         const d = Math.hypot(dx, dy) + 0.0001;
+
         if (d < exclusion) {
-          const force = (exclusion - d) * 0.0038;
-          lVX[i] += (dx / d) * force;
-          lVY[i] += (dy / d) * force;
+          const push = (exclusion - d) + 2;
+          lx += (dx / d) * push;
+          ly += (dy / d) * push;
         }
 
-        lVX[i] *= 0.987;
-        lVY[i] *= 0.987;
-
-        lX[i] += lVX[i] * dt * 14.5;
-        lY[i] += lVY[i] * dt * 14.5;
-
-        if (lX[i] < -28) lX[i] = W + 28;
-        if (lX[i] > W + 28) lX[i] = -28;
-        if (lY[i] < -28) lY[i] = H + 28;
-        if (lY[i] > H + 28) lY[i] = -28;
-
-        const pulse = 0.88 + 0.12 * Math.sin(ts * 0.001 + s * 4.1 + progress * 6.0);
-        drawSprite(ambientSprite, lX[i], lY[i], lR[i], lA[i] * pulse);
+        drawSprite(ambientSprite, lx, ly, lR[i], lA[i]);
       }
 
-      const parX = pointerX * 1.2;
-      const parY = pointerY * 1.0;
+      // smoother shape motion, lower contrast
+      const motionBoost = 1 + Math.min(Math.abs(scrollVel) * 0.42, 0.65);
+      const microAmpBase = 0.24 * motionBoost;
 
-      // Higher individual amplitude
-      const motionBoost = 1 + Math.min(Math.abs(scrollVel) * 0.58, 1.0);
-      const microAmpBase = 0.26 * motionBoost;
+      const parX = pointerX * 0.95;
+      const parY = pointerY * 0.78;
 
       for (let i = 0; i < N; i++) {
         const idx = i * 2;
         const seed = pSeed[i];
 
-        // direct shape position: no spring, no bounce
-        const tx = A[idx] + (B[idx] - A[idx]) * mix + parX;
-        const ty = A[idx + 1] + (B[idx + 1] - A[idx + 1]) * mix + parY;
+        const tx = catmullRom(
+          A0[idx],
+          A1[idx],
+          A2[idx],
+          A3[idx],
+          t
+        ) + parX;
 
-        const amp = microAmpBase * (0.80 + hash01(seed * 1.3) * 0.60);
+        const ty = catmullRom(
+          A0[idx + 1],
+          A1[idx + 1],
+          A2[idx + 1],
+          A3[idx + 1],
+          t
+        ) + parY;
+
+        const amp = microAmpBase * (0.74 + hash01(seed * 1.3) * 0.54);
 
         const jx =
-          Math.sin(ts * (0.00064 + hash01(seed * 0.91) * 0.00030) + seed * 6.1) * amp +
-          Math.cos(ts * (0.00037 + hash01(seed * 1.41) * 0.00022) + seed * 4.7) * amp * 0.56;
+          Math.sin(ts * (0.00056 + hash01(seed * 0.91) * 0.00022) + seed * 6.1) * amp +
+          Math.cos(ts * (0.00032 + hash01(seed * 1.41) * 0.00018) + seed * 4.7) * amp * 0.46;
 
         const jy =
-          Math.cos(ts * (0.00060 + hash01(seed * 1.73) * 0.00028) + seed * 5.4) * amp +
-          Math.sin(ts * (0.00035 + hash01(seed * 2.07) * 0.00019) + seed * 3.6) * amp * 0.56;
+          Math.cos(ts * (0.00053 + hash01(seed * 1.73) * 0.00021) + seed * 5.4) * amp +
+          Math.sin(ts * (0.00030 + hash01(seed * 2.07) * 0.00016) + seed * 3.6) * amp * 0.46;
 
         pX[i] = tx + jx;
         pY[i] = ty + jy;
@@ -988,15 +998,15 @@
         const a = pA[i];
 
         drawSprite(mainSprite, pX[i], pY[i], r, a);
-        if ((i & 2) === 0) {
-          drawSprite(coreSprite, pX[i], pY[i], r * 0.63, a * 0.36);
+        if ((i & 3) === 0) {
+          drawSprite(coreSprite, pX[i], pY[i], r * 0.60, a * 0.17);
         }
       }
 
-      // subtle glow pass
+      // softer glow
       ctx.globalCompositeOperation = "lighter";
-      for (let i = 0; i < N; i += 16) {
-        drawSprite(glowSprite, pX[i], pY[i], pR[i] * 2.05, 0.020);
+      for (let i = 0; i < N; i += 22) {
+        drawSprite(glowSprite, pX[i], pY[i], pR[i] * 1.9, 0.010);
       }
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 1;
